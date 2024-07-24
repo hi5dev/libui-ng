@@ -1,0 +1,10 @@
+cmake_minimum_required (VERSION 3.25)
+
+add_subdirectory (controlgallery)
+add_subdirectory (cpp-multithread)
+add_subdirectory (datetime)
+add_subdirectory (drawtext)
+add_subdirectory (hello-world)
+add_subdirectory (histogram)
+add_subdirectory (timer)
+add_subdirectory (window)

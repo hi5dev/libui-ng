@@ -177,7 +177,7 @@ int menuTestSetup(void **_state)
 {
 	uiInitOptions o = {0};
 
-	assert_null(uiInit(&o));
+	assert_no_error(uiInit(&o));
 	return 0;
 }
 
@@ -223,4 +223,3 @@ int menuRunUnitTests(void)
 
 	return cmocka_run_group_tests_name("uiMenu", tests, unitTestsSetup, unitTestsTeardown);
 }
-

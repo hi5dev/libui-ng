@@ -1,10 +1,47 @@
+# Helps maintain consistent coding styles.
+# https://editorconfig.org/
+
 root = true
 
+# default rules for all text files
 [*]
+
+# file encoding
 charset = utf-8
-trim_trailing_whitespace = true
-end_of_line = lf
+
+# indentation/tabulation
+indent_size = 2
+indent_style = space
+tab_width = 2
+
+# end-of-file
 insert_final_newline = true
 
-[*.{c,h,cpp,hpp}]
-indent_style = tab
+# end-of-line
+end_of_line = lf
+max_line_length = 119
+trim_trailing_whitespace = true
+ij_visual_guides = 119, 120
+ij_wrap_on_typing = true
+
+# these files do not have a reasonable maximum line length
+[{*.xml,*.ui,*.json}]
+max_line_length = off
+ij_visual_guides = none
+
+# jetbrains styles for cmake
+[{CMakeLists.txt,*.cmake}]
+ij_cmake_align_command_call_r_par = false
+ij_cmake_align_control_flow_r_par = false
+ij_cmake_align_multiline_parameters_in_calls = false
+ij_cmake_indent_size = 2
+ij_cmake_space_before_for_parentheses = true
+ij_cmake_space_before_if_parentheses = true
+ij_cmake_space_before_method_call_parentheses = true
+ij_cmake_space_before_method_parentheses = true
+ij_cmake_space_before_while_parentheses = true
+ij_cmake_spaces_within_for_parentheses = false
+ij_cmake_spaces_within_if_parentheses = false
+ij_cmake_spaces_within_method_call_parentheses = false
+ij_cmake_spaces_within_method_parentheses = false
+ij_cmake_spaces_within_while_parentheses = false

@@ -26,7 +26,7 @@ int unitTestSetup(void **_state)
 	struct state *state = *_state;
 	uiInitOptions o = {0};
 
-	assert_null(uiInit(&o));
+	assert_no_error(uiInit(&o));
 	state->w = uiNewWindow("Unit Test", UNIT_TEST_WINDOW_WIDTH, UNIT_TEST_WINDOW_HEIGHT, 0);
 	uiWindowOnClosing(state->w, unitWindowOnClosingQuit, NULL);
 	return 0;
@@ -86,4 +86,3 @@ int main(void)
 
 	return failedTests;
 }
-

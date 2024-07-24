@@ -43,3 +43,4 @@
  * @kojix2
  * @l0calh05t
  * Marco Trosi @marcotrosi
+ * Travis Haynes @hi5dev
