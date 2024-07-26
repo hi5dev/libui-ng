@@ -1,5 +1,22 @@
-#include "table.h"
-#include "ui.h"
+#include <ui/table.h>
+#include <ui/table_model.h>
+
+API uiTableModelHandler *uiprivTableModelHandler (uiTableModel *m);
+
+API uiTableValue *uiprivTableModelCellValue (uiTableModel *m, int row, int column);
+
+API uiTableValueType uiprivTableModelColumnType (uiTableModel *m, int column);
+
+API int uiprivTableModelCellEditable (uiTableModel *m, int row, int column);
+
+API int uiprivTableModelColorIfProvided (uiTableModel *m, int row, int column, double *r, double *g, double *b,
+                                         double *a);
+
+API int uiprivTableModelNumColumns (uiTableModel *m);
+
+API int uiprivTableModelNumRows (uiTableModel *m);
+
+API void uiprivTableModelSetCellValue (uiTableModel *m, int row, int column, const uiTableValue *value);
 
 int
 uiprivTableModelNumColumns (uiTableModel *m)

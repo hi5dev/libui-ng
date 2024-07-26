@@ -1,56 +1,60 @@
 #include "unit.h"
 
-#define uiProgressBarPtrFromState(p) uiControlPtrFromState(uiProgressBar, p)
+#include <ui/progressbar.h>
 
-static void progressBarNew(void **state)
+#define uiProgressBarPtrFromState(p) uiControlPtrFromState (uiProgressBar, p)
+#define progressBarUnitTest(f)       cmocka_unit_test_setup_teardown ((f), unitTestSetup, unitTestTeardown)
+
+static void
+progressBarNew (void **state)
 {
-	uiProgressBar **p = uiProgressBarPtrFromState(state);
+  uiProgressBar **p = uiProgressBarPtrFromState (state);
 
-	*p = uiNewProgressBar();
+  *p = uiNewProgressBar ();
 }
 
-static void progressBarValueDefault(void **state)
+static void
+progressBarValueDefault (void **state)
 {
-	uiProgressBar **p = uiProgressBarPtrFromState(state);
+  uiProgressBar **p = uiProgressBarPtrFromState (state);
 
-	*p = uiNewProgressBar();
-	assert_int_equal(uiProgressBarValue(*p), 0);
+  *p = uiNewProgressBar ();
+  assert_int_equal (uiProgressBarValue (*p), 0);
 }
 
-static void progressBarSetValue(void **state)
+static void
+progressBarSetValue (void **state)
 {
-	uiProgressBar **p = uiProgressBarPtrFromState(state);
+  uiProgressBar **p = uiProgressBarPtrFromState (state);
 
-	*p = uiNewProgressBar();
-	uiProgressBarSetValue(*p, 1);
-	assert_int_equal(uiProgressBarValue(*p), 1);
-	uiProgressBarSetValue(*p, 100);
-	assert_int_equal(uiProgressBarValue(*p), 100);
-	uiProgressBarSetValue(*p, 0);
-	assert_int_equal(uiProgressBarValue(*p), 0);
+  *p = uiNewProgressBar ();
+  uiProgressBarSetValue (*p, 1);
+  assert_int_equal (uiProgressBarValue (*p), 1);
+  uiProgressBarSetValue (*p, 100);
+  assert_int_equal (uiProgressBarValue (*p), 100);
+  uiProgressBarSetValue (*p, 0);
+  assert_int_equal (uiProgressBarValue (*p), 0);
 }
 
-static void progressBarSetValueIndeterminate(void **state)
+static void
+progressBarSetValueIndeterminate (void **state)
 {
-	uiProgressBar **p = uiProgressBarPtrFromState(state);
+  uiProgressBar **p = uiProgressBarPtrFromState (state);
 
-	*p = uiNewProgressBar();
-	uiProgressBarSetValue(*p, -1);
-	assert_int_equal(uiProgressBarValue(*p), -1);
+  *p = uiNewProgressBar ();
+  uiProgressBarSetValue (*p, -1);
+  assert_int_equal (uiProgressBarValue (*p), -1);
 }
 
-#define progressBarUnitTest(f) cmocka_unit_test_setup_teardown((f), \
-		unitTestSetup, unitTestTeardown)
-
-int progressBarRunUnitTests(void)
+int
+progressBarRunUnitTests (void)
 {
-	const struct CMUnitTest tests[] = {
-		progressBarUnitTest(progressBarNew),
-		progressBarUnitTest(progressBarValueDefault),
-		progressBarUnitTest(progressBarSetValue),
-		progressBarUnitTest(progressBarSetValueIndeterminate),
-	};
+  const struct CMUnitTest tests[] = {
+    progressBarUnitTest (progressBarNew),
+    progressBarUnitTest (progressBarValueDefault),
+    progressBarUnitTest (progressBarSetValue),
+    progressBarUnitTest (progressBarSetValueIndeterminate),
+  };
 
-	return cmocka_run_group_tests_name("uiProgressBar", tests, unitTestsSetup, unitTestsTeardown);
+  return cmocka_run_group_tests_name ("uiProgressBar", tests, unitTestsSetup, unitTestsTeardown);
 }
-

@@ -1,6 +1,8 @@
 #pragma once
 
+#include "api.h"
 #include "alignment.h"
+#include "control.h"
 
 /**
  * @brief Type-casts a pointer to a @p uiGrid
@@ -23,6 +25,17 @@
  * Controls can also be placed in relation to other controls using @p uiAt attributes.
  */
 typedef struct uiGrid uiGrid;
+
+/**
+ * @brief Defines placement within a reserved area.
+ */
+typedef enum uiAlign
+{
+  uiAlignFill,   //!< Fill area.
+  uiAlignStart,  //!< Place at start.
+  uiAlignCenter, //!< Place in center.
+  uiAlignEnd,    //!< Place at end.
+} uiAlign;
 
 /**
  * @brief Appends a @p uiControl to a @p uiGrid

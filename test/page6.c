@@ -12,12 +12,12 @@ struct handler {
 
 static struct handler handler;
 
-static void handlerDraw(uiAreaHandler *a, uiArea *area, uiAreaDrawParams *p)
+static void handlerDraw(uiAreaHandler *a, uiArea *area, const uiAreaDrawParams *p)
 {
 	runDrawTest(uiComboboxSelected(which), p);
 }
 
-static void handlerMouseEvent(uiAreaHandler *a, uiArea *area, uiAreaMouseEvent *e)
+static void handlerMouseEvent(uiAreaHandler *a, uiArea *area, const uiAreaMouseEvent *e)
 {
 	printf("mouse (%g,%g):(%g,%g) down:%d up:%d count:%d mods:%x held:0x%" PRIX64 "\n",
 		e->X,
@@ -41,7 +41,7 @@ static void handlerDragBroken(uiAreaHandler *ah, uiArea *a)
 	printf("drag broken\n");
 }
 
-static int handlerKeyEvent(uiAreaHandler *ah, uiArea *a, uiAreaKeyEvent *e)
+static int handlerKeyEvent(uiAreaHandler *ah, uiArea *a, const uiAreaKeyEvent *e)
 {
 	char k[4];
 

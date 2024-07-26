@@ -1,133 +1,128 @@
-// 13 october 2015
 #include "test.h"
+
+#include <string.h>
 
 static uiArea *area;
 
-struct handler {
-	uiAreaHandler ah;
+struct handler
+{
+  uiAreaHandler ah;
 };
 
 static struct handler handler;
 
-#define areaSize 250
+#define areaSize        250
 #define borderThickness 1
-#define padding 30
-#define circleRadius ((areaSize - padding) / 2)
+#define padding         30
+#define circleRadius    ((areaSize - padding) / 2)
 
-static void handlerDraw(uiAreaHandler *a, uiArea *area, uiAreaDrawParams *dp)
+static void
+handlerDraw (uiAreaHandler *, uiArea *, const uiAreaDrawParams *dp)
 {
-	uiDrawPath *path;
-	uiDrawBrush brush;
-	uiDrawStrokeParams sp;
-	uiDrawBrushGradientStop stops[2];
+  uiDrawBrush             brush;
+  uiDrawStrokeParams      sp;
+  uiDrawBrushGradientStop stops[2];
 
-	memset(&brush, 0, sizeof (uiDrawBrush));
-	memset(&sp, 0, sizeof (uiDrawStrokeParams));
+  memset (&brush, 0, sizeof (uiDrawBrush));
+  memset (&sp, 0, sizeof (uiDrawStrokeParams));
 
-	// add some buffering to detect scrolls that aren't on the dot and draws that are outside the scroll area on Windows
-	path = uiDrawNewPath(uiDrawFillModeWinding);
-	uiDrawPathAddRectangle(path,
-		-50, -50,
-		areaSize + 100, areaSize + 100);
-	uiDrawPathEnd(path);
-	brush.Type = uiDrawBrushTypeSolid;
-	brush.R = 0;
-	brush.G = 1;
-	brush.B = 0;
-	brush.A = 1;
-	uiDrawFill(dp->Context, path, &brush);
-	uiDrawFreePath(path);
+  // add some buffering to detect scrolls that aren't on the dot and draws that are outside the scroll area on Windows
+  uiDrawPath *path = uiDrawNewPath (uiDrawFillModeWinding);
+  uiDrawPathAddRectangle (path, -50, -50, areaSize + 100, areaSize + 100);
+  uiDrawPathEnd (path);
+  brush.Type = uiDrawBrushTypeSolid;
+  brush.R    = 0;
+  brush.G    = 1;
+  brush.B    = 0;
+  brush.A    = 1;
+  uiDrawFill (dp->Context, path, &brush);
+  uiDrawFreePath (path);
 
-	path = uiDrawNewPath(uiDrawFillModeWinding);
-	uiDrawPathAddRectangle(path,
-		0, 0,
-		areaSize, areaSize);
-	uiDrawPathEnd(path);
-	brush.Type = uiDrawBrushTypeSolid;
-	brush.R = 1;
-	brush.G = 1;
-	brush.B = 1;
-	brush.A = 1;
-	uiDrawFill(dp->Context, path, &brush);
-	brush.Type = uiDrawBrushTypeSolid;
-	brush.R = 1;
-	brush.G = 0;
-	brush.B = 0;
-	brush.A = 1;
-	sp.Cap = uiDrawLineCapFlat;
-	sp.Join = uiDrawLineJoinMiter;
-	sp.Thickness = 1;
-	sp.MiterLimit = uiDrawDefaultMiterLimit;
-	uiDrawStroke(dp->Context, path, &brush, &sp);
-	uiDrawFreePath(path);
+  path = uiDrawNewPath (uiDrawFillModeWinding);
+  uiDrawPathAddRectangle (path, 0, 0, areaSize, areaSize);
+  uiDrawPathEnd (path);
+  brush.Type = uiDrawBrushTypeSolid;
+  brush.R    = 1;
+  brush.G    = 1;
+  brush.B    = 1;
+  brush.A    = 1;
+  uiDrawFill (dp->Context, path, &brush);
+  brush.Type    = uiDrawBrushTypeSolid;
+  brush.R       = 1;
+  brush.G       = 0;
+  brush.B       = 0;
+  brush.A       = 1;
+  sp.Cap        = uiDrawLineCapFlat;
+  sp.Join       = uiDrawLineJoinMiter;
+  sp.Thickness  = 1;
+  sp.MiterLimit = uiDrawDefaultMiterLimit;
+  uiDrawStroke (dp->Context, path, &brush, &sp);
+  uiDrawFreePath (path);
 
-	path = uiDrawNewPath(uiDrawFillModeWinding);
-	uiDrawPathNewFigureWithArc(path,
-		areaSize / 2, areaSize / 2,
-		circleRadius,
-		0, 2 * uiPi,
-		0);
-	uiDrawPathEnd(path);
-	stops[0].Pos =0.0;
-	stops[0].R = 0.0;
-	stops[0].G = 1.0;
-	stops[0].B = 1.0;
-	stops[0].A = 1.0;
-	stops[1].Pos = 1.0;
-	stops[1].R = 0.0;
-	stops[1].G = 0.0;
-	stops[1].B = 1.0;
-	stops[1].A = 1.0;
-	brush.Type = uiDrawBrushTypeLinearGradient;
-	brush.X0 = areaSize / 2;
-	brush.Y0 = padding;
-	brush.X1 = areaSize / 2;
-	brush.Y1 = areaSize - padding;
-	brush.Stops = stops;
-	brush.NumStops = 2;
-	uiDrawFill(dp->Context, path, &brush);
-	uiDrawFreePath(path);
+  path = uiDrawNewPath (uiDrawFillModeWinding);
+  uiDrawPathNewFigureWithArc (path, areaSize / 2, areaSize / 2, circleRadius, 0, 2 * uiPi, 0);
+  uiDrawPathEnd (path);
+  stops[0].Pos   = 0.0;
+  stops[0].R     = 0.0;
+  stops[0].G     = 1.0;
+  stops[0].B     = 1.0;
+  stops[0].A     = 1.0;
+  stops[1].Pos   = 1.0;
+  stops[1].R     = 0.0;
+  stops[1].G     = 0.0;
+  stops[1].B     = 1.0;
+  stops[1].A     = 1.0;
+  brush.Type     = uiDrawBrushTypeLinearGradient;
+  brush.X0       = areaSize / 2;
+  brush.Y0       = padding;
+  brush.X1       = areaSize / 2;
+  brush.Y1       = areaSize - padding;
+  brush.Stops    = stops;
+  brush.NumStops = 2;
+  uiDrawFill (dp->Context, path, &brush);
+  uiDrawFreePath (path);
 }
 
-static void handlerMouseEvent(uiAreaHandler *a, uiArea *area, uiAreaMouseEvent *e)
+static void
+handlerMouseEvent (uiAreaHandler *a, uiArea *area, const uiAreaMouseEvent *e)
 {
-	// do nothing
+  // do nothing
 }
 
-static void handlerMouseCrossed(uiAreaHandler *ah, uiArea *a, int left)
+static void
+handlerMouseCrossed (uiAreaHandler *, uiArea *, int)
 {
-	// do nothing
+  // no-op
 }
 
-static void handlerDragBroken(uiAreaHandler *ah, uiArea *a)
+static void
+handlerDragBroken (uiAreaHandler *, uiArea *)
 {
-	// do nothing
+  // no-op
 }
 
-static int handlerKeyEvent(uiAreaHandler *ah, uiArea *a, uiAreaKeyEvent *e)
+static int
+handlerKeyEvent (uiAreaHandler *, uiArea *, const uiAreaKeyEvent *e)
 {
-	if (e->Key == 'h' && !e->Up) {
-		// TODO hide the widget momentarily on the h key
-		return 1;
-	}
-	return 0;
+  if (e->Key == 'h' && !e->Up)
+    return 1;
+
+  return 0;
 }
 
-uiGroup *makePage7c(void)
+uiGroup *
+makePage7c (void)
 {
-	uiGroup *group;
+  handler.ah.Draw         = handlerDraw;
+  handler.ah.MouseEvent   = handlerMouseEvent;
+  handler.ah.MouseCrossed = handlerMouseCrossed;
+  handler.ah.DragBroken   = handlerDragBroken;
+  handler.ah.KeyEvent     = handlerKeyEvent;
 
-	handler.ah.Draw = handlerDraw;
-	handler.ah.MouseEvent = handlerMouseEvent;
-	handler.ah.MouseCrossed = handlerMouseCrossed;
-	handler.ah.DragBroken = handlerDragBroken;
-	handler.ah.KeyEvent = handlerKeyEvent;
+  uiGroup *group = newGroup ("Scrolling Drawing Test");
 
-	group = newGroup("Scrolling Drawing Test");
+  area = uiNewScrollingArea ((uiAreaHandler *)&handler, areaSize, areaSize);
+  uiGroupSetChild (group, uiControl (area));
 
-	area = uiNewScrollingArea((uiAreaHandler *) (&handler),
-		areaSize, areaSize);
-	uiGroupSetChild(group, uiControl(area));
-
-	return group;
+  return group;
 }

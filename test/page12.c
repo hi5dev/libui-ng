@@ -1,60 +1,60 @@
-// 22 may 2016
 #include "test.h"
 
-// TODO OS X: if the hboxes are empty, the text views don't show up
+#include <ui/button.h>
+#include <ui/multiline_entry.h>
 
-static void meChanged(uiMultilineEntry *e, void *data)
+#include <stdio.h>
+
+static void
+meChanged (uiMultilineEntry *, void *data)
 {
-	printf("%s changed\n", (char *) data);
+  (void)printf ("%s changed\n", (char *)data);
 }
 
-static void setClicked(uiButton *b, void *data)
+static void
+setClicked (uiButton *, void *data)
 {
-	uiMultilineEntrySetText(uiMultilineEntry(data), "set");
+  uiMultilineEntrySetText (uiMultilineEntry (data), "set");
 }
 
-static void appendClicked(uiButton *b, void *data)
+static void
+appendClicked (uiButton *, void *data)
 {
-	uiMultilineEntryAppend(uiMultilineEntry(data), "append\n");
+  uiMultilineEntryAppend (uiMultilineEntry (data), "append\n");
 }
 
 static uiBox *half(uiMultilineEntry *(*mk)(void), const char *which)
 {
-	uiBox *vbox, *hbox;
-	uiMultilineEntry *me;
-	uiButton *button;
+  uiBox *vbox = newVerticalBox ();
 
-	vbox = newVerticalBox();
+  uiMultilineEntry *me = (*mk) ();
+  uiMultilineEntryOnChanged (me, meChanged, (void *)which);
+  uiBoxAppend (vbox, uiControl (me), 1);
 
-	me = (*mk)();
-	uiMultilineEntryOnChanged(me, meChanged, (void *) which);
-	uiBoxAppend(vbox, uiControl(me), 1);
+  uiBox *hbox = newHorizontalBox ();
+  uiBoxAppend (vbox, uiControl (hbox), 0);
 
-	hbox = newHorizontalBox();
-	uiBoxAppend(vbox, uiControl(hbox), 0);
+  uiButton *button = uiNewButton ("Set");
+  uiButtonOnClicked (button, setClicked, me);
+  uiBoxAppend (hbox, uiControl (button), 0);
 
-	button = uiNewButton("Set");
-	uiButtonOnClicked(button, setClicked, me);
-	uiBoxAppend(hbox, uiControl(button), 0);
+  button = uiNewButton ("Append");
+  uiButtonOnClicked (button, appendClicked, me);
+  uiBoxAppend (hbox, uiControl (button), 0);
 
-	button = uiNewButton("Append");
-	uiButtonOnClicked(button, appendClicked, me);
-	uiBoxAppend(hbox, uiControl(button), 0);
-
-	return vbox;
+  return vbox;
 }
 
-uiBox *makePage12(void)
+uiBox *
+makePage12 (void)
 {
-	uiBox *page12;
-	uiBox *b;
+  uiBox *page12 = newHorizontalBox ();
 
-	page12 = newHorizontalBox();
+  uiBox *b = half (uiNewMultilineEntry, "wrap");
+  uiBoxAppend (page12, uiControl (b), 1);
 
-	b = half(uiNewMultilineEntry, "wrap");
-	uiBoxAppend(page12, uiControl(b), 1);
-	b = half(uiNewNonWrappingMultilineEntry, "no wrap");
-	uiBoxAppend(page12, uiControl(b), 1);
+  b = half (uiNewNonWrappingMultilineEntry, "no wrap");
+  uiBoxAppend (page12, uiControl (b), 1);
 
-	return page12;
+  return page12;
 }

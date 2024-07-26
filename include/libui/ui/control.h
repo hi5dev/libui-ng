@@ -13,6 +13,17 @@
  */
 typedef struct uiControl uiControl;
 
+/**
+ * @brief Placement specifier to define placement in relation to another control.
+ */
+typedef enum uiAt
+{
+  uiAtLeading,  //!< Place before control.
+  uiAtTop,      //!< Place above control.
+  uiAtTrailing, //!< Place behind control.
+  uiAtBottom,   //!< Place below control.
+} uiAt;
+
 struct uiControl
 {
   /**

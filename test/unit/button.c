@@ -1,51 +1,52 @@
 #include "unit.h"
 
-#define uiButtonPtrFromState(s) uiControlPtrFromState(uiButton, s)
+#include <ui/button.h>
 
-static void buttonNew(void **state)
+#define uiButtonPtrFromState(s) uiControlPtrFromState (uiButton, s)
+#define buttonUnitTest(f)       cmocka_unit_test_setup_teardown ((f), unitTestSetup, unitTestTeardown)
+
+static void
+buttonNew (void **state)
 {
-	uiButton **b = uiButtonPtrFromState(state);
+  uiButton **b = uiButtonPtrFromState (state);
 
-	*b = uiNewButton("Text");
+  *b = uiNewButton ("Text");
 }
 
-static void buttonTextDefault(void **state)
+static void
+buttonTextDefault (void **state)
 {
-	uiButton **b = uiButtonPtrFromState(state);
-	const char *text = "Text";
-	char *rv;
+  uiButton  **b    = uiButtonPtrFromState (state);
+  const char *text = "Text";
 
-	*b = uiNewButton(text);
-	rv = uiButtonText(*b);
-	assert_string_equal(rv, text);
-	uiFreeText(rv);
+  *b       = uiNewButton (text);
+  char *rv = uiButtonText (*b);
+  assert_string_equal (rv, text);
+  uiFreeText (rv);
 }
 
-static void buttonSetText(void **state)
+static void
+buttonSetText (void **state)
 {
-	uiButton **b = uiButtonPtrFromState(state);
-	const char *text = "Text";
-	const char *setText = "setText";
-	char *rv;
+  uiButton  **b       = uiButtonPtrFromState (state);
+  const char *text    = "Text";
+  const char *setText = "setText";
 
-	*b = uiNewButton(text);
-	uiButtonSetText(*b, setText);
-	rv = uiButtonText(*b);
-	assert_string_equal(rv, setText);
-	uiFreeText(rv);
+  *b = uiNewButton (text);
+  uiButtonSetText (*b, setText);
+  char *rv = uiButtonText (*b);
+  assert_string_equal (rv, setText);
+  uiFreeText (rv);
 }
 
-#define buttonUnitTest(f) cmocka_unit_test_setup_teardown((f), \
-		unitTestSetup, unitTestTeardown)
-
-int buttonRunUnitTests(void)
+int
+buttonRunUnitTests (void)
 {
-	const struct CMUnitTest tests[] = {
-		buttonUnitTest(buttonNew),
-		buttonUnitTest(buttonTextDefault),
-		buttonUnitTest(buttonSetText),
-	};
+  const struct CMUnitTest tests[] = {
+    buttonUnitTest (buttonNew),
+    buttonUnitTest (buttonTextDefault),
+    buttonUnitTest (buttonSetText),
+  };
 
-	return cmocka_run_group_tests_name("uiButton", tests, unitTestsSetup, unitTestsTeardown);
+  return cmocka_run_group_tests_name ("uiButton", tests, unitTestsSetup, unitTestsTeardown);
 }
-

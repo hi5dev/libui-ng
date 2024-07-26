@@ -1,4 +1,5 @@
-#include "attribute.h"
+#include "attribute_priv.h"
+
 #include "attrstr.h"
 #include "uipriv.h"
 #include "userbugs.h"

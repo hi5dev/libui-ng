@@ -26,6 +26,16 @@ This update is a complete overhaul of the project, and mainly addresses issues w
 - `old` directory and its contents, and all other files labeled as "OLD."
 - `subprojects` - now using CMake's `FetchContent` to download third-party libraries.
 - All previous entries to this change log as it was clearly not being maintained, and not properly structured.
+- There were approximately 600 TODO items scattered throughout the code that were removed.
+  - Most were questions that could only be answered by the developer that added the comments.
+  - Many of which referenced broken links that would be too difficult and/or time consuming to track down.
+  - The majority of these todo items have been in the code for many, many years, and will likely never be resolved.
+  - Too many were comments from a previous developer questioning his abilities as a developer, and perhaps suffering
+    from some kind of existential crisis. Hey, man, we've all been there. You're doing fine. No need to second
+    guess yourself here.
+  - Let's just keep these kind of things out of this code, shall we? Bugs, optimizations, enhancements, and things
+    of that sort can be sent to the proper channels, like a GitHub issue, or a psychiatrist. Somewhere we can have a
+    proper, open discussion on such topics, rather than hard-coded into the source itself.
 
 ## Changed
 

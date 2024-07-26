@@ -1,130 +1,147 @@
-// 22 may 2015
 #include "test.h"
+
+#include <ui/button.h>
+#include <ui/dialogs.h>
+#include <ui/entry.h>
+#include <ui/label.h>
 
 static uiWindow *parent;
 
-static void openFile(uiButton *b, void *data)
+static void
+openFile (uiButton *, void *data)
 {
-	char *fn;
+  char *fn = uiOpenFile (parent);
+  if (fn == NULL)
+    {
+      uiLabelSetText (uiLabel (data), "(cancelled)");
+    }
 
-	fn = uiOpenFile(parent);
-	if (fn == NULL)
-		uiLabelSetText(uiLabel(data), "(cancelled)");
-	else {
-		uiLabelSetText(uiLabel(data), fn);
-		uiFreeText(fn);
-	}
+  else
+    {
+      uiLabelSetText (uiLabel (data), fn);
+      uiFreeText (fn);
+    }
 }
 
-static void openFolder(uiButton *b, void *data)
+static void
+openFolder (uiButton *, void *data)
 {
-	char *fn;
 
-	fn = uiOpenFolder(parent);
-	if (fn == NULL)
-		uiLabelSetText(uiLabel(data), "(cancelled)");
-	else {
-		uiLabelSetText(uiLabel(data), fn);
-		uiFreeText(fn);
-	}
+  char *fn = uiOpenFolder (parent);
+
+  if (fn == NULL)
+    {
+      uiLabelSetText (uiLabel (data), "(cancelled)");
+    }
+
+  else
+    {
+      uiLabelSetText (uiLabel (data), fn);
+      uiFreeText (fn);
+    }
 }
 
-static void saveFile(uiButton *b, void *data)
+static void
+saveFile (uiButton *, void *data)
 {
-	char *fn;
+  char *fn = uiSaveFile (parent);
 
-	fn = uiSaveFile(parent);
-	if (fn == NULL)
-		uiLabelSetText(uiLabel(data), "(cancelled)");
-	else {
-		uiLabelSetText(uiLabel(data), fn);
-		uiFreeText(fn);
-	}
+  if (fn == NULL)
+    {
+      uiLabelSetText (uiLabel (data), "(cancelled)");
+    }
+
+  else
+    {
+      uiLabelSetText (uiLabel (data), fn);
+      uiFreeText (fn);
+    }
 }
 
 static uiEntry *title, *description;
 
-static void msgBox(uiButton *b, void *data)
+static void
+msgBox (uiButton *, void *)
 {
-	char *t, *d;
-
-	t = uiEntryText(title);
-	d = uiEntryText(description);
-	uiMsgBox(parent, t, d);
-	uiFreeText(d);
-	uiFreeText(t);
+  char *t = uiEntryText (title);
+  char *d = uiEntryText (description);
+  uiMsgBox (parent, t, d);
+  uiFreeText (d);
+  uiFreeText (t);
 }
 
-static void msgBoxError(uiButton *b, void *data)
+static void
+msgBoxError (uiButton *, void *)
 {
-	char *t, *d;
-
-	t = uiEntryText(title);
-	d = uiEntryText(description);
-	uiMsgBoxError(parent, t, d);
-	uiFreeText(d);
-	uiFreeText(t);
+  char *t = uiEntryText (title);
+  char *d = uiEntryText (description);
+  uiMsgBoxError (parent, t, d);
+  uiFreeText (d);
+  uiFreeText (t);
 }
 
-void onFocusChanged(uiWindow *w, void *data)
+void
+onFocusChanged (uiWindow *w, void *data)
 {
-	if (uiWindowFocused(w)) {
-		uiLabelSetText(uiLabel(data), "Window is focused");
-	} else {
-		uiLabelSetText(uiLabel(data), "Window is not focused");
-	}
+  if (uiWindowFocused (w))
+    uiLabelSetText (uiLabel (data), "Window is focused");
+
+  else
+    uiLabelSetText (uiLabel (data), "Window is not focused");
 }
 
-
-
-uiBox *makePage5(uiWindow *pw)
+uiBox *
+makePage5 (uiWindow *pw)
 {
-	uiBox *page5;
-	uiBox *hbox;
-	uiButton *button;
-	uiLabel *label;
-	uiLabel *focusLabel;
+  uiBox    *hbox;
+  uiButton *button;
+  uiLabel  *label;
 
-	parent = pw;
+  parent = pw;
 
-	page5 = newVerticalBox();
+  uiBox *page5 = newVerticalBox ();
 
-#define D(n, f) \
-	hbox = newHorizontalBox(); \
-	button = uiNewButton(n); \
-	label = uiNewLabel(""); \
-	uiButtonOnClicked(button, f, label); \
-	uiBoxAppend(hbox, uiControl(button), 0); \
-	uiBoxAppend(hbox, uiControl(label), 0); \
-	uiBoxAppend(page5, uiControl(hbox), 0);
+#define D(n, f)                                                                                                       \
+  do                                                                                                                  \
+    {                                                                                                                 \
+      hbox   = newHorizontalBox ();                                                                                   \
+      button = uiNewButton (n);                                                                                       \
+      label  = uiNewLabel ("");                                                                                       \
+      uiButtonOnClicked (button, f, label);                                                                           \
+      uiBoxAppend (hbox, uiControl (button), 0);                                                                      \
+      uiBoxAppend (hbox, uiControl (label), 0);                                                                       \
+      uiBoxAppend (page5, uiControl (hbox), 0);                                                                       \
+    }                                                                                                                 \
+  while (0)
 
-	D("Open File", openFile);
-	D("Open Folder", openFolder);
-	D("Save File", saveFile);
+  D ("Open File", openFile);
+  D ("Open Folder", openFolder);
+  D ("Save File", saveFile);
+#undef D
 
-	title = uiNewEntry();
-	uiEntrySetText(title, "Title");
-	description = uiNewEntry();
-	uiEntrySetText(description, "Description");
+  title = uiNewEntry ();
+  uiEntrySetText (title, "Title");
+  description = uiNewEntry ();
+  uiEntrySetText (description, "Description");
 
-	hbox = newHorizontalBox();
-	button = uiNewButton("Message Box");
-	uiButtonOnClicked(button, msgBox, NULL);
-	uiBoxAppend(hbox, uiControl(button), 0);
-	uiBoxAppend(hbox, uiControl(title), 0);
-	uiBoxAppend(page5, uiControl(hbox), 0);
+  hbox   = newHorizontalBox ();
+  button = uiNewButton ("Message Box");
+  uiButtonOnClicked (button, msgBox, NULL);
+  uiBoxAppend (hbox, uiControl (button), 0);
+  uiBoxAppend (hbox, uiControl (title), 0);
+  uiBoxAppend (page5, uiControl (hbox), 0);
 
-	hbox = newHorizontalBox();
-	button = uiNewButton("Error Box");
-	uiButtonOnClicked(button, msgBoxError, NULL);
-	uiBoxAppend(hbox, uiControl(button), 0);
-	uiBoxAppend(hbox, uiControl(description), 0);
-	uiBoxAppend(page5, uiControl(hbox), 0);
+  hbox   = newHorizontalBox ();
+  button = uiNewButton ("Error Box");
+  uiButtonOnClicked (button, msgBoxError, NULL);
+  uiBoxAppend (hbox, uiControl (button), 0);
+  uiBoxAppend (hbox, uiControl (description), 0);
+  uiBoxAppend (page5, uiControl (hbox), 0);
 
-	focusLabel = uiNewLabel("");
-	uiBoxAppend(page5, uiControl(focusLabel), 0);
+  uiLabel *focusLabel = uiNewLabel ("");
+  uiBoxAppend (page5, uiControl (focusLabel), 0);
 
-	uiWindowOnFocusChanged(parent, onFocusChanged, focusLabel);
+  uiWindowOnFocusChanged (parent, onFocusChanged, focusLabel);
 
-	return page5;
+  return page5;
 }

@@ -1,186 +1,182 @@
-// 22 april 2015
 #include "test.h"
 
-// TODOs
-// - blank page affects menus negatively on Windows
+#include <ui/init.h>
+#include <ui/main.h>
 
-void die(const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	fprintf(stderr, "[test program] ");
-	vfprintf(stderr, fmt, ap);
-	fprintf(stderr, "\n");
-	va_end(ap);
-	abort();
-}
-
-int onClosing(uiWindow *w, void *data)
-{
-	printf("in onClosing()\n");
-	uiQuit();
-	return 1;
-}
-
-int onShouldQuit(void *data)
-{
-	printf("in onShouldQuit()\n");
-	if (uiMenuItemChecked(shouldQuitItem)) {
-		uiControlDestroy(uiControl(data));
-		return 1;
-	}
-	return 0;
-}
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 uiBox *mainBox;
 uiTab *mainTab;
 
-uiBox *(*newhbox)(void);
-uiBox *(*newvbox)(void);
+uiBox *(*newhbox) (void);
+uiBox *(*newvbox) (void);
 
-int main(int argc, char *argv[])
+static int
+onClosing (uiWindow *, void *)
 {
-	uiInitOptions o;
-	int i;
-	const char *err;
-	uiWindow *w;
-	uiBox *page2, *page3, *page4, *page5;
-	uiBox *page6, *page7;
-	uiBox *page12, *page13;
-	uiTab *page14;
-	uiBox *page15;
-	uiBox *page16;
-	uiBox *page17;
-	uiTab *outerTab;
-	uiTab *innerTab;
-	int nomenus = 0;
-	int startspaced = 0;
-	int steps = 0;
+  (void)printf ("%s\n", __FUNCTION__);
+  uiQuit ();
+  return 1;
+}
 
-	newhbox = uiNewHorizontalBox;
-	newvbox = uiNewVerticalBox;
+static int
+onShouldQuit (void *data)
+{
+  (void)printf ("%s\n", __FUNCTION__);
 
-	memset(&o, 0, sizeof (uiInitOptions));
-	for (i = 1; i < argc; i++)
-		if (strcmp(argv[i], "nomenus") == 0)
-			nomenus = 1;
-		else if (strcmp(argv[i], "startspaced") == 0)
-			startspaced = 1;
-		else if (strcmp(argv[i], "swaphv") == 0) {
-			newhbox = uiNewVerticalBox;
-			newvbox = uiNewHorizontalBox;
-		} else if (strcmp(argv[i], "steps") == 0)
-			steps = 1;
-		else {
-			fprintf(stderr, "%s: unrecognized option %s\n", argv[0], argv[i]);
-			return 1;
-		}
+  if (uiMenuItemChecked (shouldQuitItem))
+    {
+      uiControlDestroy (uiControl (data));
+      return 1;
+    }
 
-	err = uiInit(&o);
-	if (err != NULL) {
-		fprintf(stderr, "error initializing ui: %s\n", err);
-		uiFreeInitError(err);
-		return 1;
-	}
+  return 0;
+}
 
-	if (!nomenus)
-		initMenus();
+int
+main (const int argc, char *argv[])
+{
+  uiInitOptions o;
+  int           nomenus     = 0;
+  int           startspaced = 0;
+  int           steps       = 0;
 
-	w = newWindow("Main Window", 320, 240, 1);
-	uiWindowOnClosing(w, onClosing, NULL);
-	printf("main window %p\n", (void *) w);
+  newhbox = uiNewHorizontalBox;
+  newvbox = uiNewVerticalBox;
 
-	uiOnShouldQuit(onShouldQuit, w);
+  memset (&o, 0, sizeof (uiInitOptions));
+  for (int i = 1; i < argc; i++)
+    if (strcmp (argv[i], "nomenus") == 0)
+      {
+        nomenus = 1;
+      }
 
-	mainBox = newHorizontalBox();
-	uiWindowSetChild(w, uiControl(mainBox));
+    else if (strcmp (argv[i], "startspaced") == 0)
+      {
+        startspaced = 1;
+      }
 
-	outerTab = newTab();
-	uiBoxAppend(mainBox, uiControl(outerTab), 1);
+    else if (strcmp (argv[i], "swaphv") == 0)
+      {
+        newhbox = uiNewVerticalBox;
+        newvbox = uiNewHorizontalBox;
+      }
 
-	mainTab = newTab();
-	uiTabAppend(outerTab, "Pages 1-5", uiControl(mainTab));
+    else if (strcmp (argv[i], "steps") == 0)
+      {
+        steps = 1;
+      }
 
-	// page 1 uses page 2's uiGroup
-	page2 = makePage2();
+    else
+      {
+        fprintf (stderr, "%s: unrecognized option %s\n", argv[0], argv[i]);
+        return 1;
+      }
 
-	makePage1(w);
-	uiTabAppend(mainTab, "Page 1", uiControl(page1));
+  const char *err = uiInit (&o);
+  if (err != NULL)
+    {
+      fprintf (stderr, "error initializing ui: %s\n", err);
+      uiFreeInitError (err);
+      return 1;
+    }
 
-	uiTabAppend(mainTab, "Page 2", uiControl(page2));
+  if (!nomenus)
+    initMenus ();
 
-	uiTabAppend(mainTab, "Empty Page", uiControl(uiNewHorizontalBox()));
+  uiWindow *w = newWindow ("Main Window", 320, 240, 1);
+  uiWindowOnClosing (w, onClosing, NULL);
+  printf ("main window %p\n", (void *)w);
 
-	page3 = makePage3();
-	uiTabAppend(mainTab, "Page 3", uiControl(page3));
+  uiOnShouldQuit (onShouldQuit, w);
 
-	page4 = makePage4();
-	uiTabAppend(mainTab, "Page 4", uiControl(page4));
+  mainBox = newHorizontalBox ();
+  uiWindowSetChild (w, uiControl (mainBox));
 
-	page5 = makePage5(w);
-	uiTabAppend(mainTab, "Page 5", uiControl(page5));
+  uiTab *outerTab = newTab ();
+  uiBoxAppend (mainBox, uiControl (outerTab), 1);
 
-	innerTab = newTab();
-	uiTabAppend(outerTab, "Pages 6-10", uiControl(innerTab));
+  mainTab = newTab ();
+  uiTabAppend (outerTab, "Pages 1-5", uiControl (mainTab));
 
-	page6 = makePage6();
-	uiTabAppend(innerTab, "Page 6", uiControl(page6));
+  // page 1 uses page 2's uiGroup
+  uiBox *page2 = makePage2 ();
 
-	page7 = makePage7();
-	uiTabAppend(innerTab, "Page 7", uiControl(page7));
+  makePage1 (w);
+  uiTabAppend (mainTab, "Page 1", uiControl (page1));
 
-/*	page8 = makePage8();
-	uiTabAppend(innerTab, "Page 8", uiControl(page8));
+  uiTabAppend (mainTab, "Page 2", uiControl (page2));
 
-	page9 = makePage9();
-	uiTabAppend(innerTab, "Page 9", uiControl(page9));
+  uiTabAppend (mainTab, "Empty Page", uiControl (uiNewHorizontalBox ()));
 
-	page10 = makePage10();
-	uiTabAppend(innerTab, "Page 10", uiControl(page10));
-*/
-	innerTab = newTab();
-	uiTabAppend(outerTab, "Pages 11-15", uiControl(innerTab));
+  uiBox *page3 = makePage3 ();
+  uiTabAppend (mainTab, "Page 3", uiControl (page3));
 
-//	page11 = makePage11();
-//	uiTabAppend(innerTab, "Page 11", uiControl(page11));
+  uiBox *page4 = makePage4 ();
+  uiTabAppend (mainTab, "Page 4", uiControl (page4));
 
-	page12 = makePage12();
-	uiTabAppend(innerTab, "Page 12", uiControl(page12));
+  uiBox *page5 = makePage5 (w);
+  uiTabAppend (mainTab, "Page 5", uiControl (page5));
 
-	page13 = makePage13();
-	uiTabAppend(innerTab, "Page 13", uiControl(page13));
+  uiTab *innerTab = newTab ();
+  uiTabAppend (outerTab, "Pages 6-10", uiControl (innerTab));
 
-	page14 = makePage14();
-	uiTabAppend(innerTab, "Page 14", uiControl(page14));
+  uiBox *page6 = makePage6 ();
+  uiTabAppend (innerTab, "Page 6", uiControl (page6));
 
-	page15 = makePage15(w);
-	uiTabAppend(innerTab, "Page 15", uiControl(page15));
+  uiBox *page7 = makePage7 ();
+  uiTabAppend (innerTab, "Page 7", uiControl (page7));
 
-	innerTab = newTab();
-	uiTabAppend(outerTab, "Pages 16-?", uiControl(innerTab));
+  innerTab = newTab ();
+  uiTabAppend (outerTab, "Pages 11-15", uiControl (innerTab));
 
-	page16 = makePage16();
-	uiTabAppend(innerTab, "Page 16", uiControl(page16));
+  uiBox *page12 = makePage12 ();
+  uiTabAppend (innerTab, "Page 12", uiControl (page12));
 
-	page17 = makePage17();
-	uiTabAppend(innerTab, "Page 17", uiControl(page17));
+  uiBox *page13 = makePage13 ();
+  uiTabAppend (innerTab, "Page 13", uiControl (page13));
 
-	if (startspaced)
-		setSpaced(1);
+  uiTab *page14 = makePage14 ();
+  uiTabAppend (innerTab, "Page 14", uiControl (page14));
 
-	uiControlShow(uiControl(w));
-	if (!steps)
-		uiMain();
-	else {
-		uiMainSteps();
-		while (uiMainStep(1))
-			;
-	}
-	printf("after uiMain()\n");
-	freePage17();
-	freePage16();
-	uiUninit();
-	printf("after uiUninit()\n");
-	return 0;
+  uiBox *page15 = makePage15 (w);
+  uiTabAppend (innerTab, "Page 15", uiControl (page15));
+
+  innerTab = newTab ();
+  uiTabAppend (outerTab, "Pages 16-?", uiControl (innerTab));
+
+  uiBox *page16 = makePage16 ();
+  uiTabAppend (innerTab, "Page 16", uiControl (page16));
+
+  uiBox *page17 = makePage17 ();
+  uiTabAppend (innerTab, "Page 17", uiControl (page17));
+
+  if (startspaced)
+    setSpaced (1);
+
+  uiControlShow (uiControl (w));
+  if (!steps)
+    {
+      uiMain ();
+    }
+
+  else
+    {
+      uiMainSteps ();
+      while (uiMainStep (1))
+        ;
+    }
+
+  printf ("after uiMain()\n");
+
+  freePage17 ();
+  freePage16 ();
+
+  uiUninit ();
+
+  printf ("after uiUninit()\n");
+
+  return 0;
 }

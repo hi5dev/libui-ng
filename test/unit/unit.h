@@ -10,8 +10,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ui.h"
-
 #define assert_no_error(stmt)                                                                                         \
   do                                                                                                                  \
     {                                                                                                                 \
@@ -21,6 +19,8 @@
       assert_null (error);                                                                                            \
     }                                                                                                                 \
   while (0)
+
+#define assert_not_reached() _assert ("this line should not be reached", __FILE__, __LINE__)
 
 /**
  * Unit test run functions.

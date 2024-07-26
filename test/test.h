@@ -1,12 +1,14 @@
-// 22 april 2015
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdarg.h>
-#include <string.h>
-#include <math.h>
-#include <limits.h>
-#include "ui.h"
+#pragma once
+
+#include "ui/area.h"
+#include "ui/box.h"
+#include "ui/combobox.h"
+#include "ui/form.h"
+#include "ui/grid.h"
+#include "ui/group.h"
+#include "ui/image.h"
+#include "ui/menu_item.h"
+#include "ui/tab.h"
 
 // main.c
 extern void die(const char *, ...);

@@ -1,154 +1,175 @@
-// 6 april 2015
 #include "uipriv_windows.hpp"
 
-// this is a helper function that takes the logic of determining window classes and puts it all in one place
-// there are a number of places where we need to know what window class an arbitrary handle has
-// theoretically we could use the class atom to avoid a _wcsicmp()
-// however, raymond chen advises against this - http://blogs.msdn.com/b/oldnewthing/archive/2004/10/11/240744.aspx (and we're not in control of the Tab class, before you say anything)
-// usage: windowClassOf(hwnd, L"class 1", L"class 2", ..., NULL)
-int windowClassOf(HWND hwnd, ...)
-{
-// MSDN says 256 is the maximum length of a class name; add a few characters just to be safe (because it doesn't say whether this includes the terminating null character)
-#define maxClassName 260
-	WCHAR classname[maxClassName + 1];
-	va_list ap;
-	WCHAR *curname;
-	int i;
+#define INFINITE_HEIGHT 0x7FFF
 
-	if (GetClassNameW(hwnd, classname, maxClassName) == 0) {
-		logLastError(L"error getting name of window class");
-		// assume no match on error, just to be safe
-		return -1;
-	}
-	va_start(ap, hwnd);
-	i = 0;
-	for (;;) {
-		curname = va_arg(ap, WCHAR *);
-		if (curname == NULL)
-			break;
-		if (_wcsicmp(classname, curname) == 0) {
-			va_end(ap);
-			return i;
-		}
-		i++;
-	}
-	// no match
-	va_end(ap);
-	return -1;
+/**
+ * @brief Ttakes the logic of determining window classes and puts it all in one place.
+ *
+ * There are a number of places where we need to know what window class an arbitrary handle has theoretically we
+ * could use the class atom to avoid a @p _wcsicmp()  however, raymond chen advises against this.
+ *
+ * @example
+ * @code
+ * windowClassOf(hwnd, L"class 1", L"class 2", ..., NULL)
+ * @endcode
+ */
+int
+windowClassOf (const HWND hwnd, ...) // NOLINT(*-dcl50-cpp)
+{
+#define maxClassName 260
+  WCHAR   classname[maxClassName + 1];
+  va_list ap;
+
+  if (GetClassNameW (hwnd, classname, maxClassName) == 0)
+    {
+      (void)logLastError (L"error getting name of window class");
+      return -1;
+    }
+
+  va_start (ap, hwnd);
+  int i = 0;
+  for (;;)
+    {
+      const WCHAR *curname = va_arg (ap, WCHAR *);
+
+      if (curname == nullptr)
+        break;
+
+      if (_wcsicmp (classname, curname) == 0)
+        {
+          va_end (ap);
+          return i;
+        }
+
+      i++;
+    }
+  va_end (ap);
+
+  // no match
+  return -1;
 }
 
 // wrapper around MapWindowRect() that handles the complex error handling
-void mapWindowRect(HWND from, HWND to, RECT *r)
+void
+mapWindowRect (const HWND from, const HWND to, RECT *r)
 {
-	RECT prevr;
-	DWORD le;
+  const RECT prevr = *r;
 
-	prevr = *r;
-	SetLastError(0);
-	if (MapWindowRect(from, to, r) == 0) {
-		le = GetLastError();
-		SetLastError(le);		// just to be safe
-		if (le != 0) {
-			logLastError(L"error calling MapWindowRect()");
-			// restore original rect on error, just in case
-			*r = prevr;
-		}
-	}
+  SetLastError (0);
+
+  if (MapWindowRect (from, to, r) == 0)
+    {
+      const DWORD le = GetLastError ();
+      SetLastError (le);
+      if (le != 0)
+        {
+          (void)logLastError (L"error calling MapWindowRect()");
+          *r = prevr;
+        }
+    }
 }
 
-DWORD getStyle(HWND hwnd)
+DWORD
+getStyle (const HWND hwnd) { return GetWindowLongPtrW (hwnd, GWL_STYLE); }
+
+void
+setStyle (const HWND hwnd, const DWORD style)
 {
-	return (DWORD) GetWindowLongPtrW(hwnd, GWL_STYLE);
+  SetWindowLongPtrW (hwnd, GWL_STYLE, style);
 }
 
-void setStyle(HWND hwnd, DWORD style)
+DWORD
+getExStyle (const HWND hwnd) { return GetWindowLongPtrW (hwnd, GWL_EXSTYLE); }
+
+void
+setExStyle (const HWND hwnd, const DWORD exstyle)
 {
-	SetWindowLongPtrW(hwnd, GWL_STYLE, (LONG_PTR) style);
+  SetWindowLongPtrW (hwnd, GWL_EXSTYLE, exstyle);
 }
 
-DWORD getExStyle(HWND hwnd)
+void
+clientSizeToWindowSize (const HWND hwnd, int *width, int *height, const BOOL hasMenubar)
 {
-	return (DWORD) GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+  RECT window;
+  window.left   = 0;
+  window.top    = 0;
+  window.right  = *width;
+  window.bottom = *height;
+
+  if (AdjustWindowRectEx (&window, getStyle (hwnd), hasMenubar, getExStyle (hwnd)) == 0)
+    {
+      (void)logLastError (L"error getting adjusted window rect");
+
+      window.left   = 0;
+      window.top    = 0;
+      window.right  = *width;
+      window.bottom = *height;
+    }
+
+  if (hasMenubar != 0)
+    {
+      RECT temp;
+
+      temp        = window;
+      temp.bottom = INFINITE_HEIGHT;
+      SendMessageW (hwnd, WM_NCCALCSIZE, FALSE, reinterpret_cast<LPARAM> (&temp));
+      window.bottom += temp.top;
+    }
+  *width  = window.right - window.left;
+  *height = window.bottom - window.top;
 }
 
-void setExStyle(HWND hwnd, DWORD exstyle)
+HWND
+parentOf (const HWND child)
 {
-	SetWindowLongPtrW(hwnd, GWL_EXSTYLE, (LONG_PTR) exstyle);
+  return GetAncestor (child, GA_PARENT);
 }
 
-// see http://blogs.msdn.com/b/oldnewthing/archive/2003/09/11/54885.aspx and http://blogs.msdn.com/b/oldnewthing/archive/2003/09/13/54917.aspx
-void clientSizeToWindowSize(HWND hwnd, int *width, int *height, BOOL hasMenubar)
+HWND
+parentToplevel (const HWND child)
 {
-	RECT window;
-
-	window.left = 0;
-	window.top = 0;
-	window.right = *width;
-	window.bottom = *height;
-	if (AdjustWindowRectEx(&window, getStyle(hwnd), hasMenubar, getExStyle(hwnd)) == 0) {
-		logLastError(L"error getting adjusted window rect");
-		// on error, don't give up; the window will be smaller but whatever
-		window.left = 0;
-		window.top = 0;
-		window.right = *width;
-		window.bottom = *height;
-	}
-	if (hasMenubar) {
-		RECT temp;
-
-		temp = window;
-		temp.bottom = 0x7FFF;		// infinite height
-		SendMessageW(hwnd, WM_NCCALCSIZE, (WPARAM) FALSE, (LPARAM) (&temp));
-		window.bottom += temp.top;
-	}
-	*width = window.right - window.left;
-	*height = window.bottom - window.top;
+  return GetAncestor (child, GA_ROOT);
 }
 
-HWND parentOf(HWND child)
+void
+setWindowInsertAfter (const HWND hwnd, const HWND insertAfter)
 {
-	return GetAncestor(child, GA_PARENT);
+  if (SetWindowPos (hwnd, insertAfter, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE) == 0)
+    (void)logLastError (L"error reordering window");
 }
 
-HWND parentToplevel(HWND child)
+HWND
+getDlgItem (const HWND hwnd, const int id)
 {
-	return GetAncestor(child, GA_ROOT);
+
+  const HWND out = GetDlgItem (hwnd, id);
+
+  if (out == nullptr)
+    (void)logLastError (L"error getting dialog item handle");
+
+  return out;
 }
 
-void setWindowInsertAfter(HWND hwnd, HWND insertAfter)
+void
+invalidateRect (const HWND hwnd, const RECT *r, const BOOL erase)
 {
-	if (SetWindowPos(hwnd, insertAfter, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE) == 0)
-		logLastError(L"error reordering window");
+  if (InvalidateRect (hwnd, r, erase) == 0)
+    (void)logLastError (L"error invalidating window rect");
 }
 
-HWND getDlgItem(HWND hwnd, int id)
-{
-	HWND out;
-
-	out = GetDlgItem(hwnd, id);
-	if (out == NULL)
-		logLastError(L"error getting dialog item handle");
-	return out;
-}
-
-void invalidateRect(HWND hwnd, RECT *r, BOOL erase)
-{
-	if (InvalidateRect(hwnd, r, erase) == 0)
-		logLastError(L"error invalidating window rect");
-}
-
-// that damn ABI bug is never going to escape me is it
-D2D1_SIZE_F realGetSize(ID2D1RenderTarget *rt)
+D2D1_SIZE_F
+realGetSize (ID2D1RenderTarget *rt)
 {
 #ifdef _MSC_VER
-	return rt->GetSize();
+  return rt->GetSize ();
 #else
-	D2D1_SIZE_F size;
-	typedef D2D1_SIZE_F *(__stdcall ID2D1RenderTarget::* GetSizeF)(D2D1_SIZE_F *) const;
-	GetSizeF gs;
+  D2D1_SIZE_F size;
 
-	gs = (GetSizeF) (&(rt->GetSize));
-	(rt->*gs)(&size);
-	return size;
+  typedef D2D1_SIZE_F *(__stdcall ID2D1RenderTarget::*GetSizeF) (D2D1_SIZE_F *) const;
+
+  const auto gs = static_cast<GetSizeF> (&rt->GetSize);
+  (rt->*gs) (&size);
+
+  return size;
 #endif
 }

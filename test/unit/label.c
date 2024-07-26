@@ -1,85 +1,88 @@
 #include "unit.h"
 
-#define uiLabelPtrFromState(s) uiControlPtrFromState(uiLabel, s)
+#include <ui/label.h>
 
-static void labelNew(void **state)
+#define uiLabelPtrFromState(s) uiControlPtrFromState (uiLabel, s)
+#define labelUnitTest(f)       cmocka_unit_test_setup_teardown ((f), unitTestSetup, unitTestTeardown)
+
+static void
+labelNew (void **state)
 {
-	uiLabel **l = uiLabelPtrFromState(state);
+  uiLabel **l = uiLabelPtrFromState (state);
 
-	*l = uiNewLabel("Text");
+  *l = uiNewLabel ("Text");
 }
 
-static void labelNewEmptyString(void **state)
+static void
+labelNewEmptyString (void **state)
 {
-	uiLabel **l = uiLabelPtrFromState(state);
+  uiLabel **l = uiLabelPtrFromState (state);
 
-	*l = uiNewLabel("");
+  *l = uiNewLabel ("");
 }
 
-static void labelText(void **state)
+static void
+labelText (void **state)
 {
-	uiLabel **l = uiLabelPtrFromState(state);
-	const char *text = "Text";
-	char *rv;
+  uiLabel   **l    = uiLabelPtrFromState (state);
+  const char *text = "Text";
+  char       *rv;
 
-	*l = uiNewLabel(text);
-	rv = uiLabelText(*l);
-	assert_string_equal(text, rv);
-	uiFreeText(rv);
+  *l = uiNewLabel (text);
+  rv = uiLabelText (*l);
+  assert_string_equal (text, rv);
+  uiFreeText (rv);
 }
 
-static void labelTextEmptyString(void **state)
+static void
+labelTextEmptyString (void **state)
 {
-	uiLabel **l = uiLabelPtrFromState(state);
-	const char *text = "";
-	char *rv;
+  uiLabel   **l    = uiLabelPtrFromState (state);
+  const char *text = "";
+  char       *rv;
 
-	*l = uiNewLabel(text);
-	rv = uiLabelText(*l);
-	assert_string_equal(text, rv);
-	uiFreeText(rv);
+  *l = uiNewLabel (text);
+  rv = uiLabelText (*l);
+  assert_string_equal (text, rv);
+  uiFreeText (rv);
 }
 
-static void labelSetText(void **state)
+static void
+labelSetText (void **state)
 {
-	uiLabel **l = uiLabelPtrFromState(state);
-	const char *text = "SetText";
-	char *rv;
+  uiLabel   **l    = uiLabelPtrFromState (state);
+  const char *text = "SetText";
+  char       *rv;
 
-	*l = uiNewLabel("Text");
-	uiLabelSetText(*l, text);
-	rv = uiLabelText(*l);
-	assert_string_equal(text, rv);
-	uiFreeText(rv);
+  *l = uiNewLabel ("Text");
+  uiLabelSetText (*l, text);
+  rv = uiLabelText (*l);
+  assert_string_equal (text, rv);
+  uiFreeText (rv);
 }
 
-static void labelSetTextEmptyString(void **state)
+static void
+labelSetTextEmptyString (void **state)
 {
-	uiLabel **l = uiLabelPtrFromState(state);
-	const char *text = "";
-	char *rv;
+  uiLabel   **l    = uiLabelPtrFromState (state);
+  const char *text = "";
+  char       *rv;
 
-	*l = uiNewLabel("Text");
-	uiLabelSetText(*l, text);
-	rv = uiLabelText(*l);
-	assert_string_equal(text, rv);
-	uiFreeText(rv);
+  *l = uiNewLabel ("Text");
+  uiLabelSetText (*l, text);
+  rv = uiLabelText (*l);
+  assert_string_equal (text, rv);
+  uiFreeText (rv);
 }
 
-#define labelUnitTest(f) cmocka_unit_test_setup_teardown((f), \
-		unitTestSetup, unitTestTeardown)
-
-int labelRunUnitTests(void)
+int
+labelRunUnitTests (void)
 {
-	const struct CMUnitTest tests[] = {
-		labelUnitTest(labelNew),
-		labelUnitTest(labelNewEmptyString),
-		labelUnitTest(labelText),
-		labelUnitTest(labelTextEmptyString),
-		labelUnitTest(labelSetText),
-		labelUnitTest(labelSetTextEmptyString),
-	};
+  const struct CMUnitTest tests[] = {
+    labelUnitTest (labelNew),     labelUnitTest (labelNewEmptyString),
+    labelUnitTest (labelText),    labelUnitTest (labelTextEmptyString),
+    labelUnitTest (labelSetText), labelUnitTest (labelSetTextEmptyString),
+  };
 
-	return cmocka_run_group_tests_name("uiLabel", tests, unitTestsSetup, unitTestsTeardown);
+  return cmocka_run_group_tests_name ("uiLabel", tests, unitTestsSetup, unitTestsTeardown);
 }
-

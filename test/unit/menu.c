@@ -1,225 +1,211 @@
 #include "unit.h"
 
-int menuTestSetup(void **state);
-int menuTestTeardown(void **state);
+#include <ui/control.h>
+#include <ui/init.h>
+#include <ui/main.h>
+#include <ui/menu.h>
 
-static void menuNew(void **state)
+#define menuUnitTest(f) cmocka_unit_test_setup_teardown ((f), menuTestSetup, menuTestTeardown)
+
+int menuTestSetup (void **state);
+int menuTestTeardown (void **_state);
+
+static void
+menuNew (void **)
 {
-	uiMenu *m;
-
-	m = uiNewMenu("Menu");
-	(void)m;
+  (void)uiNewMenu ("Menu");
 }
 
-static void menuNewInitTwice(void **state)
+static void
+menuNewInitTwice (void **state)
 {
-	uiMenu *m;
+  menuTestSetup (state);
 
-	menuTestSetup(state);
-	m = uiNewMenu("Menu 1");
-	menuTestTeardown(state);
+  (void)uiNewMenu ("Menu 1");
+  menuTestTeardown (state);
 
-	menuTestSetup(state);
-	m = uiNewMenu("Menu 2");
-	menuTestTeardown(state);
-
-	(void)m;
+  menuTestSetup (state);
+  (void)uiNewMenu ("Menu 2");
+  menuTestTeardown (state);
 }
 
-static void menuNewEmptyString(void **_state)
+static void
+menuNewEmptyString (void **)
 {
-	uiMenu *m;
-
-	m = uiNewMenu("");
-	(void)m;
+  (void)uiNewMenu ("");
 }
 
-static void menuAppendItem(void **_state)
+static void
+menuAppendItem (void **)
 {
-	uiMenu *m;
-
-	m = uiNewMenu("Menu");
-	uiMenuAppendItem(m, "Item");
+  uiMenu *m = uiNewMenu ("Menu");
+  uiMenuAppendItem (m, "Item");
 }
 
-static void menuAppendItems(void **_state)
+static void
+menuAppendItems (void **)
 {
-	uiMenu *m;
-
-	m = uiNewMenu("Menu");
-	uiMenuAppendItem(m, "Item 1");
-	uiMenuAppendItem(m, "Item 2");
+  uiMenu *m = uiNewMenu ("Menu");
+  uiMenuAppendItem (m, "Item 1");
+  uiMenuAppendItem (m, "Item 2");
 }
 
-static void menuAppendCheckItem(void **_state)
+static void
+menuAppendCheckItem (void **)
 {
-	uiMenu *m;
-
-	m = uiNewMenu("Menu");
-	uiMenuAppendCheckItem(m, "Item");
+  uiMenu *m = uiNewMenu ("Menu");
+  uiMenuAppendCheckItem (m, "Item");
 }
 
-static void menuAppendCheckItems(void **_state)
+static void
+menuAppendCheckItems (void **)
 {
-	uiMenu *m;
-
-	m = uiNewMenu("Menu");
-	uiMenuAppendCheckItem(m, "Item 1");
-	uiMenuAppendCheckItem(m, "Item 2");
+  uiMenu *m = uiNewMenu ("Menu");
+  uiMenuAppendCheckItem (m, "Item 1");
+  uiMenuAppendCheckItem (m, "Item 2");
 }
 
-static void menuAppendAboutItem(void **_state)
+static void
+menuAppendAboutItem (void **)
 {
-	uiMenu *m;
-
-	m = uiNewMenu("Menu");
-	uiMenuAppendAboutItem(m);
+  uiMenu *m = uiNewMenu ("Menu");
+  uiMenuAppendAboutItem (m);
 }
 
-static void menuAppendPreferencesItem(void **_state)
+static void
+menuAppendPreferencesItem (void **)
 {
-	uiMenu *m;
-
-	m = uiNewMenu("Menu");
-	uiMenuAppendPreferencesItem(m);
+  uiMenu *m = uiNewMenu ("Menu");
+  uiMenuAppendPreferencesItem (m);
 }
 
-static void menuAppendQuitItem(void **_state)
+static void
+menuAppendQuitItem (void **)
 {
-	uiMenu *m;
-
-	m = uiNewMenu("Menu");
-	uiMenuAppendQuitItem(m);
+  uiMenu *m = uiNewMenu ("Menu");
+  uiMenuAppendQuitItem (m);
 }
 
-static void menuAppendSeparator(void **_state)
+static void
+menuAppendSeparator (void **)
 {
-	uiMenu *m;
-
-	m = uiNewMenu("Menu");
-	uiMenuAppendSeparator(m);
+  uiMenu *m = uiNewMenu ("Menu");
+  uiMenuAppendSeparator (m);
 }
 
-static void menuAppendFull(void **_state)
+static void
+menuAppendFull (void **)
 {
-	uiMenu *m;
-
-	m = uiNewMenu("Menu");
-	uiMenuAppendItem(m, "Item");
-	uiMenuAppendSeparator(m);
-	uiMenuAppendCheckItem(m, "Check Item");
-	uiMenuAppendAboutItem(m);
-	uiMenuAppendPreferencesItem(m);
-	uiMenuAppendQuitItem(m);
+  uiMenu *m = uiNewMenu ("Menu");
+  uiMenuAppendItem (m, "Item");
+  uiMenuAppendSeparator (m);
+  uiMenuAppendCheckItem (m, "Check Item");
+  uiMenuAppendAboutItem (m);
+  uiMenuAppendPreferencesItem (m);
+  uiMenuAppendQuitItem (m);
 }
 
-static void menuItemEnable(void **_state)
+static void
+menuItemEnable (void **)
 {
-	uiMenu *m;
-	uiMenuItem *i;
-
-	m = uiNewMenu("Menu");
-	i = uiMenuAppendItem(m, "Item");
-	uiMenuItemEnable(i);
+  uiMenu     *m = uiNewMenu ("Menu");
+  uiMenuItem *i = uiMenuAppendItem (m, "Item");
+  uiMenuItemEnable (i);
 }
 
-static void menuItemDisable(void **_state)
+static void
+menuItemDisable (void **)
 {
-	uiMenu *m;
-	uiMenuItem *i;
-
-	m = uiNewMenu("Menu");
-	i = uiMenuAppendItem(m, "Item");
-	uiMenuItemDisable(i);
+  uiMenu     *m = uiNewMenu ("Menu");
+  uiMenuItem *i = uiMenuAppendItem (m, "Item");
+  uiMenuItemDisable (i);
 }
 
-static void menuItemCheckedDefaultFalse(void **_state)
+static void
+menuItemCheckedDefaultFalse (void **)
 {
-	uiMenu *m;
-	uiMenuItem *i;
-
-	m = uiNewMenu("Menu");
-	i = uiMenuAppendCheckItem(m, "Item");
-	assert_int_equal(uiMenuItemChecked(i), 0);
+  uiMenu     *m = uiNewMenu ("Menu");
+  uiMenuItem *i = uiMenuAppendCheckItem (m, "Item");
+  assert_int_equal (uiMenuItemChecked (i), 0);
 }
 
-static void menuItemSetChecked(void **_state)
+static void
+menuItemSetChecked (void **)
 {
-	uiMenu *m;
-	uiMenuItem *i;
+  uiMenu     *m = uiNewMenu ("Menu");
+  uiMenuItem *i = uiMenuAppendCheckItem (m, "Item");
 
-	m = uiNewMenu("Menu");
-	i = uiMenuAppendCheckItem(m, "Item");
-	uiMenuItemSetChecked(i, 1);
-	assert_int_equal(uiMenuItemChecked(i), 1);
-	uiMenuItemSetChecked(i, 0);
-	assert_int_equal(uiMenuItemChecked(i), 0);
+  uiMenuItemSetChecked (i, 1);
+  assert_int_equal (uiMenuItemChecked (i), 1);
+
+  uiMenuItemSetChecked (i, 0);
+  assert_int_equal (uiMenuItemChecked (i), 0);
 }
 
-static void onClickedNoCall(uiMenuItem *i, uiWindow *w, void *data)
+static void
+onClickedNoCall (uiMenuItem *, uiWindow *, void *)
 {
-	function_called();
+  function_called ();
 }
 
-static void menuItemOnClicked(void **_state)
+static void
+menuItemOnClicked (void **)
 {
-	uiMenu *m;
-	uiMenuItem *i;
+  uiMenu     *m = uiNewMenu ("Menu");
+  uiMenuItem *i = uiMenuAppendItem (m, "Item");
 
-	m = uiNewMenu("Menu");
-	i = uiMenuAppendItem(m, "Item");
-	// FIXME: https://gitlab.com/cmocka/cmocka/-/issues/18
-	//expect_function_calls(onClickedNoCall, 0);
-	uiMenuItemOnClicked(i, onClickedNoCall, NULL);
+  uiMenuItemOnClicked (i, onClickedNoCall, NULL);
 }
 
-int menuTestSetup(void **_state)
+int
+menuTestSetup (void **)
 {
-	uiInitOptions o = {0};
+  uiInitOptions o = { 0 };
 
-	assert_no_error(uiInit(&o));
-	return 0;
+  assert_no_error (uiInit (&o));
+  return 0;
 }
 
-int menuTestTeardown(void **_state)
+int
+menuTestTeardown (void **_state)
 {
-	struct state *state = *_state;
+  struct state *state = *_state;
 
-	state->w = uiNewWindow("Menu Test", UNIT_TEST_WINDOW_WIDTH, UNIT_TEST_WINDOW_HEIGHT, 1);
-	uiWindowOnClosing(state->w, unitWindowOnClosingQuit, NULL);
+  state->w = uiNewWindow ("Menu Test", UNIT_TEST_WINDOW_WIDTH, UNIT_TEST_WINDOW_HEIGHT, 1);
+  uiWindowOnClosing (state->w, unitWindowOnClosingQuit, NULL);
 
-	uiControlShow(uiControl(state->w));
-	uiMainSteps();
-	uiMainStep(1);
-	uiControlDestroy(uiControl(state->w));
-	uiUninit();
-	return 0;
+  uiControlShow (uiControl (state->w));
+  uiMainSteps ();
+  uiMainStep (1);
+
+  uiControlDestroy (uiControl (state->w));
+  uiUninit ();
+
+  return 0;
 }
 
-#define menuUnitTest(f) cmocka_unit_test_setup_teardown((f), \
-		menuTestSetup, menuTestTeardown)
-
-int menuRunUnitTests(void)
+int
+menuRunUnitTests (void)
 {
-	const struct CMUnitTest tests[] = {
-		menuUnitTest(menuNew),
-		cmocka_unit_test(menuNewInitTwice),
-		menuUnitTest(menuNewEmptyString),
-		menuUnitTest(menuAppendItem),
-		menuUnitTest(menuAppendItems),
-		menuUnitTest(menuAppendCheckItem),
-		menuUnitTest(menuAppendCheckItems),
-		menuUnitTest(menuAppendAboutItem),
-		menuUnitTest(menuAppendPreferencesItem),
-		menuUnitTest(menuAppendQuitItem),
-		menuUnitTest(menuAppendSeparator),
-		menuUnitTest(menuAppendFull),
-		menuUnitTest(menuItemEnable),
-		menuUnitTest(menuItemDisable),
-		menuUnitTest(menuItemCheckedDefaultFalse),
-		menuUnitTest(menuItemSetChecked),
-		menuUnitTest(menuItemOnClicked),
-	};
+  const struct CMUnitTest tests[] = {
+    menuUnitTest (menuNew),
+    cmocka_unit_test (menuNewInitTwice),
+    menuUnitTest (menuNewEmptyString),
+    menuUnitTest (menuAppendItem),
+    menuUnitTest (menuAppendItems),
+    menuUnitTest (menuAppendCheckItem),
+    menuUnitTest (menuAppendCheckItems),
+    menuUnitTest (menuAppendAboutItem),
+    menuUnitTest (menuAppendPreferencesItem),
+    menuUnitTest (menuAppendQuitItem),
+    menuUnitTest (menuAppendSeparator),
+    menuUnitTest (menuAppendFull),
+    menuUnitTest (menuItemEnable),
+    menuUnitTest (menuItemDisable),
+    menuUnitTest (menuItemCheckedDefaultFalse),
+    menuUnitTest (menuItemSetChecked),
+    menuUnitTest (menuItemOnClicked),
+  };
 
-	return cmocka_run_group_tests_name("uiMenu", tests, unitTestsSetup, unitTestsTeardown);
+  return cmocka_run_group_tests_name ("uiMenu", tests, unitTestsSetup, unitTestsTeardown);
 }

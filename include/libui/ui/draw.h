@@ -1,6 +1,8 @@
 #pragma once
 
 #include "api.h"
+#include "attributed_string.h"
+#include "font_descriptor.h"
 
 /**
  * @brief The default for both Cairo and Direct2D (in the latter case, from the C++ helper functions).
@@ -39,6 +41,21 @@ typedef struct uiDrawMatrix uiDrawMatrix;
  * @brief Attributes for gradient brush-style drawing
  */
 typedef struct uiDrawBrushGradientStop uiDrawBrushGradientStop;
+
+/**
+ * @brief A concrete representation of a @p uiAttributedString that can be displayed in a uiDrawContext.
+ *
+ * This includes information important for the drawing of a block of text, including the bounding box to wrap the text
+ * within, the alignment of lines of text within that box, areas to mark as being selected, and other things.
+ *
+ * @remark Unlike @p uiAttributedString, the content of a @p uiDrawTextLayout is immutable once it has been created.
+ */
+typedef struct uiDrawTextLayout uiDrawTextLayout;
+
+/**
+ * @brief Describes a @p uiDrawTextLayout
+ */
+typedef struct uiDrawTextLayoutParams uiDrawTextLayoutParams;
 
 /**
  * @brief Brush types.
@@ -80,14 +97,24 @@ typedef enum uiDrawLineJoin
   uiDrawLineJoinBevel, //!<
 } uiDrawLineJoin;
 
+/**
+ * @brief Specifies the alignment of lines of text in a @p uiDrawTextLayout.
+ */
+typedef enum uiDrawTextAlign
+{
+  uiDrawTextAlignLeft,   //!< left-align
+  uiDrawTextAlignCenter, //!< center-align
+  uiDrawTextAlignRight,  //!< right-align
+} uiDrawTextAlign;
+
 struct uiDrawMatrix
 {
-  double M11;
-  double M12;
-  double M21;
-  double M22;
-  double M31;
-  double M32;
+  double M11; //!<
+  double M12; //!<
+  double M21; //!<
+  double M22; //!<
+  double M31; //!<
+  double M32; //!<
 };
 
 struct uiDrawBrush
@@ -95,42 +122,47 @@ struct uiDrawBrush
   uiDrawBrushType Type;
 
   // solid brushes
-  double R;
-  double G;
-  double B;
-  double A;
+  double R; //!< red channel
+  double G; //!< green channel
+  double B; //!< blue channel
+  double A; //!< alpha channel
 
   // gradient brushes
-  double                   X0;          // linear: start X, radial: start X
-  double                   Y0;          // linear: start Y, radial: start Y
-  double                   X1;          // linear: end X, radial: outer circle center X
-  double                   Y1;          // linear: end Y, radial: outer circle center Y
-  double                   OuterRadius; // radial gradients only
-  uiDrawBrushGradientStop *Stops;
-  size_t                   NumStops;
+  double                   X0;          //!< linear: start X, radial: start X
+  double                   Y0;          //!< linear: start Y, radial: start Y
+  double                   X1;          //!< linear: end X, radial: outer circle center X
+  double                   Y1;          //!< linear: end Y, radial: outer circle center Y
+  double                   OuterRadius; //!< radial gradients only
+  uiDrawBrushGradientStop *Stops;       //!< @p uiDrawBrushGradientStop
+  size_t                   NumStops;    //!< number of stops
 };
 
 struct uiDrawBrushGradientStop
 {
-  double Pos;
-  double R;
-  double G;
-  double B;
-  double A;
+  double Pos; //!< position
+  double R;   //!< red channel
+  double G;   //!< green channel
+  double B;   //!< blue channel
+  double A;   //!< alpha channel
 };
 
 struct uiDrawStrokeParams
 {
-  uiDrawLineCap  Cap;
-  uiDrawLineJoin Join;
-  // TODO what if this is 0? on windows there will be a crash with dashing
-  double  Thickness;
-  double  MiterLimit;
-  double *Dashes;
-  // TOOD what if this is 1 on Direct2D?
-  // TODO what if a dash is 0 on Cairo or Quartz?
-  size_t NumDashes;
-  double DashPhase;
+  uiDrawLineCap  Cap;        //!< @p uiDrawLineCap
+  uiDrawLineJoin Join;       //!< @p uiDrawLineJoin
+  double         Thickness;  //!< line thickness
+  double         MiterLimit; //!< miter limit
+  double        *Dashes;     //!< dashes
+  size_t         NumDashes;  //!< number of dashes
+  double         DashPhase;  //!< dash phase
+};
+
+struct uiDrawTextLayoutParams
+{
+  uiAttributedString *String;      //!< string to draw
+  uiFontDescriptor   *DefaultFont; //!< used to render any text that is not attributed sufficiently in @p String.
+  double              Width;       //!< width of the bounding box of the text (height is automatic)
+  uiDrawTextAlign     Align;       //!< text-alignment
 };
 
 /**
@@ -349,3 +381,36 @@ API void uiDrawSave (uiDrawContext *c);
  * @param c @p uiDrawContext
  */
 API void uiDrawRestore (uiDrawContext *c);
+
+/**
+ * @brief @p uiDrawTextLayout constructor
+ * @param params @p uiDrawTextLayoutParams
+ * @return @p uiDrawTextLayout
+ */
+API uiDrawTextLayout *uiDrawNewTextLayout (uiDrawTextLayoutParams *params);
+
+/**
+ * @brief @p uiDrawFreeTextLayout destructor
+ * @param tl @p uiDrawTextLayout
+ * @remark The underlying @p uiAttributedString is not freed.
+ */
+API void uiDrawFreeTextLayout (uiDrawTextLayout *tl);
+
+/**
+ * @brief Draws @p tl in @p c with the top-left point of @p tl at @code (x, y)@endcode
+ * @param c @p uiDrawContext
+ * @param tl @p uiDrawTextLayout
+ * @param x position
+ * @param y position
+ */
+API void uiDrawText (uiDrawContext *c, uiDrawTextLayout *tl, double x, double y);
+
+/**
+ * @brief Gets the width and height of @p tl in @p width and @p height.
+ * @param tl @p uiDrawTextLayout
+ * @param[out] width size
+ * @param[out] height size
+ * @remark The returned width may be smaller than the width passed into @p uiDrawNewTextLayout, depending on how the
+ * text in @p tl is wrapped. Therefore, you can use this function to get the actual size of the text layout.
+ */
+API void uiDrawTextLayoutExtents (uiDrawTextLayout *tl, double *width, double *height);

@@ -1,39 +1,46 @@
-#ifndef __LIBUI_QA_H__
-#define __LIBUI_QA_H__
+#pragma once
 
-#include "ui.h"
+#include <ui/control.h>
 
-#define QA_WINDOW_WIDTH 960
+#define QA_WINDOW_WIDTH  960
 #define QA_WINDOW_HEIGHT 720
 
-uiControl* qaMakeGuide(uiControl *c, const char *text);
+uiControl *qaMakeGuide (uiControl *c, const char *text);
 
-#define QA_DECLARE_TEST(name) uiControl* name(); const char *name##Guide()
+uiControl *buttonOnClicked ();
+uiControl *checkboxOnToggled ();
+uiControl *entryOnChanged ();
+uiControl *passwordEntryOnChanged ();
+uiControl *searchEntryOnChanged ();
+uiControl *entryLongText ();
+uiControl *entryOverflowText ();
+uiControl *labelMultiLine ();
+uiControl *radioButtonsOnSelected ();
+uiControl *separatorVertical ();
+uiControl *separatorHorizontal ();
+uiControl *spinboxOnChanged ();
+uiControl *windowFullscreen ();
+uiControl *windowBorderless ();
+uiControl *windowResizeable ();
+uiControl *windowFullscreenBorderless ();
+uiControl *windowFullscreenResizeable ();
+uiControl *windowResizeableBorderless ();
 
-QA_DECLARE_TEST(buttonOnClicked);
-
-QA_DECLARE_TEST(checkboxOnToggled);
-
-QA_DECLARE_TEST(entryOnChanged);
-QA_DECLARE_TEST(passwordEntryOnChanged);
-QA_DECLARE_TEST(searchEntryOnChanged);
-QA_DECLARE_TEST(entryLongText);
-QA_DECLARE_TEST(entryOverflowText);
-
-QA_DECLARE_TEST(labelMultiLine);
-
-QA_DECLARE_TEST(radioButtonsOnSelected);
-
-QA_DECLARE_TEST(separatorVertical);
-QA_DECLARE_TEST(separatorHorizontal);
-
-QA_DECLARE_TEST(spinboxOnChanged);
-
-QA_DECLARE_TEST(windowFullscreen);
-QA_DECLARE_TEST(windowBorderless);
-QA_DECLARE_TEST(windowResizeable);
-QA_DECLARE_TEST(windowFullscreenBorderless);
-QA_DECLARE_TEST(windowFullscreenResizeable);
-QA_DECLARE_TEST(windowResizeableBorderless);
-
-#endif
+const char *buttonOnClickedGuide ();
+const char *checkboxOnToggledGuide ();
+const char *entryOnChangedGuide ();
+const char *passwordEntryOnChangedGuide ();
+const char *searchEntryOnChangedGuide ();
+const char *entryLongTextGuide ();
+const char *entryOverflowTextGuide ();
+const char *labelMultiLineGuide ();
+const char *radioButtonsOnSelectedGuide ();
+const char *separatorVerticalGuide ();
+const char *separatorHorizontalGuide ();
+const char *spinboxOnChangedGuide ();
+const char *windowFullscreenGuide ();
+const char *windowBorderlessGuide ();
+const char *windowResizeableGuide ();
+const char *windowFullscreenBorderlessGuide ();
+const char *windowFullscreenResizeableGuide ();
+const char *windowResizeableBorderlessGuide ();

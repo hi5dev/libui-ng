@@ -35,6 +35,87 @@ typedef struct uiAreaMouseEvent uiAreaMouseEvent;
  */
 typedef struct uiAreaKeyEvent uiAreaKeyEvent;
 
+/**
+ * Keyboard modifier keys.
+ *
+ * Usable as bitmasks.
+ */
+typedef enum uiModifiers
+{
+  uiModifierCtrl  = 1 << 0, //!< Control key.
+  uiModifierAlt   = 1 << 1, //!< Alternate/Option key.
+  uiModifierShift = 1 << 2, //!< Shift key.
+  uiModifierSuper = 1 << 3, //!< Super/Command/Windows key.
+} uiModifiers;
+
+/**
+ * @brief Extended keys
+ */
+typedef enum uiExtKey
+{
+  uiExtKeyEscape = 1, //!< escape
+  uiExtKeyInsert,     //!< equivalent to "Help" on Apple keyboards
+  uiExtKeyDelete,     //!< delete
+  uiExtKeyHome,       //!< home
+  uiExtKeyEnd,        //!< end
+  uiExtKeyPageUp,     //!< page-up
+  uiExtKeyPageDown,   //!< page-down
+  uiExtKeyUp,         //!< up arrow
+  uiExtKeyDown,       //!< down arrow
+  uiExtKeyLeft,       //!< left arrow
+  uiExtKeyRight,      //!< right arrow
+  uiExtKeyF1,         //!< F1
+  uiExtKeyF2,         //!< F2
+  uiExtKeyF3,         //!< F3
+  uiExtKeyF4,         //!< F4
+  uiExtKeyF5,         //!< F5
+  uiExtKeyF6,         //!< F6
+  uiExtKeyF7,         //!< F7
+  uiExtKeyF8,         //!< F8
+  uiExtKeyF9,         //!< F9
+  uiExtKeyF10,        //!< F10
+  uiExtKeyF11,        //!< F11
+  uiExtKeyF12,        //!< F12
+  uiExtKeyN0,         //!< numpad 0
+  uiExtKeyN1,         //!< numpad 1
+  uiExtKeyN2,         //!< numpad 2
+  uiExtKeyN3,         //!< numpad 3
+  uiExtKeyN4,         //!< numpad 4
+  uiExtKeyN5,         //!< numpad 5
+  uiExtKeyN6,         //!< numpad 6
+  uiExtKeyN7,         //!< numpad 7
+  uiExtKeyN8,         //!< numpad 8
+  uiExtKeyN9,         //!< numpad 9
+  uiExtKeyNDot,       //!< numpad period
+  uiExtKeyNEnter,     //!< numpad enter key
+  uiExtKeyNAdd,       //!< numpad plus
+  uiExtKeyNSubtract,  //!< numpad minus
+  uiExtKeyNMultiply,  //!< numpad asterisk
+  uiExtKeyNDivide,    //!< numpad forward-slash
+} uiExtKey;
+
+struct uiAreaKeyEvent
+{
+  char        Key;       //!< key
+  uiExtKey    ExtKey;    //!< @p uiExtKey
+  uiModifiers Modifier;  //!< @p uiModifiers
+  uiModifiers Modifiers; //!< @p uiModifiers
+  int         Up;        //!< non-zero when up
+};
+
+struct uiAreaMouseEvent
+{
+  double      X;          //!< position
+  double      Y;          //!< position
+  double      AreaWidth;  //!< size
+  double      AreaHeight; //!< size
+  int         Down;       //!< non-zero when the button is held down
+  int         Up;         //!< non-zero when the button is released
+  int         Count;      //!<
+  uiModifiers Modifiers;  //!< @p uiModifiers
+  uint64_t    Held1To64;  //!<
+};
+
 struct uiAreaDrawParams
 {
   /**
@@ -81,7 +162,7 @@ struct uiAreaHandler
    * @param area @p uiArea
    * @param params @p uiAreaDrawParams
    */
-  void (*Draw) (uiAreaHandler *, uiArea *, uiAreaDrawParams *);
+  void (*Draw) (uiAreaHandler *handler, uiArea *area, uiAreaDrawParams *params);
 
   /**
    * @brief Callback for mouse events.
@@ -89,7 +170,7 @@ struct uiAreaHandler
    * @param area @p uiArea
    * @param event @p uiAreaMouseEvent
    */
-  void (*MouseEvent) (uiAreaHandler *, uiArea *, uiAreaMouseEvent *);
+  void (*MouseEvent) (uiAreaHandler *handler, uiArea *area, uiAreaMouseEvent *event);
 
   /**
    * @brief Callback for mouse drag-over events.
@@ -97,14 +178,14 @@ struct uiAreaHandler
    * @param area @p uiArea
    * @param left
    */
-  void (*MouseCrossed) (uiAreaHandler *, uiArea *, int);
+  void (*MouseCrossed) (uiAreaHandler *handler, uiArea *area, int left);
 
   /**
    * @brief Callback for mouse drag-out events.
    * @param handler @p uiAreaHandler
    * @param area @p uiArea
    */
-  void (*DragBroken) (uiAreaHandler *, uiArea *);
+  void (*DragBroken) (uiAreaHandler *handler, uiArea *area);
 
   /**
    * @brief Callback for keyboard events.
@@ -112,7 +193,7 @@ struct uiAreaHandler
    * @param area @p uiArea
    * @param event @p uiAreaKeyEvent
    */
-  int (*KeyEvent) (uiAreaHandler *, uiArea *, uiAreaKeyEvent *);
+  int (*KeyEvent) (uiAreaHandler *handler, uiArea *area, uiAreaKeyEvent *event);
 };
 
 /**
@@ -132,10 +213,10 @@ API void uiAreaQueueRedrawAll (uiArea *a);
 /**
  * @brief Scrolls a @p uiArea to the given bounds
  * @param a @p uiArea
- * @param x
- * @param y
- * @param width
- * @param height
+ * @param x position
+ * @param y position
+ * @param width size
+ * @param height size
  */
 API void uiAreaScrollTo (uiArea *a, double x, double y, double width, double height);
 

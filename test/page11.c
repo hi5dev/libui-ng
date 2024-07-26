@@ -1,54 +1,52 @@
-// 14 may 2016
 #include "test.h"
 
-// TODO add a test for childless windows
-// TODO add tests for contianers with all controls hidden
+#include <ui/box.h>
+#include <ui/group.h>
+#include <ui/tab.h>
 
-static uiGroup *newg(const char *n, int s)
+static uiGroup *
+newg (const char *n, const int s)
 {
-	uiGroup *g;
+  uiGroup *g = uiNewGroup (n);
 
-	g = uiNewGroup(n);
-	if (s)
-		uiGroupSetChild(g, NULL);
-	return g;
+  if (s)
+    uiGroupSetChild (g, NULL);
+
+  return g;
 }
 
-static uiTab *newt(int tt)
+static uiTab *
+newt (const int tt)
 {
-	uiTab *t;
+  uiTab *t = uiNewTab ();
 
-	t = uiNewTab();
-	if (tt)
-		uiTabAppend(t, "Test", NULL);
-	return t;
+  if (tt)
+    uiTabAppend (t, "Test", NULL);
+
+  return t;
 }
 
 uiBox *makePage11(void)
 {
-	uiBox *page11;
-	uiBox *ns;
-	uiBox *s;
+  uiBox *page11 = newHorizontalBox ();
 
-	page11 = newHorizontalBox();
+  uiBox *ns = newVerticalBox ();
+  uiBoxAppend (ns, uiControl (newg ("", 0)), 0);
+  uiBoxAppend (ns, uiControl (newg ("", 1)), 0);
+  uiBoxAppend (ns, uiControl (newg ("Group", 0)), 0);
+  uiBoxAppend (ns, uiControl (newg ("Group", 1)), 0);
+  uiBoxAppend (ns, uiControl (newt (0)), 0);
+  uiBoxAppend (ns, uiControl (newt (1)), 0);
+  uiBoxAppend (page11, uiControl (ns), 1);
 
-	ns = newVerticalBox();
-	uiBoxAppend(ns, uiControl(newg("", 0)), 0);
-	uiBoxAppend(ns, uiControl(newg("", 1)), 0);
-	uiBoxAppend(ns, uiControl(newg("Group", 0)), 0);
-	uiBoxAppend(ns, uiControl(newg("Group", 1)), 0);
-	uiBoxAppend(ns, uiControl(newt(0)), 0);
-	uiBoxAppend(ns, uiControl(newt(1)), 0);
-	uiBoxAppend(page11, uiControl(ns), 1);
+  uiBox *s = newVerticalBox ();
+  uiBoxAppend (s, uiControl (newg ("", 0)), 1);
+  uiBoxAppend (s, uiControl (newg ("", 1)), 1);
+  uiBoxAppend (s, uiControl (newg ("Group", 0)), 1);
+  uiBoxAppend (s, uiControl (newg ("Group", 1)), 1);
+  uiBoxAppend (s, uiControl (newt (0)), 1);
+  uiBoxAppend (s, uiControl (newt (1)), 1);
+  uiBoxAppend (page11, uiControl (s), 1);
 
-	s = newVerticalBox();
-	uiBoxAppend(s, uiControl(newg("", 0)), 1);
-	uiBoxAppend(s, uiControl(newg("", 1)), 1);
-	uiBoxAppend(s, uiControl(newg("Group", 0)), 1);
-	uiBoxAppend(s, uiControl(newg("Group", 1)), 1);
-	uiBoxAppend(s, uiControl(newt(0)), 1);
-	uiBoxAppend(s, uiControl(newt(1)), 1);
-	uiBoxAppend(page11, uiControl(s), 1);
-
-	return page11;
+  return page11;
 }

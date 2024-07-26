@@ -1,139 +1,142 @@
-// 13 october 2015
 #include "test.h"
 
-static uiArea *area;
-static uiEntry *startAngle;
-static uiEntry *sweep;
+#include <ui/checkbox.h>
+#include <ui/entry.h>
+#include <ui/label.h>
+
+#include <stdlib.h>
+
+static uiArea     *area;
+static uiEntry    *startAngle;
+static uiEntry    *sweep;
 static uiCheckbox *negative;
 static uiCheckbox *radians;
 
-struct handler {
-	uiAreaHandler ah;
+struct handler
+{
+  uiAreaHandler ah;
 };
 
 static struct handler handler;
 
-// based on the cairo arc sample
-static void handlerDraw(uiAreaHandler *a, uiArea *area, uiAreaDrawParams *p)
+static void
+handlerDraw (uiAreaHandler *, uiArea *, const uiAreaDrawParams *p)
 {
-	double xc = 128.0;
-	double yc = 128.0;
-	double radius = 100.0;
-	uiDrawBrush source;
-	uiDrawStrokeParams sp;
-	uiDrawPath *path;
-	char *startText;
-	char *sweepText;
-	double factor;
+  const double       xc     = 128.0;
+  const double       yc     = 128.0;
+  const double       radius = 100.0;
+  uiDrawBrush        source;
+  uiDrawStrokeParams sp;
 
-	source.Type = uiDrawBrushTypeSolid;
-	source.R = 0;
-	source.G = 0;
-	source.B = 0;
-	source.A = 1;
-	sp.Cap = uiDrawLineCapFlat;
-	sp.Join = uiDrawLineJoinMiter;
-	sp.MiterLimit = uiDrawDefaultMiterLimit;
-	sp.Dashes = NULL;
-	sp.NumDashes = 0;
-	sp.DashPhase = 0;
+  source.Type   = uiDrawBrushTypeSolid;
+  source.R      = 0;
+  source.G      = 0;
+  source.B      = 0;
+  source.A      = 1;
+  sp.Cap        = uiDrawLineCapFlat;
+  sp.Join       = uiDrawLineJoinMiter;
+  sp.MiterLimit = uiDrawDefaultMiterLimit;
+  sp.Dashes     = NULL;
+  sp.NumDashes  = 0;
+  sp.DashPhase  = 0;
 
-	startText = uiEntryText(startAngle);
-	sweepText = uiEntryText(sweep);
+  char *startText = uiEntryText (startAngle);
+  char *sweepText = uiEntryText (sweep);
 
-	factor = uiPi / 180;
-	if (uiCheckboxChecked(radians))
-		factor = 1;
+  double factor = uiPi / 180;
+  if (uiCheckboxChecked (radians))
+    factor = 1;
 
-	sp.Thickness = 10.0;
-	path = uiDrawNewPath(uiDrawFillModeWinding);
-	uiDrawPathNewFigure(path, xc, yc);
-	uiDrawPathArcTo(path,
-		xc, yc,
-		radius,
-		atof(startText) * factor,
-		atof(sweepText) * factor,
-		uiCheckboxChecked(negative));
-	uiDrawPathEnd(path);
-	uiDrawStroke(p->Context, path, &source, &sp);
-	uiDrawFreePath(path);
+  sp.Thickness     = 10.0;
+  uiDrawPath *path = uiDrawNewPath (uiDrawFillModeWinding);
+  uiDrawPathNewFigure (path, xc, yc);
+  uiDrawPathArcTo (path, xc, yc, radius, atof (startText) * factor, atof (sweepText) * factor,
+                   uiCheckboxChecked (negative));
+  uiDrawPathEnd (path);
+  uiDrawStroke (p->Context, path, &source, &sp);
+  uiDrawFreePath (path);
 
-	uiFreeText(startText);
-	uiFreeText(sweepText);
+  uiFreeText (startText);
+  uiFreeText (sweepText);
 }
 
-static void handlerMouseEvent(uiAreaHandler *a, uiArea *area, uiAreaMouseEvent *e)
+static void
+handlerMouseEvent (uiAreaHandler *, uiArea *, const uiAreaMouseEvent *)
 {
-	// do nothing
+  // no-op
 }
 
-static void handlerMouseCrossed(uiAreaHandler *ah, uiArea *a, int left)
+static void
+handlerMouseCrossed (uiAreaHandler *, uiArea *, int )
 {
-	// do nothing
+  // no-op
 }
 
-static void handlerDragBroken(uiAreaHandler *ah, uiArea *a)
+static void
+handlerDragBroken (uiAreaHandler *, uiArea *)
 {
-	// do nothing
+  // no-op
 }
 
-static int handlerKeyEvent(uiAreaHandler *ah, uiArea *a, uiAreaKeyEvent *e)
+static int
+handlerKeyEvent (uiAreaHandler *, uiArea *, const uiAreaKeyEvent *)
 {
-	return 0;
+  return 0;
 }
 
-static void entryChanged(uiEntry *e, void *data)
+static void
+entryChanged (uiEntry *, void *)
 {
-	uiAreaQueueRedrawAll(area);
+  uiAreaQueueRedrawAll (area);
 }
 
-static void checkboxToggled(uiCheckbox *c, void *data)
+static void
+checkboxToggled (uiCheckbox *, void *)
 {
-	uiAreaQueueRedrawAll(area);
+  uiAreaQueueRedrawAll (area);
 }
 
-uiGroup *makePage7a(void)
+uiGroup *
+makePage7a (void)
 {
-	uiGroup *group;
-	uiBox *box, *box2;
 
-	handler.ah.Draw = handlerDraw;
-	handler.ah.MouseEvent = handlerMouseEvent;
-	handler.ah.MouseCrossed = handlerMouseCrossed;
-	handler.ah.DragBroken = handlerDragBroken;
-	handler.ah.KeyEvent = handlerKeyEvent;
+  handler.ah.Draw         = handlerDraw;
+  handler.ah.MouseEvent   = handlerMouseEvent;
+  handler.ah.MouseCrossed = handlerMouseCrossed;
+  handler.ah.DragBroken   = handlerDragBroken;
+  handler.ah.KeyEvent     = handlerKeyEvent;
 
-	group = newGroup("Arc Test");
+  uiGroup *group = newGroup ("Arc Test");
 
-	box = newVerticalBox();
-	uiGroupSetChild(group, uiControl(box));
+  uiBox *box = newVerticalBox ();
+  uiGroupSetChild (group, uiControl (box));
 
-	area = uiNewArea((uiAreaHandler *) (&handler));
-	uiBoxAppend(box, uiControl(area), 1);
+  area = uiNewArea ((uiAreaHandler *)(&handler));
+  uiBoxAppend (box, uiControl (area), 1);
 
-	box2 = newHorizontalBox();
-	uiBoxAppend(box, uiControl(box2), 0);
+  uiBox *box2 = newHorizontalBox ();
+  uiBoxAppend (box, uiControl (box2), 0);
 
-	uiBoxAppend(box2, uiControl(uiNewLabel("Start Angle")), 0);
-	startAngle = uiNewEntry();
-	uiEntryOnChanged(startAngle, entryChanged, NULL);
-	uiBoxAppend(box2, uiControl(startAngle), 1);
+  uiBoxAppend (box2, uiControl (uiNewLabel ("Start Angle")), 0);
+  startAngle = uiNewEntry ();
+  uiEntryOnChanged (startAngle, entryChanged, NULL);
+  uiBoxAppend (box2, uiControl (startAngle), 1);
 
-	box2 = newHorizontalBox();
-	uiBoxAppend(box, uiControl(box2), 0);
+  box2 = newHorizontalBox ();
+  uiBoxAppend (box, uiControl (box2), 0);
 
-	uiBoxAppend(box2, uiControl(uiNewLabel("Sweep")), 0);
-	sweep = uiNewEntry();
-	uiEntryOnChanged(sweep, entryChanged, NULL);
-	uiBoxAppend(box2, uiControl(sweep), 1);
+  uiBoxAppend (box2, uiControl (uiNewLabel ("Sweep")), 0);
+  sweep = uiNewEntry ();
+  uiEntryOnChanged (sweep, entryChanged, NULL);
+  uiBoxAppend (box2, uiControl (sweep), 1);
 
-	negative = uiNewCheckbox("Negative");
-	uiCheckboxOnToggled(negative, checkboxToggled, NULL);
-	uiBoxAppend(box, uiControl(negative), 0);
+  negative = uiNewCheckbox ("Negative");
+  uiCheckboxOnToggled (negative, checkboxToggled, NULL);
+  uiBoxAppend (box, uiControl (negative), 0);
 
-	radians = uiNewCheckbox("Radians");
-	uiCheckboxOnToggled(radians, checkboxToggled, NULL);
-	uiBoxAppend(box, uiControl(radians), 0);
+  radians = uiNewCheckbox ("Radians");
+  uiCheckboxOnToggled (radians, checkboxToggled, NULL);
+  uiBoxAppend (box, uiControl (radians), 0);
 
-	return group;
+  return group;
 }
