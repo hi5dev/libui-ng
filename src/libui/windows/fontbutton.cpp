@@ -1,5 +1,6 @@
 // 14 april 2016
 #include "uipriv_windows.hpp"
+#include "controlsigs.h"
 #include "attrstr.hpp"
 
 struct uiFontButton {

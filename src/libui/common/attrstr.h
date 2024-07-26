@@ -1,46 +1,60 @@
-// 19 february 2018
+#pragma once
+
+#include "ui.h"
 
 #ifdef __cplusplus
-extern "C" {
+#define API extern "C"
+#else
+#define API
 #endif
 
-// attribute.c
-extern uiAttribute *uiprivAttributeRetain(uiAttribute *a);
-extern void uiprivAttributeRelease(uiAttribute *a);
-extern int uiprivAttributeEqual(const uiAttribute *a, const uiAttribute *b);
-
-// opentype.c
-extern int uiprivOpenTypeFeaturesEqual(const uiOpenTypeFeatures *a, const uiOpenTypeFeatures *b);
-
-// attrlist.c
-typedef struct uiprivAttrList uiprivAttrList;
-extern uiprivAttrList *uiprivNewAttrList(void);
-extern void uiprivFreeAttrList(uiprivAttrList *alist);
-extern void uiprivAttrListInsertAttribute(uiprivAttrList *alist, uiAttribute *val, size_t start, size_t end);
-extern void uiprivAttrListInsertCharactersUnattributed(uiprivAttrList *alist, size_t start, size_t count);
-extern void uiprivAttrListInsertCharactersExtendingAttributes(uiprivAttrList *alist, size_t start, size_t count);
-extern void uiprivAttrListRemoveAttribute(uiprivAttrList *alist, uiAttributeType type, size_t start, size_t end);
-extern void uiprivAttrListRemoveAttributes(uiprivAttrList *alist, size_t start, size_t end);
-extern void uiprivAttrListRemoveCharacters(uiprivAttrList *alist, size_t start, size_t end);
-extern void uiprivAttrListForEach(const uiprivAttrList *alist, const uiAttributedString *s, uiAttributedStringForEachAttributeFunc f, void *data);
-
-// attrstr.c
-extern const uint16_t *uiprivAttributedStringUTF16String(const uiAttributedString *s);
-extern size_t uiprivAttributedStringUTF16Len(const uiAttributedString *s);
-extern size_t uiprivAttributedStringUTF8ToUTF16(const uiAttributedString *s, size_t n);
-extern size_t *uiprivAttributedStringCopyUTF8ToUTF16Table(const uiAttributedString *s, size_t *n);
-extern size_t *uiprivAttributedStringCopyUTF16ToUTF8Table(const uiAttributedString *s, size_t *n);
-
-// per-OS graphemes.c/graphemes.cpp/graphemes.m/etc.
+typedef struct uiprivAttrList  uiprivAttrList;
 typedef struct uiprivGraphemes uiprivGraphemes;
-struct uiprivGraphemes {
-	size_t len;
-	size_t *pointsToGraphemes;
-	size_t *graphemesToPoints;
-};
-extern int uiprivGraphemesTakesUTF16(void);
-extern uiprivGraphemes *uiprivNewGraphemes(void *s, size_t len);
 
-#ifdef __cplusplus
-}
-#endif
+struct uiprivGraphemes
+{
+  size_t  len;
+  size_t *pointsToGraphemes;
+  size_t *graphemesToPoints;
+};
+
+API uiAttribute *uiprivAttributeRetain (uiAttribute *a);
+
+API uiprivAttrList *uiprivNewAttrList (void);
+
+API uiprivGraphemes *uiprivNewGraphemes (void *s, size_t len);
+
+API size_t *uiprivAttributedStringCopyUTF16ToUTF8Table (const uiAttributedString *s, size_t *n);
+
+API size_t *uiprivAttributedStringCopyUTF8ToUTF16Table (const uiAttributedString *s, size_t *n);
+
+API size_t uiprivAttributedStringUTF16Len (const uiAttributedString *s);
+
+API size_t uiprivAttributedStringUTF8ToUTF16 (const uiAttributedString *s, size_t n);
+
+API const uint16_t *uiprivAttributedStringUTF16String (const uiAttributedString *s);
+
+API int uiprivAttributeEqual (const uiAttribute *a, const uiAttribute *b);
+
+API int uiprivGraphemesTakesUTF16 (void);
+
+API int uiprivOpenTypeFeaturesEqual (const uiOpenTypeFeatures *a, const uiOpenTypeFeatures *b);
+
+API void uiprivAttrListForEach (const uiprivAttrList *alist, const uiAttributedString *s,
+                                uiAttributedStringForEachAttributeFunc f, void *data);
+
+API void uiprivAttrListInsertAttribute (uiprivAttrList *alist, uiAttribute *val, size_t start, size_t end);
+
+API void uiprivAttrListInsertCharactersExtendingAttributes (const uiprivAttrList *alist, size_t start, size_t count);
+
+API void uiprivAttrListInsertCharactersUnattributed (uiprivAttrList *alist, size_t start, size_t count);
+
+API void uiprivAttrListRemoveAttribute (uiprivAttrList *alist, uiAttributeType type, size_t start, size_t end);
+
+API void uiprivAttrListRemoveAttributes (uiprivAttrList *alist, size_t start, size_t end);
+
+API void uiprivAttrListRemoveCharacters (uiprivAttrList *alist, size_t start, size_t end);
+
+API void uiprivAttributeRelease (uiAttribute *a);
+
+API void uiprivFreeAttrList (uiprivAttrList *alist);

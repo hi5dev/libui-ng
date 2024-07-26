@@ -1,5 +1,6 @@
 // 20 may 2015
 #include "uipriv_windows.hpp"
+#include "controlsigs.h"
 
 // we as Common Controls 6 users don't need to worry about the height of comboboxes; see http://blogs.msdn.com/b/oldnewthing/archive/2006/03/10/548537.aspx
 

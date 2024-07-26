@@ -1,5 +1,6 @@
 // 20 may 2015
 #include "uipriv_windows.hpp"
+#include "controlsigs.h"
 
 // desired behavior:
 // - tab moves between the radio buttons and the adjacent controls

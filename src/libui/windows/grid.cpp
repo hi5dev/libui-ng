@@ -1,5 +1,6 @@
 // 10 june 2016
 #include "uipriv_windows.hpp"
+#include "controlsigs.h"
 
 // TODO compare with GTK+:
 // - what happens if you call InsertAt() twice?

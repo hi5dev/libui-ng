@@ -1,5 +1,6 @@
 // 20 may 2015
 #include "uipriv_windows.hpp"
+#include "controlsigs.h"
 
 // TODO no scrollbars? also not sure if true for combobox as well
 

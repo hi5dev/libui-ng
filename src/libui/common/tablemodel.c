@@ -1,81 +1,88 @@
-// 23 june 2018
-#include "ui.h"
-#include "uipriv.h"
 #include "table.h"
+#include "ui.h"
 
-int uiprivTableModelNumColumns(uiTableModel *m)
+int
+uiprivTableModelNumColumns (uiTableModel *m)
 {
-	uiTableModelHandler *mh;
-
-	mh = uiprivTableModelHandler(m);
-	return (*(mh->NumColumns))(mh, m);
+  uiTableModelHandler *mh = uiprivTableModelHandler (m);
+  return (*mh->NumColumns) (mh, m);
 }
 
-uiTableValueType uiprivTableModelColumnType(uiTableModel *m, int column)
+uiTableValueType
+uiprivTableModelColumnType (uiTableModel *m, const int column)
 {
-	uiTableModelHandler *mh;
-
-	mh = uiprivTableModelHandler(m);
-	return (*(mh->ColumnType))(mh, m, column);
+  uiTableModelHandler *mh = uiprivTableModelHandler (m);
+  return (*mh->ColumnType) (mh, m, column);
 }
 
-int uiprivTableModelNumRows(uiTableModel *m)
+int
+uiprivTableModelNumRows (uiTableModel *m)
 {
-	uiTableModelHandler *mh;
-
-	mh = uiprivTableModelHandler(m);
-	return (*(mh->NumRows))(mh, m);
+  uiTableModelHandler *mh = uiprivTableModelHandler (m);
+  return (*mh->NumRows) (mh, m);
 }
 
-uiTableValue *uiprivTableModelCellValue(uiTableModel *m, int row, int column)
+uiTableValue *
+uiprivTableModelCellValue (uiTableModel *m, const int row, const int column)
 {
-	uiTableModelHandler *mh;
 
-	mh = uiprivTableModelHandler(m);
-	return (*(mh->CellValue))(mh, m, row, column);
+  uiTableModelHandler *mh = uiprivTableModelHandler (m);
+  return (*mh->CellValue) (mh, m, row, column);
 }
 
-void uiprivTableModelSetCellValue(uiTableModel *m, int row, int column, const uiTableValue *value)
+void
+uiprivTableModelSetCellValue (uiTableModel *m, const int row, const int column, const uiTableValue *value)
 {
-	uiTableModelHandler *mh;
 
-	mh = uiprivTableModelHandler(m);
-	(*(mh->SetCellValue))(mh, m, row, column, value);
+  uiTableModelHandler *mh = uiprivTableModelHandler (m);
+                       (*mh->SetCellValue) (mh, m, row, column, value);
 
-	uiTableModelRowChanged(m, row);
+  uiTableModelRowChanged (m, row);
 }
 
 const uiTableTextColumnOptionalParams uiprivDefaultTextColumnOptionalParams = {
-	.ColorModelColumn = -1,
+  .ColorModelColumn = -1,
 };
 
-int uiprivTableModelCellEditable(uiTableModel *m, int row, int column)
+int
+uiprivTableModelCellEditable (uiTableModel *m, const int row, const int column)
 {
-	uiTableValue *value;
-	int editable;
+  switch (column)
+    {
+    case uiTableModelColumnNeverEditable:
+      return 0;
 
-	switch (column) {
-	case uiTableModelColumnNeverEditable:
-		return 0;
-	case uiTableModelColumnAlwaysEditable:
-		return 1;
-	}
-	value = uiprivTableModelCellValue(m, row, column);
-	editable = uiTableValueInt(value);
-	uiFreeTableValue(value);
-	return editable;
+    case uiTableModelColumnAlwaysEditable:
+      return 1;
+
+    default:;
+      break;
+    }
+
+  uiTableValue *value    = uiprivTableModelCellValue (m, row, column);
+  const int     editable = uiTableValueInt (value);
+
+  uiFreeTableValue (value);
+
+  return editable;
 }
 
-int uiprivTableModelColorIfProvided(uiTableModel *m, int row, int column, double *r, double *g, double *b, double *a)
+int
+uiprivTableModelColorIfProvided (uiTableModel *m, const int row, const int column, double *r, double *g, double *b,
+                                 double *a)
 {
-	uiTableValue *value;
 
-	if (column == -1)
-		return 0;
-	value = uiprivTableModelCellValue(m, row, column);
-	if (value == NULL)
-		return 0;
-	uiTableValueColor(value, r, g, b, a);
-	uiFreeTableValue(value);
-	return 1;
+  if (column == -1)
+    return 0;
+
+  uiTableValue *value = uiprivTableModelCellValue (m, row, column);
+
+  if (value == NULL)
+    return 0;
+
+  uiTableValueColor (value, r, g, b, a);
+
+  uiFreeTableValue (value);
+
+  return 1;
 }

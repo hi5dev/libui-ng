@@ -1,5 +1,8 @@
 #include "uipriv_windows.hpp"
+#include "controlsigs.h"
 #include "table.hpp"
+
+API const uiTableTextColumnOptionalParams uiprivDefaultTextColumnOptionalParams;
 
 // general TODOs:
 // - tooltips don't work properly on columns with icons (the listview always thinks there's enough room for a short label because it's not taking the icon into account); is this a bug in our LVN_GETDISPINFO handler or something else?

@@ -1,5 +1,6 @@
 // 7 april 2015
 #include "uipriv_windows.hpp"
+#include "controlsigs.h"
 
 struct uiButton {
 	uiWindowsControl c;

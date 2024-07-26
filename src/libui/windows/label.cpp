@@ -1,5 +1,6 @@
 // 11 april 2015
 #include "uipriv_windows.hpp"
+#include "controlsigs.h"
 
 struct uiLabel {
 	uiWindowsControl c;

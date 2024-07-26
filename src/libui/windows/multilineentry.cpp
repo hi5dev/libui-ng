@@ -1,5 +1,6 @@
 // 8 april 2015
 #include "uipriv_windows.hpp"
+#include "controlsigs.h"
 
 // TODO there's alpha darkening of text going on in read-only ones; something is up in our parent logic
 

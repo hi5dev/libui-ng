@@ -1,6 +1,7 @@
 // 8 september 2015
 #include "uipriv_windows.hpp"
 #include "area.hpp"
+#include "controlsigs.h"
 
 // TODO handle WM_DESTROY/WM_NCDESTROY
 // TODO same for other Direct2D stuff

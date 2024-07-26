@@ -1,5 +1,6 @@
 // 8 june 2016
 #include "uipriv_windows.hpp"
+#include "controlsigs.h"
 
 struct formChild {
 	uiControl *c;

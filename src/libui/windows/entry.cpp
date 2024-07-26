@@ -1,5 +1,6 @@
 // 8 april 2015
 #include "uipriv_windows.hpp"
+#include "controlsigs.h"
 
 struct uiEntry {
 	uiWindowsControl c;

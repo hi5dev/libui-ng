@@ -1,5 +1,6 @@
 // 27 april 2015
 #include "uipriv_windows.hpp"
+#include "controlsigs.h"
 
 #define windowClass L"libui_uiWindowClass"
 

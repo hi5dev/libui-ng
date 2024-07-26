@@ -1,64 +1,83 @@
-// 4 december 2014
 #include "uipriv_windows.hpp"
 
-typedef std::vector<uint8_t> byteArray;
-
-static std::map<uint8_t *, byteArray *> heap;
-static std::map<byteArray *, const char *> types;
-
-void initAlloc(void)
-{
-	// do nothing
-}
-
-void uninitAlloc(void)
-{
-	std::ostringstream oss;
-	std::string ossstr;		// keep alive, just to be safe
-
-	if (heap.size() == 0)
-		return;
-	for (const auto &alloc : heap)
-		// note the void * cast; otherwise it'll be treated as a string
-		oss << (void *) (alloc.first) << " " << types[alloc.second] << "\n";
-	ossstr = oss.str();
-	uiprivUserBug("Some data was leaked; either you left a uiControl lying around or there's a bug in libui itself. Leaked data:\n%s", ossstr.c_str());
-}
+#include <userbugs.h>
 
 #define rawBytes(pa) (&((*pa)[0]))
 
-void *uiprivAlloc(size_t size, const char *type)
-{
-	byteArray *out;
+typedef std::vector<uint8_t> byteArray;
 
-	out = new byteArray(size, 0);
-	heap[rawBytes(out)] = out;
-	types[out] = type;
-	return rawBytes(out);
+static std::map<uint8_t *, byteArray *>    heap;
+static std::map<byteArray *, const char *> types;
+
+void
+initAlloc ()
+{
+  // do nothing
 }
 
-void *uiprivRealloc(void *_p, size_t size, const char *type)
+void
+uninitAlloc ()
 {
-	uint8_t *p = (uint8_t *) _p;
-	byteArray *arr;
+  std::ostringstream oss;
+  std::string        ossstr;
 
-	if (p == NULL)
-		return uiprivAlloc(size, type);
-	arr = heap[p];
-	// TODO does this fill in?
-	arr->resize(size, 0);
-	heap.erase(p);
-	heap[rawBytes(arr)] = arr;
-	return rawBytes(arr);
+  if (heap.empty ())
+    return;
+
+  for (const auto &alloc : heap)
+    oss << static_cast<void *> (alloc.first) << " " << types[alloc.second] << "\n";
+
+  ossstr = oss.str ();
+
+  uiprivUserBug (
+      "Some data was leaked; either you left a uiControl lying around or there's a bug in libui itself. "
+      "Leaked data:\n%s",
+      ossstr.c_str ());
 }
 
-void uiprivFree(void *_p)
+void *
+uiprivAlloc (const size_t size, const char *type)
 {
-	uint8_t *p = (uint8_t *) _p;
+  auto *const out    = new byteArray (size, 0);
+  heap[out->data ()] = out;
+  types[out]         = type;
 
-	if (p == NULL)
-		uiprivImplBug("attempt to uiprivFree(NULL)");
-	types.erase(heap[p]);
-	delete heap[p];
-	heap.erase(p);
+  // ReSharper disable once CppDFALocalValueEscapesFunction
+  return out->data ();
+}
+
+void *
+uiprivRealloc (void *_p, const size_t size, const char *type)
+{
+  auto *const p = static_cast<uint8_t *> (_p);
+
+  if (p == NULL)
+    // ReSharper disable once CppDFALocalValueEscapesFunction
+    return uiprivAlloc (size, type);
+
+  byteArray *arr = heap[p];
+
+  arr->resize (size, 0);
+
+  heap.erase (p);
+
+  heap[arr->data ()] = arr;
+
+  // ReSharper disable once CppDFALocalValueEscapesFunction
+  return arr->data ();
+}
+
+void
+uiprivFree (void *_p)
+{
+  auto *const p = static_cast<uint8_t *> (_p);
+
+  if (p == NULL)
+    uiprivImplBug ("attempt to uiprivFree(NULL)");
+
+  types.erase (heap[p]);
+
+  delete heap[p];
+
+  heap.erase (p);
 }

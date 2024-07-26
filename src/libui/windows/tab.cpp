@@ -1,5 +1,6 @@
 // 16 may 2015
 #include "uipriv_windows.hpp"
+#include "controlsigs.h"
 
 // You don't add controls directly to a tab control on Windows; instead you make them siblings and swap between them on a TCN_SELCHANGING/TCN_SELCHANGE notification pair.
 // In addition, you use dialogs because they can be textured properly; other controls cannot. (Things will look wrong if the tab background in the current theme is fancy if you just use the tab background by itself; see http://stackoverflow.com/questions/30087540/why-are-my-programss-tab-controls-rendering-their-background-in-a-blocky-way-b.)
