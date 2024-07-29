@@ -1,13 +1,6 @@
 #pragma once
 
 #include <ui/control.h>
-#include <windows.h>
-
-#if defined(__cplusplus)
-#define _UI_EXTERN extern "C"
-#else
-#define _UI_EXTERN
-#endif
 
 #define uiWindowsControl(this) ((uiWindowsControl *)(this))
 
@@ -17,6 +10,7 @@
     uiWindowsEnsureDestroyWindow (type (c)->hwnd);                                                                    \
     uiFreeControl (c);                                                                                                \
   }
+
 #define uiWindowsControlDefaultHandle(type)                                                                           \
   static uintptr_t type##Handle (uiControl *c) { return (uintptr_t)(type (c)->hwnd); }
 
@@ -91,44 +85,40 @@
         uiWindowsControlContinueMinimumSizeChanged (c);                                                               \
         return;                                                                                                       \
       }                                                                                                               \
-    /* otherwise do nothing; we have no children */                                                                   \
   }
 
 #define uiWindowsControlDefaultLayoutRect(type)                                                                       \
-  static void type##LayoutRect (uiWindowsControl *c, RECT *r)                                                         \
-  {                                                                                                                   \
-    /* use the window rect as we include the non-client area in the sizes */                                          \
-    uiWindowsEnsureGetWindowRect (type (c)->hwnd, r);                                                                 \
-  }
+  static void type##LayoutRect (uiWindowsControl *c, RECT *r) { uiWindowsEnsureGetWindowRect (type (c)->hwnd, r); }
 
 #define uiWindowsControlDefaultAssignControlIDZOrder(type)                                                            \
   static void type##AssignControlIDZOrder (uiWindowsControl *c, LONG_PTR *controlID, HWND *insertAfter)               \
   {                                                                                                                   \
     uiWindowsEnsureAssignControlIDZOrder (type (c)->hwnd, controlID, insertAfter);                                    \
   }
-#define uiWindowsControlDefaultChildVisibilityChanged(type)                                                           \
-  static void type##ChildVisibilityChanged (uiWindowsControl *c) { /* do nothing */ }
 
-#define uiWindowsControlAllDefaultsExceptDestroy(type) \
-  uiWindowsControlDefaultHandle (type) \
-  uiWindowsControlDefaultParent (type) \
-  uiWindowsControlDefaultSetParent (type)   \
-  uiWindowsControlDefaultToplevel (type) \
-  uiWindowsControlDefaultVisible (type) \
-  uiWindowsControlDefaultShow (type) \
-  uiWindowsControlDefaultHide (type) \
-  uiWindowsControlDefaultEnabled (type) \
-  uiWindowsControlDefaultEnable (type) \
-  uiWindowsControlDefaultDisable (type) \
-  uiWindowsControlDefaultSyncEnableState (type)\
-  uiWindowsControlDefaultSetParentHWND (type) \
-  uiWindowsControlDefaultMinimumSizeChanged (type) \
-  uiWindowsControlDefaultLayoutRect (type) \
-  uiWindowsControlDefaultAssignControlIDZOrder (type) \
+#define uiWindowsControlDefaultChildVisibilityChanged(type)                                                           \
+  static void type##ChildVisibilityChanged (uiWindowsControl *c) {}
+
+#define uiWindowsControlAllDefaultsExceptDestroy(type)                                                                \
+  uiWindowsControlDefaultHandle (type);                                                                               \
+  uiWindowsControlDefaultParent (type);                                                                               \
+  uiWindowsControlDefaultSetParent (type);                                                                            \
+  uiWindowsControlDefaultToplevel (type);                                                                             \
+  uiWindowsControlDefaultVisible (type);                                                                              \
+  uiWindowsControlDefaultShow (type);                                                                                 \
+  uiWindowsControlDefaultHide (type);                                                                                 \
+  uiWindowsControlDefaultEnabled (type);                                                                              \
+  uiWindowsControlDefaultEnable (type);                                                                               \
+  uiWindowsControlDefaultDisable (type);                                                                              \
+  uiWindowsControlDefaultSyncEnableState (type);                                                                      \
+  uiWindowsControlDefaultSetParentHWND (type);                                                                        \
+  uiWindowsControlDefaultMinimumSizeChanged (type);                                                                   \
+  uiWindowsControlDefaultLayoutRect (type);                                                                           \
+  uiWindowsControlDefaultAssignControlIDZOrder (type);                                                                \
   uiWindowsControlDefaultChildVisibilityChanged (type)
 
-#define uiWindowsControlAllDefaults(type) \
-  uiWindowsControlDefaultDestroy (type) \
+#define uiWindowsControlAllDefaults(type)                                                                             \
+  uiWindowsControlDefaultDestroy (type);                                                                              \
   uiWindowsControlAllDefaultsExceptDestroy (type)
 
 #define uiWindowsNewControl(type, var)                                                                                  \
@@ -154,22 +144,30 @@
   uiWindowsControl (var)->visible                = 1;                                                                   \
   uiWindowsControl (var)->enabled                = 1;
 
-typedef struct uiWindowsControl uiWindowsControl;
-
-struct uiWindowsControl
+typedef struct uiWindowsControl
 {
-  uiControl  c;
+  uiControl c;
+
   uiControl *parent;
-  BOOL       enabled;
-  BOOL       visible;
-  void       (*SyncEnableState) (uiWindowsControl *, int);
-  void       (*SetParentHWND) (uiWindowsControl *, HWND);
-  void       (*MinimumSize) (uiWindowsControl *, int *, int *);
-  void       (*MinimumSizeChanged) (uiWindowsControl *);
-  void       (*LayoutRect) (uiWindowsControl *c, RECT *r);
-  void       (*AssignControlIDZOrder) (uiWindowsControl *, LONG_PTR *, HWND *);
-  void       (*ChildVisibilityChanged) (uiWindowsControl *);
-};
+
+  BOOL enabled;
+
+  BOOL visible;
+
+  void (*SyncEnableState) (uiWindowsControl *, int);
+
+  void (*SetParentHWND) (uiWindowsControl *, HWND);
+
+  void (*MinimumSize) (uiWindowsControl *, int *, int *);
+
+  void (*MinimumSizeChanged) (uiWindowsControl *);
+
+  void (*LayoutRect) (uiWindowsControl *c, RECT *r);
+
+  void (*AssignControlIDZOrder) (uiWindowsControl *, LONG_PTR *, HWND *);
+
+  void (*ChildVisibilityChanged) (uiWindowsControl *);
+} uiWindowsControl;
 
 typedef struct uiWindowsSizing
 {
@@ -178,39 +176,76 @@ typedef struct uiWindowsSizing
   LONG InternalLeading;
 } uiWindowsSizing;
 
-_UI_EXTERN void uiWindowsControlSyncEnableState (uiWindowsControl *, int);
-_UI_EXTERN void uiWindowsControlSetParentHWND (uiWindowsControl *, HWND);
-_UI_EXTERN void uiWindowsControlMinimumSize (uiWindowsControl *, int *, int *);
-_UI_EXTERN void uiWindowsControlMinimumSizeChanged (uiWindowsControl *);
-_UI_EXTERN void uiWindowsControlLayoutRect (uiWindowsControl *, RECT *);
-_UI_EXTERN void uiWindowsControlAssignControlIDZOrder (uiWindowsControl *, LONG_PTR *, HWND *);
-_UI_EXTERN void uiWindowsControlChildVisibilityChanged (uiWindowsControl *);
-_UI_EXTERN uiWindowsControl *uiWindowsAllocControl (size_t n, uint32_t typesig, const char *typenamestr);
-_UI_EXTERN HWND uiWindowsEnsureCreateControlHWND (DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, HINSTANCE hInstance, LPVOID lpParam, BOOL useStandardControlFont);
-_UI_EXTERN void uiWindowsEnsureDestroyWindow(HWND hwnd);
-_UI_EXTERN void uiWindowsEnsureSetParentHWND(HWND hwnd, HWND parent);
-_UI_EXTERN void uiWindowsEnsureAssignControlIDZOrder(HWND hwnd, LONG_PTR *controlID, HWND *insertAfter);
-_UI_EXTERN void uiWindowsEnsureGetClientRect(HWND hwnd, RECT *r);
-_UI_EXTERN void uiWindowsEnsureGetWindowRect(HWND hwnd, RECT *r);
-_UI_EXTERN char *uiWindowsWindowText(HWND hwnd);
-_UI_EXTERN void uiWindowsSetWindowText(HWND hwnd, const char *text);
-_UI_EXTERN int uiWindowsWindowTextWidth(HWND hwnd);
-_UI_EXTERN int uiWindowsWindowTextHeight(HWND hwnd);
-_UI_EXTERN void uiWindowsEnsureMoveWindowDuringResize(HWND hwnd, int x, int y, int width, int height);
-_UI_EXTERN void uiWindowsRegisterWM_COMMANDHandler(HWND hwnd, BOOL (*handler)(uiControl *, HWND, WORD, LRESULT *), uiControl *c);
-_UI_EXTERN void uiWindowsUnregisterWM_COMMANDHandler(HWND hwnd);
-_UI_EXTERN void uiWindowsRegisterWM_NOTIFYHandler(HWND hwnd, BOOL (*handler)(uiControl *, HWND, NMHDR *, LRESULT *), uiControl *c);
-_UI_EXTERN void uiWindowsUnregisterWM_NOTIFYHandler(HWND hwnd);
-_UI_EXTERN void uiWindowsRegisterWM_HSCROLLHandler(HWND hwnd, BOOL (*handler)(uiControl *, HWND, WORD, LRESULT *), uiControl *c);
-_UI_EXTERN void uiWindowsUnregisterWM_HSCROLLHandler(HWND hwnd);
-_UI_EXTERN void uiWindowsRegisterReceiveWM_WININICHANGE(HWND hwnd);
-_UI_EXTERN void uiWindowsUnregisterReceiveWM_WININICHANGE(HWND hwnd);
-_UI_EXTERN void uiWindowsGetSizing (HWND hwnd, uiWindowsSizing *sizing);
-_UI_EXTERN void uiWindowsSizingDlgUnitsToPixels (uiWindowsSizing *sizing, int *x, int *y);
-_UI_EXTERN void uiWindowsSizingStandardPadding (uiWindowsSizing *sizing, int *x, int *y);
-_UI_EXTERN HWND uiWindowsMakeContainer (uiWindowsControl *c, void (*onResize) (uiWindowsControl *));
-_UI_EXTERN BOOL uiWindowsControlTooSmall (uiWindowsControl *c);
-_UI_EXTERN void uiWindowsControlContinueMinimumSizeChanged (uiWindowsControl *c);
-_UI_EXTERN void uiWindowsControlAssignSoleControlIDZOrder (uiWindowsControl *);
-_UI_EXTERN BOOL uiWindowsShouldStopSyncEnableState (uiWindowsControl *c, int enabled);
-_UI_EXTERN void uiWindowsControlNotifyVisibilityChanged (uiWindowsControl *c);
+extern void uiWindowsControlSyncEnableState (uiWindowsControl *, int);
+
+extern void uiWindowsControlSetParentHWND (uiWindowsControl *, HWND);
+
+extern void uiWindowsControlMinimumSize (uiWindowsControl *, int *, int *);
+
+extern void uiWindowsControlMinimumSizeChanged (uiWindowsControl *);
+
+extern void uiWindowsControlLayoutRect (uiWindowsControl *, RECT *);
+
+extern void uiWindowsControlAssignControlIDZOrder (uiWindowsControl *, LONG_PTR *, HWND *);
+
+extern void uiWindowsControlChildVisibilityChanged (uiWindowsControl *);
+
+extern uiWindowsControl *uiWindowsAllocControl (size_t n, uint32_t typesig, const char *typenamestr);
+
+extern HWND uiWindowsEnsureCreateControlHWND (DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName,
+                                              DWORD dwStyle, HINSTANCE hInstance, LPVOID lpParam,
+                                              BOOL useStandardControlFont);
+
+extern void uiWindowsEnsureDestroyWindow (HWND hwnd);
+
+extern void uiWindowsEnsureSetParentHWND (HWND hwnd, HWND parent);
+
+extern void uiWindowsEnsureAssignControlIDZOrder (HWND hwnd, LONG_PTR *controlID, HWND *insertAfter);
+
+extern void uiWindowsEnsureGetClientRect (HWND hwnd, RECT *r);
+
+extern void uiWindowsEnsureGetWindowRect (HWND hwnd, RECT *r);
+
+extern char *uiWindowsWindowText (HWND hwnd);
+
+extern void uiWindowsSetWindowText (HWND hwnd, const char *text);
+
+extern int uiWindowsWindowTextWidth (HWND hwnd);
+
+extern int uiWindowsWindowTextHeight (HWND hwnd);
+
+extern void uiWindowsEnsureMoveWindowDuringResize (HWND hwnd, int x, int y, int width, int height);
+
+extern void uiWindowsRegisterWM_COMMANDHandler (HWND hwnd, BOOL (*handler) (uiControl *, HWND, WORD, LRESULT *),
+                                                uiControl *c);
+extern void uiWindowsUnregisterWM_COMMANDHandler (HWND hwnd);
+
+extern void uiWindowsRegisterWM_NOTIFYHandler (HWND hwnd, BOOL (*handler) (uiControl *, HWND, NMHDR *, LRESULT *),
+                                               uiControl *c);
+extern void uiWindowsUnregisterWM_NOTIFYHandler (HWND hwnd);
+
+extern void uiWindowsRegisterWM_HSCROLLHandler (HWND hwnd, BOOL (*handler) (uiControl *, HWND, WORD, LRESULT *),
+                                                uiControl *c);
+extern void uiWindowsUnregisterWM_HSCROLLHandler (HWND hwnd);
+
+extern void uiWindowsRegisterReceiveWM_WININICHANGE (HWND hwnd);
+
+extern void uiWindowsUnregisterReceiveWM_WININICHANGE (HWND hwnd);
+
+extern void uiWindowsGetSizing (HWND hwnd, uiWindowsSizing *sizing);
+
+extern void uiWindowsSizingDlgUnitsToPixels (uiWindowsSizing *sizing, int *x, int *y);
+
+extern void uiWindowsSizingStandardPadding (uiWindowsSizing *sizing, int *x, int *y);
+
+extern HWND uiWindowsMakeContainer (uiWindowsControl *c, void (*onResize) (uiWindowsControl *));
+
+extern BOOL uiWindowsControlTooSmall (uiWindowsControl *c);
+
+extern void uiWindowsControlContinueMinimumSizeChanged (uiWindowsControl *c);
+
+extern void uiWindowsControlAssignSoleControlIDZOrder (uiWindowsControl *);
+
+extern BOOL uiWindowsShouldStopSyncEnableState (uiWindowsControl *c, int enabled);
+
+extern void uiWindowsControlNotifyVisibilityChanged (uiWindowsControl *c);

@@ -1,6 +1,8 @@
-#include "uipriv_windows.hpp"
+#include "winutil.h"
+#include "debug.h"
 
-#define INFINITE_HEIGHT 0x7FFF
+#include <d2d1.h>
+#include <windowsx.h>
 
 /**
  * @brief Ttakes the logic of determining window classes and puts it all in one place.

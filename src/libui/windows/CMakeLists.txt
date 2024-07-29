@@ -82,11 +82,11 @@ target_sources (
   drawmatrix.cpp
   drawpath.cpp
   drawtext.cpp
-  dwrite.cpp
   editablecombo.cpp
   entry.cpp
   events.cpp
   fontbutton.cpp
+  fontcollection.cpp
   fontdialog.cpp
   fontmatch.cpp
   form.cpp

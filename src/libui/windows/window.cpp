@@ -1,42 +1,19 @@
-#include "controlsigs.h"
-#include "uipriv_windows.hpp"
+#include "window.h"
 
+#include "debug.h"
+#include "init.h"
+#include "menu.h"
+#include "parent.h"
+
+#include "utf16.h"
+#include "winutil.h"
+
+#include <controlsigs.h>
+#include <map>
+
+#include <ui/userbugs.h>
+#include <ui_win32.h>
 #include <uipriv.h>
-
-#include <algorithm>
-
-#define windowClass  L"libui_uiWindowClass"
-#define windowMargin 7
-
-#define INFINITE_HEIGHT 0x7FFF
-
-struct uiWindow
-{
-  uiWindowsControl c;
-  HWND             hwnd;
-  HMENU            menubar;
-  uiControl       *child;
-  BOOL             shownOnce;
-  int              visible;
-  int              margined;
-  int              resizeable;
-  BOOL             hasMenubar;
-  BOOL             changingSize;
-  int              fullscreen;
-  WINDOWPLACEMENT  fsPrevPlacement;
-  int              borderless;
-  int              focused;
-
-  int   (*onClosing) (uiWindow *, void *);
-  void *onClosingData;
-  void  (*onContentSizeChanged) (uiWindow *, void *);
-  void *onContentSizeChangedData;
-  void  (*onFocusChanged) (uiWindow *, void *);
-  void *onFocusChangedData;
-  void  (*onPositionChanged) (uiWindow *, void *);
-  void *onPositionChangedData;
-  BOOL  changingPosition;
-};
 
 static void
 windowMargins (const uiWindow *w, int *mx, int *my)
@@ -94,7 +71,7 @@ windowWndProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPAR
   const LONG_PTR ww = GetWindowLongPtrW (hwnd, GWLP_USERDATA);
   if (ww == 0)
     {
-      if (uMsg == WM_CREATE)
+      if (uMsg == WM_CREATE && cs != nullptr)
         SetWindowLongPtrW (hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR> (cs->lpCreateParams));
       return DefWindowProcW (hwnd, uMsg, wParam, lParam);
     }
@@ -106,32 +83,28 @@ windowWndProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPAR
   switch (uMsg)
     {
     case WM_COMMAND:
-      // not a menu
-      if (lParam != 0)
-        break;
-      // IsDialogMessage() will also generate IDOK and IDCANCEL when pressing Enter and Escape (respectively) on some
-      // controls, like EDIT controls swallow those too; they'll cause runMenuEvent() to panic
-      // TODO fix the root cause somehow
-      if (HIWORD (wParam) != 0 || LOWORD (wParam) <= IDCANCEL)
-        break;
-      runMenuEvent (LOWORD (wParam), uiWindow (w));
-      return 0;
-    case WM_WINDOWPOSCHANGED:
       {
-        if ((wp->flags & SWP_NOMOVE) == 0)
-          {
-            if (w->changingPosition == 0)
-              (*w->onPositionChanged) (w, w->onPositionChangedData);
-          }
-
-        if ((wp->flags & SWP_NOSIZE) != 0)
+        if (lParam != 0)
           break;
 
-        if (w->onContentSizeChanged != nullptr) // TODO figure out why this is happening too early
-          {
-            if (w->changingSize == 0)
-              (*w->onContentSizeChanged) (w, w->onContentSizeChangedData);
-          }
+        if (HIWORD (wParam) != 0 || LOWORD (wParam) <= IDCANCEL)
+          break;
+
+        runMenuEvent (LOWORD (wParam), uiWindow (w));
+
+        return 0;
+      }
+
+    case WM_WINDOWPOSCHANGED:
+      {
+        if (wp != nullptr && (wp->flags & SWP_NOMOVE) == 0 && w->changingPosition == 0)
+          (*w->onPositionChanged) (w, w->onPositionChangedData);
+
+        if (wp != nullptr && (wp->flags & SWP_NOSIZE) != 0)
+          break;
+
+        if (w->onContentSizeChanged != nullptr && w->changingSize == 0)
+          (*w->onContentSizeChanged) (w, w->onContentSizeChangedData);
 
         windowRelayout (w);
 
@@ -143,8 +116,11 @@ windowWndProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPAR
         lResult = DefWindowProcW (hwnd, uMsg, wParam, lParam);
         uiWindowsControlMinimumSize (uiWindowsControl (w), &width, &height);
         clientSizeToWindowSize (w->hwnd, &width, &height, w->hasMenubar);
-        mmi->ptMinTrackSize.x = width;
-        mmi->ptMinTrackSize.y = height;
+        if (mmi != nullptr)
+          {
+            mmi->ptMinTrackSize.x = width;
+            mmi->ptMinTrackSize.y = height;
+          }
         return lResult;
       }
 
@@ -193,28 +169,28 @@ registerWindowClass (const HICON hDefaultIcon, const HCURSOR hDefaultCursor)
 }
 
 void
-unregisterWindowClass (void)
+unregisterWindowClass ()
 {
   if (UnregisterClassW (windowClass, hInstance) == 0)
-    logLastError (L"error unregistering uiWindow window class");
+    (void)logLastError (L"error unregistering uiWindow window class");
 }
 
 static int
-defaultOnClosing (uiWindow *w, void *data)
+defaultOnClosing (uiWindow *, void *)
 {
   return 0;
 }
 
 static void
-defaultOnPositionContentSizeChanged (uiWindow *w, void *data)
+defaultOnPositionContentSizeChanged (uiWindow *, void *)
 {
-  // do nothing
+  // no-op
 }
 
 static void
-defaultOnFocusChanged (uiWindow *w, void *data)
+defaultOnFocusChanged (uiWindow *, void *)
 {
-  // do nothing
+  // no-op
 }
 
 static std::map<uiWindow *, bool> windows;
@@ -222,22 +198,23 @@ static std::map<uiWindow *, bool> windows;
 static void
 uiWindowDestroy (uiControl *c)
 {
-  uiWindow *w = uiWindow (c);
+  auto *const w = uiWindow (c);
 
-  // first hide ourselves
   ShowWindow (w->hwnd, SW_HIDE);
-  // now destroy the child
+
   if (w->child != nullptr)
     {
       uiControlSetParent (w->child, nullptr);
       uiControlDestroy (w->child);
     }
-  // now free the menubar, if any
+
   if (w->menubar != nullptr)
     freeMenubar (w->menubar);
-  // and finally free ourselves
+
   windows.erase (w);
+
   uiWindowsEnsureDestroyWindow (w->hwnd);
+
   uiFreeControl (uiControl (w));
 }
 
@@ -371,31 +348,29 @@ void
 uiWindowSetTitle (const uiWindow *w, const char *title)
 {
   uiWindowsSetWindowText (w->hwnd, title);
-  // don't queue resize; the caption isn't part of what affects layout and sizing of the client area (it'll be
-  // ellipsized if too long)
 }
 
-// this is used for both fullscreening and centering
-// see also https://blogs.msdn.microsoft.com/oldnewthing/20100412-00/?p=14353 and
-// https://blogs.msdn.microsoft.com/oldnewthing/20050505-04/?p=35703
 static void
 windowMonitorRect (const HWND hwnd, RECT *r)
 {
   MONITORINFO mi;
 
   const HMONITOR monitor = MonitorFromWindow (hwnd, MONITOR_DEFAULTTOPRIMARY);
+
   ZeroMemory (&mi, sizeof (MONITORINFO));
+
   mi.cbSize = sizeof (MONITORINFO);
+
   if (GetMonitorInfoW (monitor, &mi) == 0)
     {
-      logLastError (L"error getting window monitor rect");
-      // default to SM_CXSCREEN x SM_CYSCREEN to be safe
+      (void)logLastError (L"error getting window monitor rect");
       r->left   = 0;
       r->top    = 0;
       r->right  = GetSystemMetrics (SM_CXSCREEN);
       r->bottom = GetSystemMetrics (SM_CYSCREEN);
       return;
     }
+
   *r = mi.rcMonitor;
 }
 
@@ -412,9 +387,13 @@ uiWindowPosition (const uiWindow *w, int *x, int *y)
 void
 uiWindowSetPosition (uiWindow *w, const int x, const int y)
 {
+  static constexpr auto flags = SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOZORDER;
+
   w->changingPosition = TRUE;
-  if (SetWindowPos (w->hwnd, nullptr, x, y, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOZORDER) == 0)
-    logLastError (L"error setting window position");
+
+  if (SetWindowPos (w->hwnd, nullptr, x, y, 0, 0, flags) == 0)
+    (void)logLastError (L"error setting window position");
+
   w->changingPosition = FALSE;
 }
 
@@ -435,16 +414,17 @@ uiWindowContentSize (const uiWindow *w, int *width, int *height)
   *height = r.bottom - r.top;
 }
 
-// TODO should this disallow too small?
 void
 uiWindowSetContentSize (uiWindow *w, int width, int height)
 {
   w->changingSize = TRUE;
   clientSizeToWindowSize (w->hwnd, &width, &height, w->hasMenubar);
-  if (SetWindowPos (w->hwnd, nullptr, 0, 0, width, height,
-                    SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER)
-      == 0)
-    logLastError (L"error resizing window");
+
+  static constexpr auto flags = SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER;
+
+  if (SetWindowPos (w->hwnd, nullptr, 0, 0, width, height, flags) == 0)
+    (void)logLastError (L"error resizing window");
+
   w->changingSize = FALSE;
 }
 
@@ -670,7 +650,6 @@ uiNewWindow (const char *title, const int width, const int height, const int has
   return w;
 }
 
-// this cannot queue a resize because it's called by the resize handler
 void
 ensureMinimumWindowSize (uiWindow *w)
 {

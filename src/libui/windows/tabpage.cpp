@@ -1,7 +1,13 @@
-#include "uipriv.h"
-#include "uipriv_windows.hpp"
+#include "tabpage.h"
 
-#define tabMargin 7
+#include "debug.h"
+#include "init.h"
+#include "parent.h"
+#include "utilwin.h"
+
+#include <ui_win32.h>
+#include <uipriv.h>
+#include <uxtheme.h>
 
 static void
 tabPageMargins (const tabPage *tp, int *mx, int *my)
@@ -88,12 +94,12 @@ static_assert (ARRAYSIZE (data_rcTabPageDialog) == 32 /* NOLINT(*-magic-numbers)
 tabPage *
 newTabPage (uiControl *child)
 {
-  auto tp = uiprivNew (struct tabPage);
+  auto *tp = uiprivNew (struct tabPage);
 
   if (CreateDialogIndirectParamW (hInstance, reinterpret_cast<const DLGTEMPLATE *> (data_rcTabPageDialog), utilWindow,
                                   dlgproc, reinterpret_cast<LPARAM> (tp))
       == nullptr)
-    logLastError (L"error creating tab page");
+    (void)logLastError (L"error creating tab page");
 
   tp->child = child;
   if (tp->child != nullptr)
@@ -102,7 +108,8 @@ newTabPage (uiControl *child)
       uiWindowsControlAssignSoleControlIDZOrder (uiWindowsControl (tp->child));
     }
 
-  const auto hr = EnableThemeDialogTexture (tp->hwnd, ETDT_ENABLE | ETDT_USETABTEXTURE | ETDT_ENABLETAB);
+  static constexpr auto flags = ETDT_ENABLE | ETDT_USETABTEXTURE | ETDT_ENABLETAB;
+  const auto            hr    = EnableThemeDialogTexture (tp->hwnd, flags);
   if (hr != S_OK)
     (void)logHRESULT (L"error setting tab page background", hr);
 

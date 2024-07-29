@@ -42,6 +42,7 @@ typedef struct uiAreaKeyEvent uiAreaKeyEvent;
  */
 typedef enum uiModifiers
 {
+  uiModifierNone  = 0,
   uiModifierCtrl  = 1 << 0, //!< Control key.
   uiModifierAlt   = 1 << 1, //!< Alternate/Option key.
   uiModifierShift = 1 << 2, //!< Shift key.
@@ -53,6 +54,7 @@ typedef enum uiModifiers
  */
 typedef enum uiExtKey
 {
+  uiExtKeyNone   = 0,
   uiExtKeyEscape = 1, //!< escape
   uiExtKeyInsert,     //!< equivalent to "Help" on Apple keyboards
   uiExtKeyDelete,     //!< delete
@@ -208,7 +210,7 @@ API void uiAreaSetSize (uiArea *a, int width, int height);
  * @brief Queues a @p uiArea for redrawing
  * @param a @p uiArea
  */
-API void uiAreaQueueRedrawAll (uiArea *a);
+API void uiAreaQueueRedrawAll (const uiArea *a);
 
 /**
  * @brief Scrolls a @p uiArea to the given bounds
@@ -224,14 +226,14 @@ API void uiAreaScrollTo (uiArea *a, double x, double y, double width, double hei
  * @brief Signals that the user is moving the window of a @p uiArea
  * @param a @p uiArea
  */
-API void uiAreaBeginUserWindowMove (uiArea *a);
+API void uiAreaBeginUserWindowMove (const uiArea *a);
 
 /**
  * @brief Signals that the user is resizing the window of a @p uiArea
  * @param a @p uiArea
  * @param edge @p uiWindowResizeEdge
  */
-API void uiAreaBeginUserWindowResize (uiArea *a, uiWindowResizeEdge edge);
+API void uiAreaBeginUserWindowResize (const uiArea *a, uiWindowResizeEdge edge);
 
 /**
  * @brief @p uiArea constructor

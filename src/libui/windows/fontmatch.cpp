@@ -1,61 +1,96 @@
-// 11 march 2018
-#include "uipriv_windows.hpp"
-#include "attrstr.hpp"
+#include "fontmatch.h"
 
-// TODO should be const but then I can't operator[] on it; the real solution is to find a way to do designated array initializers in C++11 but I do not know enough C++ voodoo to make it work (it is possible but no one else has actually done it before)
-static std::map<uiTextItalic, DWRITE_FONT_STYLE> dwriteItalics = {
-	{ uiTextItalicNormal, DWRITE_FONT_STYLE_NORMAL },
-	{ uiTextItalicOblique, DWRITE_FONT_STYLE_OBLIQUE },
-	{ uiTextItalicItalic, DWRITE_FONT_STYLE_ITALIC },
-};
-
-// TODO should be const but then I can't operator[] on it; the real solution is to find a way to do designated array initializers in C++11 but I do not know enough C++ voodoo to make it work (it is possible but no one else has actually done it before)
-static std::map<uiTextStretch, DWRITE_FONT_STRETCH> dwriteStretches = {
-	{ uiTextStretchUltraCondensed, DWRITE_FONT_STRETCH_ULTRA_CONDENSED },
-	{ uiTextStretchExtraCondensed, DWRITE_FONT_STRETCH_EXTRA_CONDENSED },
-	{ uiTextStretchCondensed, DWRITE_FONT_STRETCH_CONDENSED },
-	{ uiTextStretchSemiCondensed, DWRITE_FONT_STRETCH_SEMI_CONDENSED },
-	{ uiTextStretchNormal, DWRITE_FONT_STRETCH_NORMAL },
-	{ uiTextStretchSemiExpanded, DWRITE_FONT_STRETCH_SEMI_EXPANDED },
-	{ uiTextStretchExpanded, DWRITE_FONT_STRETCH_EXPANDED },
-	{ uiTextStretchExtraExpanded, DWRITE_FONT_STRETCH_EXTRA_EXPANDED },
-	{ uiTextStretchUltraExpanded, DWRITE_FONT_STRETCH_ULTRA_EXPANDED },
-};
-
-// for the most part, DirectWrite weights correlate to ours
-// the differences:
-// - Minimum — libui: 0, DirectWrite: 1
-// - Maximum — libui: 1000, DirectWrite: 999
-// TODO figure out what to do about this shorter range (the actual major values are the same (but with different names), so it's just a range issue)
-DWRITE_FONT_WEIGHT uiprivWeightToDWriteWeight(uiTextWeight w)
+static uiTextItalic
+uiprivDWriteFontStyleToUiItalic (const DWRITE_FONT_STYLE font_style)
 {
-	return (DWRITE_FONT_WEIGHT) w;
+  switch (font_style)
+    {
+    default:
+    case DWRITE_FONT_STYLE_NORMAL:
+      return uiTextItalicNormal;
+    case DWRITE_FONT_STYLE_OBLIQUE:
+      return uiTextItalicOblique;
+    case DWRITE_FONT_STYLE_ITALIC:
+      return uiTextItalicItalic;
+    }
 }
 
-DWRITE_FONT_STYLE uiprivItalicToDWriteStyle(uiTextItalic i)
+static uiTextStretch
+uiprivDWriteFontStretchToUiStretch (const DWRITE_FONT_STRETCH stretch)
 {
-	return dwriteItalics[i];
+  switch (stretch)
+    {
+    default:
+    case DWRITE_FONT_STRETCH_NORMAL:
+      return uiTextStretchNormal;
+    case DWRITE_FONT_STRETCH_ULTRA_CONDENSED:
+      return uiTextStretchUltraCondensed;
+    case DWRITE_FONT_STRETCH_EXTRA_CONDENSED:
+      return uiTextStretchExtraCondensed;
+    case DWRITE_FONT_STRETCH_CONDENSED:
+      return uiTextStretchCondensed;
+    case DWRITE_FONT_STRETCH_SEMI_CONDENSED:
+      return uiTextStretchSemiCondensed;
+    case DWRITE_FONT_STRETCH_SEMI_EXPANDED:
+      return uiTextStretchSemiExpanded;
+    case DWRITE_FONT_STRETCH_EXPANDED:
+      return uiTextStretchExpanded;
+    case DWRITE_FONT_STRETCH_EXTRA_EXPANDED:
+      return uiTextStretchExtraExpanded;
+    case DWRITE_FONT_STRETCH_ULTRA_EXPANDED:
+      return uiTextStretchUltraExpanded;
+    }
 }
 
-DWRITE_FONT_STRETCH uiprivStretchToDWriteStretch(uiTextStretch s)
+DWRITE_FONT_WEIGHT
+uiprivWeightToDWriteWeight (uiTextWeight w) { return static_cast<DWRITE_FONT_WEIGHT> (w); }
+
+DWRITE_FONT_STYLE
+uiprivItalicToDWriteStyle (const uiTextItalic i)
 {
-	return dwriteStretches[s];
+  switch (i)
+    {
+    default:
+    case uiTextItalicNormal:
+      return DWRITE_FONT_STYLE_NORMAL;
+    case uiTextItalicOblique:
+      return DWRITE_FONT_STYLE_OBLIQUE;
+    case uiTextItalicItalic:
+      return DWRITE_FONT_STYLE_ITALIC;
+    }
 }
 
-void uiprivFontDescriptorFromIDWriteFont(IDWriteFont *font, uiFontDescriptor *uidesc)
+DWRITE_FONT_STRETCH
+uiprivStretchToDWriteStretch (const uiTextStretch s)
 {
-	DWRITE_FONT_STYLE dwitalic;
-	DWRITE_FONT_STRETCH dwstretch;
+  switch (s)
+    {
+    default:
+    case uiTextStretchNormal:
+      return DWRITE_FONT_STRETCH_NORMAL;
+    case uiTextStretchUltraCondensed:
+      return DWRITE_FONT_STRETCH_ULTRA_CONDENSED;
+    case uiTextStretchExtraCondensed:
+      return DWRITE_FONT_STRETCH_EXTRA_CONDENSED;
+    case uiTextStretchCondensed:
+      return DWRITE_FONT_STRETCH_CONDENSED;
+    case uiTextStretchSemiCondensed:
+      return DWRITE_FONT_STRETCH_SEMI_CONDENSED;
+    case uiTextStretchSemiExpanded:
+      return DWRITE_FONT_STRETCH_SEMI_EXPANDED;
+    case uiTextStretchExpanded:
+      return DWRITE_FONT_STRETCH_EXPANDED;
+    case uiTextStretchExtraExpanded:
+      return DWRITE_FONT_STRETCH_EXTRA_EXPANDED;
+    case uiTextStretchUltraExpanded:
+      return DWRITE_FONT_STRETCH_ULTRA_EXPANDED;
+    }
+}
 
-	dwitalic = font->GetStyle();
-	// TODO reverse the above misalignment if it is corrected
-	uidesc->Weight = (uiTextWeight) (font->GetWeight());
-	dwstretch = font->GetStretch();
-
-	for (uidesc->Italic = uiTextItalicNormal; uidesc->Italic < uiTextItalicItalic; uidesc->Italic++)
-		if (dwriteItalics[uidesc->Italic] == dwitalic)
-			break;
-	for (uidesc->Stretch = uiTextStretchUltraCondensed; uidesc->Stretch < uiTextStretchUltraExpanded; uidesc->Stretch++)
-		if (dwriteStretches[uidesc->Stretch] == dwstretch)
-			break;
+void
+uiprivFontDescriptorFromIDWriteFont (IDWriteFont *font, uiFontDescriptor *uidesc)
+{
+  uidesc->Weight  = static_cast<uiTextWeight> (font->GetWeight ());
+  uidesc->Italic  = uiprivDWriteFontStyleToUiItalic (font->GetStyle ());
+  uidesc->Stretch = uiprivDWriteFontStretchToUiStretch (font->GetStretch ());
 }

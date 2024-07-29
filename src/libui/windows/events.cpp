@@ -1,149 +1,184 @@
-// 20 may 2015
-#include "uipriv_windows.hpp"
+#include "events.h"
 
-struct handler {
-	BOOL (*commandHandler)(uiControl *, HWND, WORD, LRESULT *);
-	BOOL (*notifyHandler)(uiControl *, HWND, NMHDR *, LRESULT *);
-	BOOL (*hscrollHandler)(uiControl *, HWND, WORD, LRESULT *);
-	uiControl *c;
+#include <map>
+#include <ui/control.h>
+#include <ui/userbugs.h>
 
-	// just to ensure handlers[new HWND] initializes properly
-	// TODO gcc can't handle a struct keyword here? or is that a MSVC extension?
-	handler()
-	{
-		this->commandHandler = NULL;
-		this->notifyHandler = NULL;
-		this->hscrollHandler = NULL;
-		this->c = NULL;
-	}
+struct handler
+{
+  BOOL (*commandHandler) (uiControl *, HWND, WORD, LRESULT *);
+
+  BOOL (*notifyHandler) (uiControl *, HWND, NMHDR *, LRESULT *);
+
+  BOOL (*hscrollHandler) (uiControl *, HWND, WORD, LRESULT *);
+
+  uiControl *c;
+
+  handler ()
+  {
+    this->commandHandler = nullptr;
+    this->notifyHandler  = nullptr;
+    this->hscrollHandler = nullptr;
+    this->c              = nullptr;
+  }
 };
 
-static std::map<HWND, struct handler> handlers;
+static std::map<HWND, handler> handlers;
 
-void uiWindowsRegisterWM_COMMANDHandler(HWND hwnd, BOOL (*handler)(uiControl *, HWND, WORD, LRESULT *), uiControl *c)
+void
+uiWindowsRegisterWM_COMMANDHandler (const HWND hwnd, BOOL (*handler) (uiControl *, HWND, WORD, LRESULT *),
+                                    uiControl *c)
 {
-	if (handlers[hwnd].commandHandler != NULL)
-		uiprivImplBug("already registered a WM_COMMAND handler to window handle %p", hwnd);
-	handlers[hwnd].commandHandler = handler;
-	handlers[hwnd].c = c;
+  if (handlers[hwnd].commandHandler != NULL)
+    uiprivImplBug ("already registered a WM_COMMAND handler to window handle %p", hwnd);
+
+  handlers[hwnd].commandHandler = handler;
+
+  handlers[hwnd].c = c;
 }
 
-void uiWindowsRegisterWM_NOTIFYHandler(HWND hwnd, BOOL (*handler)(uiControl *, HWND, NMHDR *, LRESULT *), uiControl *c)
+void
+uiWindowsRegisterWM_NOTIFYHandler (const HWND hwnd, BOOL (*handler) (uiControl *, HWND, NMHDR *, LRESULT *),
+                                   uiControl *c)
 {
-	if (handlers[hwnd].notifyHandler != NULL)
-		uiprivImplBug("already registered a WM_NOTIFY handler to window handle %p", hwnd);
-	handlers[hwnd].notifyHandler = handler;
-	handlers[hwnd].c = c;
+  if (handlers[hwnd].notifyHandler != NULL)
+    uiprivImplBug ("already registered a WM_NOTIFY handler to window handle %p", hwnd);
+
+  handlers[hwnd].notifyHandler = handler;
+
+  handlers[hwnd].c = c;
 }
 
-void uiWindowsRegisterWM_HSCROLLHandler(HWND hwnd, BOOL (*handler)(uiControl *, HWND, WORD, LRESULT *), uiControl *c)
+void
+uiWindowsRegisterWM_HSCROLLHandler (const HWND hwnd, BOOL (*handler) (uiControl *, HWND, WORD, LRESULT *),
+                                    uiControl *c)
 {
-	if (handlers[hwnd].hscrollHandler != NULL)
-		uiprivImplBug("already registered a WM_HSCROLL handler to window handle %p", hwnd);
-	handlers[hwnd].hscrollHandler = handler;
-	handlers[hwnd].c = c;
+  if (handlers[hwnd].hscrollHandler != NULL)
+    uiprivImplBug ("already registered a WM_HSCROLL handler to window handle %p", hwnd);
+
+  handlers[hwnd].hscrollHandler = handler;
+
+  handlers[hwnd].c = c;
 }
 
-void uiWindowsUnregisterWM_COMMANDHandler(HWND hwnd)
+void
+uiWindowsUnregisterWM_COMMANDHandler (const HWND hwnd)
 {
-	if (handlers[hwnd].commandHandler == NULL)
-		uiprivImplBug("window handle %p not registered to receive WM_COMMAND events", hwnd);
-	handlers[hwnd].commandHandler = NULL;
+  if (handlers[hwnd].commandHandler == NULL)
+    uiprivImplBug ("window handle %p not registered to receive WM_COMMAND events", hwnd);
+
+  handlers[hwnd].commandHandler = NULL;
 }
 
-void uiWindowsUnregisterWM_NOTIFYHandler(HWND hwnd)
+void
+uiWindowsUnregisterWM_NOTIFYHandler (const HWND hwnd)
 {
-	if (handlers[hwnd].notifyHandler == NULL)
-		uiprivImplBug("window handle %p not registered to receive WM_NOTIFY events", hwnd);
-	handlers[hwnd].notifyHandler = NULL;
+  if (handlers[hwnd].notifyHandler == NULL)
+    uiprivImplBug ("window handle %p not registered to receive WM_NOTIFY events", hwnd);
+
+  handlers[hwnd].notifyHandler = NULL;
 }
 
-void uiWindowsUnregisterWM_HSCROLLHandler(HWND hwnd)
+void
+uiWindowsUnregisterWM_HSCROLLHandler (const HWND hwnd)
 {
-	if (handlers[hwnd].hscrollHandler == NULL)
-		uiprivImplBug("window handle %p not registered to receive WM_HSCROLL events", hwnd);
-	handlers[hwnd].hscrollHandler = NULL;
+  if (handlers[hwnd].hscrollHandler == NULL)
+    uiprivImplBug ("window handle %p not registered to receive WM_HSCROLL events", hwnd);
+
+  handlers[hwnd].hscrollHandler = NULL;
 }
 
-template<typename T>
-static BOOL shouldRun(HWND hwnd, T method)
+template <typename T>
+static BOOL
+shouldRun (const HWND hwnd, T method)
 {
-	// not from a window
-	if (hwnd == NULL)
-		return FALSE;
-	// don't bounce back if to the utility window, in which case act as if the message was ignored
-	if (IsChild(utilWindow, hwnd) != 0)
-		return FALSE;
-	// registered?
-	return method != NULL;
+  if (hwnd == NULL)
+    return FALSE;
+
+  // don't bounce back if to the utility window, in which case act as if the message was ignored
+  if (IsChild (utilWindow, hwnd) != 0)
+    return FALSE;
+
+  return method != NULL;
 }
 
-BOOL runWM_COMMAND(WPARAM wParam, LPARAM lParam, LRESULT *lResult)
+BOOL
+runWM_COMMAND (const WPARAM wParam, const LPARAM lParam, LRESULT *lResult)
 {
-	HWND hwnd;
-	WORD arg3;
-	BOOL (*handler)(uiControl *, HWND, WORD, LRESULT *);
-	uiControl *c;
 
-	hwnd = (HWND) lParam;
-	arg3 = HIWORD(wParam);
-	handler = handlers[hwnd].commandHandler;
-	c = handlers[hwnd].c;
-	if (shouldRun(hwnd, handler))
-		return (*handler)(c, hwnd, arg3, lResult);
-	return FALSE;
+  auto *hwnd = reinterpret_cast<HWND> (lParam); // NOLINT(*-no-int-to-ptr)
+
+  const WORD arg3 = HIWORD (wParam);
+
+  BOOL (*handler) (uiControl *, HWND, WORD, LRESULT *) = handlers[hwnd].commandHandler;
+
+  uiControl *c = handlers[hwnd].c;
+
+  if (shouldRun (hwnd, handler) != 0)
+    return (*handler) (c, hwnd, arg3, lResult);
+
+  return FALSE;
 }
 
-BOOL runWM_NOTIFY(WPARAM wParam, LPARAM lParam, LRESULT *lResult)
+BOOL
+runWM_NOTIFY (WPARAM, const LPARAM lParam, LRESULT *lResult)
 {
-	HWND hwnd;
-	NMHDR *arg3;
-	BOOL (*handler)(uiControl *, HWND, NMHDR *, LRESULT *);
-	uiControl *c;
 
-	arg3 = (NMHDR *) lParam;
-	hwnd = arg3->hwndFrom;
-	handler = handlers[hwnd].notifyHandler;
-	c = handlers[hwnd].c;
-	if (shouldRun(hwnd, handler))
-		return (*handler)(c, hwnd, arg3, lResult);
-	return FALSE;
+  auto *const arg3 = reinterpret_cast<NMHDR *> (lParam); // NOLINT(*-no-int-to-ptr)
+
+  const HWND hwnd = arg3->hwndFrom;
+
+  BOOL (*handler) (uiControl *, HWND, NMHDR *, LRESULT *) = handlers[hwnd].notifyHandler;
+
+  uiControl *c = handlers[hwnd].c;
+
+  if (shouldRun (hwnd, handler) != 0)
+    return (*handler) (c, hwnd, arg3, lResult);
+
+  return FALSE;
 }
 
-BOOL runWM_HSCROLL(WPARAM wParam, LPARAM lParam, LRESULT *lResult)
+BOOL
+runWM_HSCROLL (const WPARAM wParam, const LPARAM lParam, LRESULT *lResult)
 {
-	HWND hwnd;
-	WORD arg3;
-	BOOL (*handler)(uiControl *, HWND, WORD, LRESULT *);
-	uiControl *c;
 
-	hwnd = (HWND) lParam;
-	arg3 = LOWORD(wParam);
-	handler = handlers[hwnd].hscrollHandler;
-	c = handlers[hwnd].c;
-	if (shouldRun(hwnd, handler))
-		return (*handler)(c, hwnd, arg3, lResult);
-	return FALSE;
+  auto *const hwnd = reinterpret_cast<HWND> (lParam); // NOLINT(*-no-int-to-ptr)
+
+  const WORD arg3 = LOWORD (wParam);
+
+  BOOL (*handler) (uiControl *, HWND, WORD, LRESULT *) = handlers[hwnd].hscrollHandler;
+
+  uiControl *c = handlers[hwnd].c;
+
+  if (shouldRun (hwnd, handler) != 0)
+    return (*handler) (c, hwnd, arg3, lResult);
+
+  return FALSE;
 }
 
 static std::map<HWND, bool> wininichanges;
 
-void uiWindowsRegisterReceiveWM_WININICHANGE(HWND hwnd)
+void
+uiWindowsRegisterReceiveWM_WININICHANGE (const HWND hwnd)
 {
-	if (wininichanges[hwnd])
-		uiprivImplBug("window handle %p already subscribed to receive WM_WINICHANGEs", hwnd);
-	wininichanges[hwnd] = true;
+  if (wininichanges[hwnd])
+    uiprivImplBug ("window handle %p already subscribed to receive WM_WINICHANGEs", hwnd);
+
+  wininichanges[hwnd] = true;
 }
 
-void uiWindowsUnregisterReceiveWM_WININICHANGE(HWND hwnd)
+void
+uiWindowsUnregisterReceiveWM_WININICHANGE (const HWND hwnd)
 {
-	if (!wininichanges[hwnd])
-		uiprivImplBug("window handle %p not registered to receive WM_WININICHANGEs", hwnd);
-	wininichanges[hwnd] = false;
+  if (!wininichanges[hwnd])
+    uiprivImplBug ("window handle %p not registered to receive WM_WININICHANGEs", hwnd);
+
+  wininichanges[hwnd] = false;
 }
 
-void issueWM_WININICHANGE(WPARAM wParam, LPARAM lParam)
+void
+issueWM_WININICHANGE (const WPARAM wParam, const LPARAM lParam)
 {
-	for (const auto &iter : wininichanges)
-		SendMessageW(iter.first, WM_WININICHANGE, wParam, lParam);
+  for (const auto &iter : wininichanges)
+    SendMessageW (iter.first, WM_WININICHANGE, wParam, lParam);
 }

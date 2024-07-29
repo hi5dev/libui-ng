@@ -1,84 +1,98 @@
-// 25 february 2015
-#include "uipriv_windows.hpp"
+#include "debug.h"
 
-// LONGTERM disable logging and stopping on no-debug builds
+#include "utf16.h"
 
-static void printDebug(const WCHAR *msg)
+#include <stdio.h>
+#include <uipriv.h>
+
+static void
+printDebug (const WCHAR *msg)
 {
-	OutputDebugStringW(msg);
+  OutputDebugStringW (msg);
 }
 
-HRESULT _logLastError(debugargs, const WCHAR *s)
+HRESULT
+_logLastError (debugargs, const WCHAR *s)
 {
-	DWORD le;
-	WCHAR *msg;
-	WCHAR *formatted;
-	BOOL useFormatted;
+  const WCHAR *formatted;
 
-	le = GetLastError();
+  const DWORD le = GetLastError ();
 
-	useFormatted = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, le, 0, (LPWSTR) (&formatted), 0, NULL) != 0;
-	if (!useFormatted)
-		formatted = (WCHAR *) L"\n";		// TODO
-	msg = strf(L"[libui] %s:%s:%s() %s: GetLastError() == %I32u %s",
-		file, line, func,
-		s, le, formatted);
-	if (useFormatted)
-		LocalFree(formatted);		// ignore error
-	printDebug(msg);
-	uiprivFree(msg);
-	DebugBreak();
+  static constexpr auto flags
+      = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
 
-	SetLastError(le);
-	// a function does not have to set a last error
-	// if the last error we get is actually 0, then HRESULT_FROM_WIN32(0) will return S_OK (0 cast to an HRESULT, since 0 <= 0), which we don't want
-	// prevent this by returning E_FAIL
-	if (le == 0)
-		return E_FAIL;
-	return HRESULT_FROM_WIN32(le);
+  const DWORD r = FormatMessageW (flags, NULL, le, 0, reinterpret_cast<LPWSTR> (&formatted), 0, NULL);
+
+  if (r != 0)
+    formatted = L"\n";
+
+  WCHAR *msg = strf (L"[libui] %s:%s:%s() %s: GetLastError() == %I32u %s", file, line, func, s, le, formatted);
+
+  if (r != 0)
+    // ReSharper disable once CppCStyleCast
+    LocalFree ((HLOCAL)formatted);
+
+  printDebug (msg);
+  uiprivFree (msg);
+  DebugBreak ();
+
+  SetLastError (le);
+
+  // a function does not have to set a last error
+  // if the last error we get is actually 0, then HRESULT_FROM_WIN32(0) will return S_OK (0 cast to an HRESULT, since 0
+  // <= 0), which we don't want prevent this by returning E_FAIL
+  if (le == 0)
+    return E_FAIL;
+
+  return HRESULT_FROM_WIN32 (le);
 }
 
-HRESULT _logHRESULT(debugargs, const WCHAR *s, HRESULT hr)
+HRESULT
+_logHRESULT (debugargs, const WCHAR *s, const HRESULT hr)
 {
-	WCHAR *msg;
-	WCHAR *formatted;
-	BOOL useFormatted;
+  static constexpr auto flags
+      = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
 
-	useFormatted = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, hr, 0, (LPWSTR) (&formatted), 0, NULL) != 0;
-	if (!useFormatted)
-		formatted = (WCHAR *) L"\n";			// TODO
-	msg = strf(L"[libui] %s:%s:%s() %s: HRESULT == 0x%08I32X %s",
-		file, line, func,
-		s, hr, formatted);
-	if (useFormatted)
-		LocalFree(formatted);		// ignore error
-	printDebug(msg);
-	uiprivFree(msg);
-	DebugBreak();
+  const LPWSTR formatted = nullptr;
 
-	return hr;
+  (void)FormatMessageW (flags, NULL, hr, 0, formatted, 0, NULL);
+
+  WCHAR *msg = strf (L"[libui] %s:%s:%s() %s: HRESULT == 0x%08I32X %s", file, line, func, s, hr, formatted);
+
+  printDebug (msg);
+
+  uiprivFree (msg);
+
+  DebugBreak ();
+
+  return hr;
 }
 
-void uiprivRealBug(const char *file, const char *line, const char *func, const char *prefix, const char *format, va_list ap)
+void
+uiprivRealBug (const char *file, const char *line, const char *func, const char *prefix, const char *format,
+               va_list ap)
 {
-	va_list ap2;
-	char *msg;
-	size_t n;
-	WCHAR *final;
+  va_list ap2;
 
-	va_copy(ap2, ap);
-	n = _vscprintf(format, ap2);
-	va_end(ap2);
-	n++;		// terminating '\0'
+  va_copy (ap2, ap);
 
-	msg = (char *) uiprivAlloc(n * sizeof (char), "char[]");
-	// includes terminating '\0' according to example in https://msdn.microsoft.com/en-us/library/xa1a1a6z.aspx
-	vsprintf_s(msg, n, format, ap);
+  size_t n = _vscprintf (format, ap2);
 
-	final = strf(L"[libui] %hs:%hs:%hs() %hs%hs\n", file, line, func, prefix, msg);
-	uiprivFree(msg);
-	printDebug(final);
-	uiprivFree(final);
+  va_end (ap2);
 
-	DebugBreak();
+  n++;
+
+  const auto msg = static_cast<char *> (uiprivAlloc (n * sizeof (char), "char[]"));
+
+  vsprintf_s (msg, n, format, ap);
+
+  WCHAR *final = strf (L"[libui] %hs:%hs:%hs() %hs%hs\n", file, line, func, prefix, msg);
+
+  uiprivFree (msg);
+
+  printDebug (final);
+
+  uiprivFree (final);
+
+  DebugBreak ();
 }

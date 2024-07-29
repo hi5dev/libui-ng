@@ -1,7 +1,10 @@
+#include "utf16.h"
 #include "uipriv.h"
 #include "uipriv_windows.hpp"
 
 #include <utf.h>
+
+#include <sstream>
 
 WCHAR *
 toUTF16 (const char *str)
@@ -14,7 +17,7 @@ toUTF16 (const char *str)
   // ReSharper disable once CppDFAUnusedValue
   size_t n = uiprivUTF8UTF16Count (str, 0);
 
-  const auto wstr = static_cast<WCHAR *> (uiprivAlloc ((n + 1) * sizeof (WCHAR), "WCHAR[]"));
+  auto *const wstr = static_cast<WCHAR *> (uiprivAlloc ((n + 1) * sizeof (WCHAR), "WCHAR[]"));
 
   WCHAR *wp = wstr;
 
@@ -39,7 +42,7 @@ toUTF8 (const WCHAR *wstr)
   // ReSharper disable once CppDFAUnusedValue
   size_t n = uiprivUTF16UTF8Count (wstr, 0);
 
-  const auto str = static_cast<char *> (uiprivAlloc ((n + 1) * sizeof (char), "char[]"));
+  auto *const str = static_cast<char *> (uiprivAlloc ((n + 1) * sizeof (char), "char[]"));
 
   char *sp = str;
 
@@ -49,6 +52,7 @@ toUTF8 (const WCHAR *wstr)
       n    = uiprivUTF8EncodeRune (rune, sp);
       sp += n;
     }
+
   return str;
 }
 
@@ -57,7 +61,7 @@ utf16dup (const WCHAR *orig)
 {
 
   const size_t len = wcslen (orig);
-  const auto   out = static_cast<WCHAR *> (uiprivAlloc ((len + 1) * sizeof (WCHAR), "WCHAR[]"));
+  auto *const  out = static_cast<WCHAR *> (uiprivAlloc ((len + 1) * sizeof (WCHAR), "WCHAR[]"));
   wcscpy_s (out, len + 1, orig);
   return out;
 }
@@ -92,7 +96,7 @@ vstrf (const WCHAR *format, va_list ap)
 
   n++;
 
-  const auto buf = static_cast<WCHAR *> (uiprivAlloc (n * sizeof (WCHAR), "WCHAR[]"));
+  auto *const buf = static_cast<WCHAR *> (uiprivAlloc (n * sizeof (WCHAR), "WCHAR[]"));
 
   (void)vswprintf_s (buf, n, format, ap);
 
@@ -102,21 +106,25 @@ vstrf (const WCHAR *format, va_list ap)
 char *
 LFtoCRLF (const char *lfonly)
 {
+  const size_t len = strlen (lfonly);
 
-  const size_t len  = strlen (lfonly);
-  auto         crlf = static_cast<char *> (uiprivAlloc ((len * 2 + 1) * sizeof (char), "char[]"));
-  char        *out  = crlf;
+  auto *crlf = static_cast<char *> (uiprivAlloc ((len * 2 + 1) * sizeof (char), "char[]"));
+
+  char *out = crlf;
+
   for (size_t i = 0; i < len; i++)
     {
       if (*lfonly == '\n')
         *crlf++ = '\r';
+
       *crlf++ = *lfonly++;
     }
+
   *crlf = '\0';
+
   return out;
 }
 
-// Prerequisite: s is UTF-8.
 void
 CRLFtoLF (char *s)
 {
@@ -127,35 +135,35 @@ CRLFtoLF (char *s)
       // be sure to preserve \rs that are genuinely there
       if (*s == '\r' && *(s + 1) == '\n')
         continue;
+
       *t++ = *s;
     }
+
   *t = '\0';
+
   // pad out the rest of t, just to be safe
   while (t != s)
     *t++ = '\0';
 }
 
-// std::to_string() always uses %f; we want %g
-// fortunately std::iostream seems to use %g by default so
 WCHAR *
-ftoutf16 (double d)
+ftoutf16 (const double d)
 {
   std::wostringstream ss;
   std::wstring        s;
 
   ss << d;
-  s = ss.str (); // to be safe
+  s = ss.str ();
   return utf16dup (s.c_str ());
 }
 
-// to complement the above
 WCHAR *
-itoutf16 (int i)
+itoutf16 (const int i)
 {
   std::wostringstream ss;
   std::wstring        s;
 
   ss << i;
-  s = ss.str (); // to be safe
+  s = ss.str ();
   return utf16dup (s.c_str ());
 }

@@ -13,7 +13,9 @@ Checks: >
   -readability-named-parameter,
   -readability-braces-around-statements,
   -readability-identifier-length,
+  -readability-magic-numbers,
   -*-function-cognitive-complexity,
   -*-easily-swappable-parameters,
   -bugprone-reserved-identifier,-cert-dcl37-c,-cert-dcl51-cpp,
-  -*-redundant-casting
+  -*-redundant-casting,
+  -*-no-int-to-ptr

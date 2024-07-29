@@ -1,10 +1,11 @@
-#include "uipriv_windows.hpp"
+#include "alloc.h"
 
-#include <userbugs.h>
+#include <ui/userbugs.h>
+
+#include <map>
+#include <sstream>
 
 #define rawBytes(pa) (&((*pa)[0]))
-
-typedef std::vector<uint8_t> byteArray;
 
 static std::map<uint8_t *, byteArray *>    heap;
 static std::map<byteArray *, const char *> types;
@@ -12,7 +13,7 @@ static std::map<byteArray *, const char *> types;
 void
 initAlloc ()
 {
-  // do nothing
+  // no-op
 }
 
 void

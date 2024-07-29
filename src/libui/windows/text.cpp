@@ -1,7 +1,7 @@
-#include "uipriv.h"
-#include "uipriv_windows.hpp"
+#include "text.h"
+#include "debug.h"
 
-#define labelHeight 8
+#include <uipriv.h>
 
 WCHAR *
 windowTextAndLen (const HWND hwnd, LRESULT *len)

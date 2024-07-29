@@ -1,15 +1,27 @@
+#include "utilwin.h"
+
+#include "debug.h"
+#include "events.h"
+#include "init.h"
+#include "main.h"
+#include "parent.h"
 #include "uipriv_windows.hpp"
 
 #include <ui/main.h>
 #include <uipriv.h>
 
-// The utility window is a special window that performs certain tasks internal to libui.
-// It is not a message-only window, and it is always hidden and disabled.
-// Its roles:
-// - It is the initial parent of all controls. When a control loses its parent, it also becomes that control's parent.
-// - It handles WM_QUERYENDSESSION requests.
-// - It handles WM_WININICHANGE and forwards the message to any child windows that request it.
-// - It handles executing functions queued to run by uiQueueMain().
+/**
+ * @brief The utility window is a special window that performs certain tasks internal to libui.
+ *
+ * It is not a message-only window, and it is always hidden and disabled.
+ *
+ * Its roles:
+ * - It is the initial parent of all controls.
+ * - When a control loses its parent, it also becomes that control's parent.
+ * - It handles @p WM_QUERYENDSESSION requests.
+ * - It handles @p WM_WININICHANGE and forwards the message to any child windows that request it.
+ * - It handles executing functions queued to run by @p uiQueueMain
+ */
 
 #define utilWindowClass L"libui_utilWindowClass"
 

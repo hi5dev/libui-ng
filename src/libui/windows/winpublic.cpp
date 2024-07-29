@@ -1,4 +1,9 @@
-#include "uipriv_windows.hpp"
+#include "winpublic.h"
+#include "debug.h"
+#include "utilwin.h"
+#include "winutil.h"
+
+#include <winuser.h>
 
 void
 uiWindowsEnsureDestroyWindow (const HWND hwnd)
