@@ -21,7 +21,7 @@ _logLastError (debugargs, const WCHAR *s)
   static constexpr auto flags
       = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
 
-  const DWORD r = FormatMessageW (flags, NULL, le, 0, reinterpret_cast<LPWSTR> (&formatted), 0, NULL);
+  const DWORD r = FormatMessageW (flags, nullptr, le, 0, reinterpret_cast<LPWSTR> (&formatted), 0, nullptr);
 
   if (r != 0)
     formatted = L"\n";
@@ -55,7 +55,7 @@ _logHRESULT (debugargs, const WCHAR *s, const HRESULT hr)
 
   const LPWSTR formatted = nullptr;
 
-  (void)FormatMessageW (flags, NULL, hr, 0, formatted, 0, NULL);
+  (void)FormatMessageW (flags, nullptr, hr, 0, formatted, 0, nullptr);
 
   WCHAR *msg = strf (L"[libui] %s:%s:%s() %s: HRESULT == 0x%08I32X %s", file, line, func, s, hr, formatted);
 

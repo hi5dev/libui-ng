@@ -1,592 +1,643 @@
-// 17 january 2017
-#include "uipriv_windows.hpp"
-#include "draw.hpp"
-#include "attrstr.hpp"
+// ReSharper disable CppDFAConstantParameter
+#include <dwrite.h>
 
-// TODO verify our renderer is correct, especially with regards to snapping
+#include <ui/draw.h>
 
-struct uiDrawTextLayout {
-	IDWriteTextFormat *format;
-	IDWriteTextLayout *layout;
-	std::vector<struct drawTextBackgroundParams *> *backgroundParams;
-	// for converting DirectWrite indices from/to byte offsets
-	size_t *u8tou16;
-	size_t nUTF8;
-	size_t *u16tou8;
-	size_t nUTF16;
-};
+#include "attrstr.h"
+#include "attrstr_win32.h"
+#include "debug.h"
+#include "drawtext.h"
 
-// TODO copy notes about DirectWrite DIPs being equal to Direct2D DIPs here
+#include "draw.h"
+#include "fontcollection.h"
+#include "fontmatch.h"
+#include "utf16.h"
 
-// typographic points are 1/72 inch; this parameter is 1/96 inch
-// fortunately Microsoft does this too, in https://msdn.microsoft.com/en-us/library/windows/desktop/dd371554%28v=vs.85%29.aspx
-#define pointSizeToDWriteSize(size) (size * (96.0 / 72.0))
+#include <cfloat>
+#include <map>
+#include <tgmath.h>
+#include <uipriv.h>
 
-// TODO move this and the layout creation stuff to attrstr.cpp like the other ports, or move the other ports into their drawtext.* files
-// TODO should be const but then I can't operator[] on it; the real solution is to find a way to do designated array initializers in C++11 but I do not know enough C++ voodoo to make it work (it is possible but no one else has actually done it before)
-static std::map<uiDrawTextAlign, DWRITE_TEXT_ALIGNMENT> dwriteAligns = {
-	{ uiDrawTextAlignLeft, DWRITE_TEXT_ALIGNMENT_LEADING },
-	{ uiDrawTextAlignCenter, DWRITE_TEXT_ALIGNMENT_CENTER },
-	{ uiDrawTextAlignRight, DWRITE_TEXT_ALIGNMENT_TRAILING },
-};
-
-uiDrawTextLayout *uiDrawNewTextLayout(uiDrawTextLayoutParams *p)
+static std::map<uiDrawTextAlign, DWRITE_TEXT_ALIGNMENT>
+dwriteAligns ()
 {
-	uiDrawTextLayout *tl;
-	WCHAR *wDefaultFamily;
-	DWRITE_WORD_WRAPPING wrap;
-	FLOAT maxWidth;
-	HRESULT hr;
+  static std::map<uiDrawTextAlign, DWRITE_TEXT_ALIGNMENT> aligns = {
+    { uiDrawTextAlignLeft,   DWRITE_TEXT_ALIGNMENT_LEADING  },
+    { uiDrawTextAlignCenter, DWRITE_TEXT_ALIGNMENT_CENTER   },
+    { uiDrawTextAlignRight,  DWRITE_TEXT_ALIGNMENT_TRAILING },
+  };
 
-	tl = uiprivNew(uiDrawTextLayout);
-
-	wDefaultFamily = toUTF16(p->DefaultFont->Family);
-	hr = dwfactory->CreateTextFormat(
-		wDefaultFamily, NULL,
-		uiprivWeightToDWriteWeight(p->DefaultFont->Weight),
-		uiprivItalicToDWriteStyle(p->DefaultFont->Italic),
-		uiprivStretchToDWriteStretch(p->DefaultFont->Stretch),
-		pointSizeToDWriteSize(p->DefaultFont->Size),
-		// see http://stackoverflow.com/questions/28397971/idwritefactorycreatetextformat-failing and https://msdn.microsoft.com/en-us/library/windows/desktop/dd368203.aspx
-		// TODO use the current locale?
-		L"",
-		&(tl->format));
-	uiprivFree(wDefaultFamily);
-	if (hr != S_OK)
-		logHRESULT(L"error creating IDWriteTextFormat", hr);
-	hr = tl->format->SetTextAlignment(dwriteAligns[p->Align]);
-	if (hr != S_OK)
-		logHRESULT(L"error applying text layout alignment", hr);
-
-	hr = dwfactory->CreateTextLayout(
-		(const WCHAR *) uiprivAttributedStringUTF16String(p->String), uiprivAttributedStringUTF16Len(p->String),
-		tl->format,
-		// FLOAT is float, not double, so this should work... TODO
-		FLT_MAX, FLT_MAX,
-		&(tl->layout));
-	if (hr != S_OK)
-		logHRESULT(L"error creating IDWriteTextLayout", hr);
-
-	// and set the width
-	// this is the only wrapping mode (apart from "no wrap") available prior to Windows 8.1 (TODO verify this fact) (TODO this should be the default anyway)
-	wrap = DWRITE_WORD_WRAPPING_WRAP;
-	maxWidth = (FLOAT) (p->Width);
-	if (p->Width < 0) {
-		// TODO is this wrapping juggling even necessary?
-		wrap = DWRITE_WORD_WRAPPING_NO_WRAP;
-		// setting the max width in this case technically isn't needed since the wrap mode will simply ignore the max width, but let's do it just to be safe
-		maxWidth = FLT_MAX;		// see TODO above
-	}
-	hr = tl->layout->SetWordWrapping(wrap);
-	if (hr != S_OK)
-		logHRESULT(L"error setting IDWriteTextLayout word wrapping mode", hr);
-	hr = tl->layout->SetMaxWidth(maxWidth);
-	if (hr != S_OK)
-		logHRESULT(L"error setting IDWriteTextLayout max layout width", hr);
-
-	uiprivAttributedStringApplyAttributesToDWriteTextLayout(p, tl->layout, &(tl->backgroundParams));
-
-	// and finally copy the UTF-8/UTF-16 index conversion tables
-	tl->u8tou16 = uiprivAttributedStringCopyUTF8ToUTF16Table(p->String, &(tl->nUTF8));
-	tl->u16tou8 = uiprivAttributedStringCopyUTF16ToUTF8Table(p->String, &(tl->nUTF16));
-
-	return tl;
+  return aligns;
 }
 
-void uiDrawFreeTextLayout(uiDrawTextLayout *tl)
+uiDrawTextLayout *
+uiDrawNewTextLayout (uiDrawTextLayoutParams *params)
 {
-	uiprivFree(tl->u16tou8);
-	uiprivFree(tl->u8tou16);
-	for (auto p : *(tl->backgroundParams))
-		uiprivFree(p);
-	delete tl->backgroundParams;
-	tl->layout->Release();
-	tl->format->Release();
-	uiprivFree(tl);
+  auto *tl = uiprivNew (uiDrawTextLayout);
+
+  WCHAR *wDefaultFamily = toUTF16 (params->DefaultFont->Family);
+
+  HRESULT hr
+      = dwfactory->CreateTextFormat (wDefaultFamily, nullptr, uiprivWeightToDWriteWeight (params->DefaultFont->Weight),
+                                     uiprivItalicToDWriteStyle (params->DefaultFont->Italic),
+                                     uiprivStretchToDWriteStretch (params->DefaultFont->Stretch),
+                                     pointSizeToDWriteSize (params->DefaultFont->Size), L"", &tl->format);
+
+  uiprivFree (wDefaultFamily);
+
+  if (hr != S_OK)
+    (void)logHRESULT (L"error creating IDWriteTextFormat", hr);
+
+  hr = tl->format->SetTextAlignment (dwriteAligns ()[params->Align]);
+  if (hr != S_OK)
+    (void)logHRESULT (L"error applying text layout alignment", hr);
+
+  hr = dwfactory->CreateTextLayout (static_cast<const WCHAR *> (uiprivAttributedStringUTF16String (params->String)),
+                                    uiprivAttributedStringUTF16Len (params->String), tl->format, FLT_MAX, FLT_MAX,
+                                    &tl->layout);
+  if (hr != S_OK)
+    (void)logHRESULT (L"error creating IDWriteTextLayout", hr);
+
+  DWRITE_WORD_WRAPPING wrap = DWRITE_WORD_WRAPPING_WRAP;
+
+  FLOAT maxWidth = static_cast<FLOAT> (params->Width);
+  if (params->Width < 0)
+    {
+      wrap     = DWRITE_WORD_WRAPPING_NO_WRAP;
+      maxWidth = FLT_MAX;
+    }
+
+  hr = tl->layout->SetWordWrapping (wrap);
+  if (hr != S_OK)
+    (void)logHRESULT (L"error setting IDWriteTextLayout word wrapping mode", hr);
+
+  hr = tl->layout->SetMaxWidth (maxWidth);
+  if (hr != S_OK)
+    (void)logHRESULT (L"error setting IDWriteTextLayout max layout width", hr);
+
+  uiprivAttributedStringApplyAttributesToDWriteTextLayout (params, tl->layout, &(tl->backgroundParams));
+
+  tl->u8tou16 = uiprivAttributedStringCopyUTF8ToUTF16Table (params->String, &(tl->nUTF8));
+  tl->u16tou8 = uiprivAttributedStringCopyUTF16ToUTF8Table (params->String, &(tl->nUTF16));
+
+  return tl;
 }
 
-// TODO make this shared code somehow
-static HRESULT mkSolidBrush(ID2D1RenderTarget *rt, double r, double g, double b, double a, ID2D1SolidColorBrush **brush)
+void
+uiDrawFreeTextLayout (uiDrawTextLayout *tl)
 {
-	D2D1_BRUSH_PROPERTIES props;
-	D2D1_COLOR_F color;
+  uiprivFree (tl->u16tou8);
+  uiprivFree (tl->u8tou16);
 
-	ZeroMemory(&props, sizeof (D2D1_BRUSH_PROPERTIES));
-	props.opacity = 1.0;
-	// identity matrix
-	props.transform._11 = 1;
-	props.transform._22 = 1;
-	color.r = r;
-	color.g = g;
-	color.b = b;
-	color.a = a;
-	return rt->CreateSolidColorBrush(
-		&color,
-		&props,
-		brush);
+  for (auto *p : *tl->backgroundParams)
+    uiprivFree (p);
+
+  delete tl->backgroundParams;
+
+  tl->layout->Release ();
+  tl->format->Release ();
+
+  uiprivFree (tl);
 }
 
-static ID2D1SolidColorBrush *mustMakeSolidBrush(ID2D1RenderTarget *rt, double r, double g, double b, double a)
+static HRESULT
+mkSolidBrush (ID2D1RenderTarget *rt, const double r, const double g, const double b, const double a,
+              ID2D1SolidColorBrush **brush)
 {
-	ID2D1SolidColorBrush *brush;
-	HRESULT hr;
+  D2D1_BRUSH_PROPERTIES props;
+  D2D1_COLOR_F          color;
 
-	hr = mkSolidBrush(rt, r, g, b, a, &brush);
-	if (hr != S_OK)
-		logHRESULT(L"error creating solid brush", hr);
-	return brush;
+  ZeroMemory (&props, sizeof (D2D1_BRUSH_PROPERTIES));
+
+  props.opacity = 1.0;
+
+  props.transform._11 = 1;
+  props.transform._22 = 1;
+
+  color.r = r; // NOLINT(*-narrowing-conversions)
+  color.g = g; // NOLINT(*-narrowing-conversions)
+  color.b = b; // NOLINT(*-narrowing-conversions)
+  color.a = a; // NOLINT(*-narrowing-conversions)
+
+  return rt->CreateSolidColorBrush (&color, &props, brush);
 }
 
-// some of the stuff we want to do isn't possible with what DirectWrite provides itself; we need to do it ourselves
-
-drawingEffectsAttr::drawingEffectsAttr(void)
+static ID2D1SolidColorBrush *
+mustMakeSolidBrush (ID2D1RenderTarget *rt, const double r, const double g, const double b, const double a)
 {
-	this->refcount = 1;
-	this->hasColor = false;
-	this->hasUnderline = false;
-	this->hasUnderlineColor = false;
+  ID2D1SolidColorBrush *brush;
+
+  const HRESULT hr = mkSolidBrush (rt, r, g, b, a, &brush);
+  if (hr != S_OK)
+    (void)logHRESULT (L"error creating solid brush", hr);
+
+  return brush;
 }
 
-HRESULT STDMETHODCALLTYPE drawingEffectsAttr::QueryInterface(REFIID riid, void **ppvObject)
+drawingEffectsAttr::
+drawingEffectsAttr ()
+    : r (0), g (0), b (0), a (0), u (), ur (0), ug (0), ub (0), ua (0)
 {
-	if (ppvObject == NULL)
-		return E_POINTER;
-	if (riid == IID_IUnknown) {
-		this->AddRef();
-		*ppvObject = this;
-		return S_OK;
-	}
-	*ppvObject = NULL;
-	return E_NOINTERFACE;
+  this->refcount          = 1;
+  this->hasColor          = false;
+  this->hasUnderline      = false;
+  this->hasUnderlineColor = false;
 }
 
-ULONG STDMETHODCALLTYPE drawingEffectsAttr::AddRef(void)
+HRESULT STDMETHODCALLTYPE
+drawingEffectsAttr::QueryInterface (REFIID riid, void **ppvObject)
 {
-	this->refcount++;
-	return this->refcount;
+  if (ppvObject == nullptr)
+    return E_POINTER;
+
+  if (riid == IID_IUnknown)
+    {
+      AddRef ();
+      *ppvObject = this;
+      return S_OK;
+    }
+
+  *ppvObject = nullptr;
+  return E_NOINTERFACE;
 }
 
-ULONG STDMETHODCALLTYPE drawingEffectsAttr::Release(void)
+ULONG STDMETHODCALLTYPE
+drawingEffectsAttr::AddRef ()
 {
-	this->refcount--;
-	if (this->refcount == 0) {
-		delete this;
-		return 0;
-	}
-	return this->refcount;
+  this->refcount++;
+
+  return refcount;
 }
 
-void drawingEffectsAttr::setColor(double r, double g, double b, double a)
+ULONG STDMETHODCALLTYPE
+drawingEffectsAttr::Release ()
 {
-	this->hasColor = true;
-	this->r = r;
-	this->g = g;
-	this->b = b;
-	this->a = a;
+  this->refcount--;
+
+  if (refcount == 0)
+    {
+      delete this;
+      return 0;
+    }
+
+  return refcount;
 }
 
-void drawingEffectsAttr::setUnderline(uiUnderline u)
+void
+drawingEffectsAttr::setColor (const double r, const double g, const double b, const double a)
 {
-	this->hasUnderline = true;
-	this->u = u;
+  this->hasColor = true;
+
+  this->r = r;
+  this->g = g;
+  this->b = b;
+  this->a = a;
 }
 
-void drawingEffectsAttr::setUnderlineColor(double r, double g, double b, double a)
+void
+drawingEffectsAttr::setUnderline (const uiUnderline u)
 {
-	this->hasUnderlineColor = true;
-	this->ur = r;
-	this->ug = g;
-	this->ub = b;
-	this->ua = a;
+  this->hasUnderline = true;
+
+  this->u = u;
 }
 
-HRESULT drawingEffectsAttr::mkColorBrush(ID2D1RenderTarget *rt, ID2D1SolidColorBrush **b)
+void
+drawingEffectsAttr::setUnderlineColor (const double r, const double g, const double b, const double a)
 {
-	if (!this->hasColor) {
-		*b = NULL;
-		return S_OK;
-	}
-	return mkSolidBrush(rt, this->r, this->g, this->b, this->a, b);
+  this->hasUnderlineColor = true;
+
+  this->ur = r;
+  this->ug = g;
+  this->ub = b;
+  this->ua = a;
 }
 
-HRESULT drawingEffectsAttr::underline(uiUnderline *u)
+HRESULT
+drawingEffectsAttr::mkColorBrush (ID2D1RenderTarget *rt, ID2D1SolidColorBrush **b) const
 {
-	if (u == NULL)
-		return E_POINTER;
-	if (!this->hasUnderline)
-		return E_UNEXPECTED;
-	*u = this->u;
-	return S_OK;
+  if (!hasColor)
+    {
+      *b = nullptr;
+      return S_OK;
+    }
+
+  return mkSolidBrush (rt, r, g, this->b, a, b);
 }
 
-HRESULT drawingEffectsAttr::mkUnderlineBrush(ID2D1RenderTarget *rt, ID2D1SolidColorBrush **b)
+HRESULT
+drawingEffectsAttr::underline (uiUnderline *u) const
 {
-	if (!this->hasUnderlineColor) {
-		*b = NULL;
-		return S_OK;
-	}
-	return mkSolidBrush(rt, this->ur, this->ug, this->ub, this->ua, b);
+  if (u == nullptr)
+    return E_POINTER;
+
+  if (!hasUnderline)
+    return E_UNEXPECTED;
+
+  *u = this->u;
+
+  return S_OK;
 }
 
-// this is based on http://www.charlespetzold.com/blog/2014/01/Character-Formatting-Extensions-with-DirectWrite.html
-class textRenderer : public IDWriteTextRenderer {
-	ULONG refcount;
-	ID2D1RenderTarget *rt;
-	BOOL snap;
-	ID2D1SolidColorBrush *black;
+HRESULT
+drawingEffectsAttr::mkUnderlineBrush (ID2D1RenderTarget *rt, ID2D1SolidColorBrush **b) const
+{
+  if (!hasUnderlineColor)
+    {
+      *b = nullptr;
+      return S_OK;
+    }
+
+  return mkSolidBrush (rt, ur, ug, ub, ua, b);
+}
+
+class textRenderer final : public IDWriteTextRenderer
+{
+  ULONG                 refcount;
+  ID2D1RenderTarget    *rt;
+  BOOL                  snap;
+  ID2D1SolidColorBrush *black;
+
 public:
-	textRenderer(ID2D1RenderTarget *rt, BOOL snap, ID2D1SolidColorBrush *black)
-	{
-		this->refcount = 1;
-		this->rt = rt;
-		this->snap = snap;
-		this->black = black;
-	}
+  virtual ~textRenderer () = default;
 
-	// IUnknown
-	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
-	{
-		if (ppvObject == NULL)
-			return E_POINTER;
-		if (riid == IID_IUnknown ||
-			riid == __uuidof (IDWritePixelSnapping) ||
-			riid == __uuidof (IDWriteTextRenderer)) {
-			this->AddRef();
-			*ppvObject = this;
-			return S_OK;
-		}
-		*ppvObject = NULL;
-		return E_NOINTERFACE;
-	}
+  textRenderer (ID2D1RenderTarget *rt, const BOOL snap, ID2D1SolidColorBrush *black)
+  {
+    this->refcount = 1;
+    this->rt       = rt;
+    this->snap     = snap;
+    this->black    = black;
+  }
 
-	virtual ULONG STDMETHODCALLTYPE AddRef(void)
-	{
-		this->refcount++;
-		return this->refcount;
-	}
+  HRESULT STDMETHODCALLTYPE
+  QueryInterface (REFIID riid, void **ppvObject) override
+  {
+    if (ppvObject == nullptr)
+      return E_POINTER;
 
-	virtual ULONG STDMETHODCALLTYPE Release(void)
-	{
-		this->refcount--;
-		if (this->refcount == 0) {
-			delete this;
-			return 0;
-		}
-		return this->refcount;
-	}
+    if (riid == IID_IUnknown || riid == __uuidof (IDWritePixelSnapping) || riid == __uuidof (IDWriteTextRenderer))
+      {
+        AddRef ();
+        *ppvObject = this;
+        return S_OK;
+      }
 
-	// IDWritePixelSnapping
-	virtual HRESULT STDMETHODCALLTYPE GetCurrentTransform(void *clientDrawingContext, DWRITE_MATRIX *transform)
-	{
-		D2D1_MATRIX_3X2_F d2dtf;
+    *ppvObject = nullptr;
+    return E_NOINTERFACE;
+  }
 
-		if (transform == NULL)
-			return E_POINTER;
-		this->rt->GetTransform(&d2dtf);
-		transform->m11 = d2dtf._11;
-		transform->m12 = d2dtf._12;
-		transform->m21 = d2dtf._21;
-		transform->m22 = d2dtf._22;
-		transform->dx = d2dtf._31;
-		transform->dy = d2dtf._32;
-		return S_OK;
-	}
+  ULONG STDMETHODCALLTYPE
+  AddRef () override
+  {
+    this->refcount++;
 
-	virtual HRESULT STDMETHODCALLTYPE GetPixelsPerDip(void *clientDrawingContext, FLOAT *pixelsPerDip)
-	{
-		FLOAT dpix, dpiy;
+    return refcount;
+  }
 
-		if (pixelsPerDip == NULL)
-			return E_POINTER;
-		this->rt->GetDpi(&dpix, &dpiy);
-		*pixelsPerDip = dpix / 96;
-		return S_OK;
-	}
+  ULONG STDMETHODCALLTYPE
+  Release () override
+  {
+    this->refcount--;
 
-	virtual HRESULT STDMETHODCALLTYPE IsPixelSnappingDisabled(void *clientDrawingContext, BOOL *isDisabled)
-	{
-		if (isDisabled == NULL)
-			return E_POINTER;
-		*isDisabled = !this->snap;
-		return S_OK;
-	}
+    if (refcount == 0)
+      {
+        delete this;
+        return 0;
+      }
 
-	// IDWriteTextRenderer
-	virtual HRESULT STDMETHODCALLTYPE DrawGlyphRun(void *clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, DWRITE_MEASURING_MODE measuringMode, const DWRITE_GLYPH_RUN *glyphRun, const DWRITE_GLYPH_RUN_DESCRIPTION *glyphRunDescription, IUnknown *clientDrawingEffect)
-	{
-		D2D1_POINT_2F baseline;
-		drawingEffectsAttr *dea = (drawingEffectsAttr *) clientDrawingEffect;
-		ID2D1SolidColorBrush *brush;
+    return refcount;
+  }
 
-		baseline.x = baselineOriginX;
-		baseline.y = baselineOriginY;
-		brush = NULL;
-		if (dea != NULL) {
-			HRESULT hr;
+  // IDWritePixelSnapping
+  HRESULT STDMETHODCALLTYPE
+  GetCurrentTransform (void *clientDrawingContext, DWRITE_MATRIX *transform) override
+  {
+    D2D1_MATRIX_3X2_F d2dtf;
 
-			hr = dea->mkColorBrush(this->rt, &brush);
-			if (hr != S_OK)
-				return hr;
-		}
-		if (brush == NULL) {
-			brush = this->black;
-			brush->AddRef();
-		}
-		this->rt->DrawGlyphRun(
-			baseline,
-			glyphRun,
-			brush,
-			measuringMode);
-		brush->Release();
-		return S_OK;
-	}
+    if (transform == nullptr)
+      return E_POINTER;
 
-	virtual HRESULT STDMETHODCALLTYPE DrawInlineObject(void *clientDrawingContext, FLOAT originX, FLOAT originY, IDWriteInlineObject *inlineObject, BOOL isSideways, BOOL isRightToLeft, IUnknown *clientDrawingEffect)
-	{
-		if (inlineObject == NULL)
-			return E_POINTER;
-		return inlineObject->Draw(clientDrawingContext, this,
-			originX, originY,
-			isSideways, isRightToLeft,
-			clientDrawingEffect);
-	}
+    rt->GetTransform (&d2dtf);
+    transform->m11 = d2dtf._11;
+    transform->m12 = d2dtf._12;
+    transform->m21 = d2dtf._21;
+    transform->m22 = d2dtf._22;
+    transform->dx  = d2dtf._31;
+    transform->dy  = d2dtf._32;
 
-	virtual HRESULT STDMETHODCALLTYPE DrawStrikethrough(void *clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, const DWRITE_STRIKETHROUGH *strikethrough, IUnknown *clientDrawingEffect)
-	{
-		// we don't support strikethrough
-		return E_UNEXPECTED;
-	}
+    return S_OK;
+  }
 
-	// TODO clean this function up
-	virtual HRESULT STDMETHODCALLTYPE DrawUnderline(void *clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, const DWRITE_UNDERLINE *underline, IUnknown *clientDrawingEffect)
-	{
-		drawingEffectsAttr *dea = (drawingEffectsAttr *) clientDrawingEffect;
-		uiUnderline utype;
-		ID2D1SolidColorBrush *brush;
-		D2D1_RECT_F rect;
-		D2D1::Matrix3x2F pixeltf;
-		FLOAT dpix, dpiy;
-		D2D1_POINT_2F pt;
-		HRESULT hr;
+  HRESULT STDMETHODCALLTYPE
+  GetPixelsPerDip (void *clientDrawingContext, FLOAT *pixelsPerDip) override
+  {
+    FLOAT dpix;
+    FLOAT dpiy;
 
-		if (underline == NULL)
-			return E_POINTER;
-		if (dea == NULL)		// we can only get here through an underline
-			return E_UNEXPECTED;
-		hr = dea->underline(&utype);
-		if (hr != S_OK)			// we *should* only get here through an underline that's actually set...
-			return hr;
-		hr = dea->mkUnderlineBrush(this->rt, &brush);
-		if (hr != S_OK)
-			return hr;
-		if (brush == NULL) {
-			// TODO document this rule if not already done
-			hr = dea->mkColorBrush(this->rt, &brush);
-			if (hr != S_OK)
-				return hr;
-		}
-		if (brush == NULL) {
-			brush = this->black;
-			brush->AddRef();
-		}
-		rect.left = baselineOriginX;
-		rect.top = baselineOriginY + underline->offset;
-		rect.right = rect.left + underline->width;
-		rect.bottom = rect.top + underline->thickness;
-		switch (utype) {
-		case uiUnderlineSingle:
-			this->rt->FillRectangle(&rect, brush);
-			break;
-		case uiUnderlineDouble:
-			// TODO do any of the matrix methods return errors?
-			// TODO standardize double-underline shape across platforms? wavy underline shape?
-			this->rt->GetTransform(&pixeltf);
-			this->rt->GetDpi(&dpix, &dpiy);
-			pixeltf = pixeltf * D2D1::Matrix3x2F::Scale(dpix / 96, dpiy / 96);
-			pt.x = 0;
-			pt.y = rect.top;
-			pt = pixeltf.TransformPoint(pt);
-			rect.top = (FLOAT) ((int) (pt.y + 0.5));
-			pixeltf.Invert();
-			pt = pixeltf.TransformPoint(pt);
-			rect.top = pt.y;
-			// first line
-			rect.top -= underline->thickness;
-			// and it seems we need to recompute this
-			rect.bottom = rect.top + underline->thickness;
-			this->rt->FillRectangle(&rect, brush);
-			// second line
-			rect.top += 2 * underline->thickness;
-			rect.bottom = rect.top + underline->thickness;
-			this->rt->FillRectangle(&rect, brush);
-			break;
-		case uiUnderlineSuggestion:
-			{		// TODO get rid of the extra block
-					// TODO properly clean resources on failure
-					// TODO use fully qualified C overloads for all methods
-					// TODO ensure all methods properly have errors handled
-				ID2D1PathGeometry *path;
-				ID2D1GeometrySink *sink;
-				double amplitude, period, xOffset, yOffset;
-				double t;
-				bool first = true;
-				HRESULT hr;
+    if (pixelsPerDip == nullptr)
+      return E_POINTER;
 
-				hr = d2dfactory->CreatePathGeometry(&path);
-				if (hr != S_OK)
-					return hr;
-				hr = path->Open(&sink);
-				if (hr != S_OK)
-					return hr;
-				amplitude = underline->thickness;
-				period = 5 * underline->thickness;
-				xOffset = baselineOriginX;
-				yOffset = baselineOriginY + underline->offset;
-				for (t = 0; t < underline->width; t++) {
-					double x, angle, y;
-					D2D1_POINT_2F pt;
+    rt->GetDpi (&dpix, &dpiy);
 
-					x = t + xOffset;
-					angle = 2 * uiPi * fmod(x, period) / period;
-					y = amplitude * sin(angle) + yOffset;
-					pt.x = x;
-					pt.y = y;
-					if (first) {
-						sink->BeginFigure(pt, D2D1_FIGURE_BEGIN_HOLLOW);
-						first = false;
-					} else
-						sink->AddLine(pt);
-				}
-				sink->EndFigure(D2D1_FIGURE_END_OPEN);
-				hr = sink->Close();
-				if (hr != S_OK)
-					return hr;
-				sink->Release();
-				this->rt->DrawGeometry(path, brush, underline->thickness);
-				path->Release();
-			}
-			break;
-		}
-		brush->Release();
-		return S_OK;
-	}
+    *pixelsPerDip = dpix / 96;
+
+    return S_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE
+  IsPixelSnappingDisabled (void *clientDrawingContext, BOOL *isDisabled) override
+  {
+    if (isDisabled == nullptr)
+      return E_POINTER;
+
+    *isDisabled = static_cast<BOOL> (snap == 0);
+
+    return S_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE
+  DrawGlyphRun (void *clientDrawingContext, const FLOAT baselineOriginX, const FLOAT baselineOriginY,
+                const DWRITE_MEASURING_MODE measuringMode, const DWRITE_GLYPH_RUN *glyphRun,
+                const DWRITE_GLYPH_RUN_DESCRIPTION *glyphRunDescription, IUnknown *clientDrawingEffect) override
+  {
+    D2D1_POINT_2F baseline;
+
+    const auto *dea = static_cast<drawingEffectsAttr *> (clientDrawingEffect);
+
+    ID2D1SolidColorBrush *brush;
+
+    baseline.x = baselineOriginX;
+    baseline.y = baselineOriginY;
+    brush      = nullptr;
+    if (dea != nullptr)
+      {
+        const HRESULT hr = dea->mkColorBrush (this->rt, &brush);
+        if (hr != S_OK)
+          return hr;
+      }
+
+    if (brush == nullptr)
+      {
+        brush = black;
+        brush->AddRef ();
+      }
+    rt->DrawGlyphRun (baseline, glyphRun, brush, measuringMode);
+
+    brush->Release ();
+
+    return S_OK;
+  }
+
+  HRESULT STDMETHODCALLTYPE
+  DrawInlineObject (void *clientDrawingContext, const FLOAT originX, const FLOAT originY,
+                    IDWriteInlineObject *inlineObject, const BOOL isSideways, const BOOL isRightToLeft,
+                    IUnknown *clientDrawingEffect) override
+  {
+    if (inlineObject == nullptr)
+      return E_POINTER;
+
+    return inlineObject->Draw (clientDrawingContext, this, originX, originY, isSideways, isRightToLeft,
+                               clientDrawingEffect);
+  }
+
+  HRESULT STDMETHODCALLTYPE
+  DrawStrikethrough (void *clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY,
+                     const DWRITE_STRIKETHROUGH *strikethrough, IUnknown *clientDrawingEffect) override
+  {
+    return E_UNEXPECTED;
+  }
+
+  HRESULT STDMETHODCALLTYPE
+  DrawUnderline (void *clientDrawingContext, const FLOAT baselineOriginX, const FLOAT baselineOriginY,
+                 const DWRITE_UNDERLINE *underline, IUnknown *clientDrawingEffect) override
+  {
+    const auto *dea = static_cast<drawingEffectsAttr *> (clientDrawingEffect);
+
+    D2D1::Matrix3x2F pixeltf;
+
+    FLOAT dpix;
+    FLOAT dpiy;
+
+    if (underline == nullptr)
+      return E_POINTER;
+
+    if (dea == nullptr)
+      return E_UNEXPECTED;
+
+    uiUnderline utype;
+    HRESULT     hr = dea->underline (&utype);
+    if (hr != S_OK)
+      return hr;
+
+    ID2D1SolidColorBrush *brush;
+    hr = dea->mkUnderlineBrush (rt, &brush);
+
+    if (hr != S_OK)
+      return hr;
+
+    if (brush == nullptr)
+      {
+        hr = dea->mkColorBrush (rt, &brush);
+        if (hr != S_OK)
+          return hr;
+      }
+    if (brush == nullptr)
+      {
+        brush = black;
+        brush->AddRef ();
+      }
+
+    D2D1_RECT_F rect;
+    rect.left   = baselineOriginX;
+    rect.top    = baselineOriginY + underline->offset;
+    rect.right  = rect.left + underline->width;
+    rect.bottom = rect.top + underline->thickness;
+
+    switch (utype)
+      {
+      case uiUnderlineSingle:
+        {
+          rt->FillRectangle (&rect, brush);
+          break;
+        }
+
+      case uiUnderlineDouble:
+        {
+          D2D1_POINT_2F pt;
+          rt->GetTransform (&pixeltf);
+          rt->GetDpi (&dpix, &dpiy);
+
+          pixeltf = pixeltf * D2D1::Matrix3x2F::Scale (dpix / 96, dpiy / 96);
+
+          pt.x = 0;
+          pt.y = rect.top;
+          pt   = pixeltf.TransformPoint (pt);
+
+          rect.top = static_cast<FLOAT> (pt.y + 0.5);
+
+          pixeltf.Invert ();
+
+          pt = pixeltf.TransformPoint (pt);
+
+          rect.top = pt.y;
+
+          // first line
+          rect.top -= underline->thickness;
+
+          // and it seems we need to recompute this
+          rect.bottom = rect.top + underline->thickness;
+          rt->FillRectangle (&rect, brush);
+
+          // second line
+          rect.top += 2 * underline->thickness;
+          rect.bottom = rect.top + underline->thickness;
+          rt->FillRectangle (&rect, brush);
+
+          break;
+        }
+      case uiUnderlineSuggestion:
+        {
+          ID2D1PathGeometry *path;
+          ID2D1GeometrySink *sink;
+
+          bool first = true;
+
+          auto hresult = d2dfactory->CreatePathGeometry (&path);
+          if (hresult != S_OK)
+            return hresult;
+
+          hresult = path->Open (&sink);
+          if (hresult != S_OK)
+            return hresult;
+
+          const double amplitude = underline->thickness;
+          const double period    = 5 * underline->thickness;
+          const double xOffset   = baselineOriginX;
+          const double yOffset   = baselineOriginY + underline->offset;
+
+          for (double t = 0; t < underline->width; t++) // NOLINT(*-flp30-c)
+            {
+              D2D1_POINT_2F start_point;
+
+              const double x     = t + xOffset;
+              const double angle = 2 * uiPi * fmod (x, period) / period;
+              const double y     = amplitude * sin (angle) + yOffset; // NOLINT(*-math-missing-parentheses)
+              start_point.x      = x;                                 // NOLINT(*-narrowing-conversions)
+              start_point.y      = y;                                 // NOLINT(*-narrowing-conversions)
+
+              if (first)
+                {
+                  sink->BeginFigure (start_point, D2D1_FIGURE_BEGIN_HOLLOW);
+                  first = false;
+                }
+
+              else
+                {
+                  sink->AddLine (start_point);
+                }
+            }
+
+          sink->EndFigure (D2D1_FIGURE_END_OPEN);
+
+          hresult = sink->Close ();
+          if (hresult != S_OK)
+            return hresult;
+
+          sink->Release ();
+
+          rt->DrawGeometry (path, brush, underline->thickness);
+          path->Release ();
+        }
+        break;
+
+      default:;
+      }
+
+    brush->Release ();
+
+    return S_OK;
+  }
 };
 
-// TODO this ignores clipping?
-void uiDrawText(uiDrawContext *c, uiDrawTextLayout *tl, double x, double y)
+void
+uiDrawText (const uiDrawContext *c, const uiDrawTextLayout *tl, const double x, const double y)
 {
-	ID2D1SolidColorBrush *black;
-	textRenderer *renderer;
-	HRESULT hr;
+  ID2D1SolidColorBrush *black = mustMakeSolidBrush (c->rt, 0.0, 0.0, 0.0, 1.0);
 
-	/*
-	for (auto p : *(tl->backgroundParams)) {
-		// TODO
-	}
-	*/
+  auto *const renderer = new textRenderer (c->rt, TRUE, black);
 
-	// TODO document that fully opaque black is the default text color; figure out whether this is upheld in various scenarios on other platforms
-	// TODO figure out if this needs to be cleaned out
-	black = mustMakeSolidBrush(c->rt, 0.0, 0.0, 0.0, 1.0);
+  const auto hr = tl->layout->Draw (nullptr, renderer, x, y); // NOLINT(*-narrowing-conversions)
+  if (hr != S_OK)
+    (void)logHRESULT (L"error drawing IDWriteTextLayout", hr);
 
-#define renderD2D 0
-#define renderOur 1
-#if renderD2D
-	pt.x = x;
-	pt.y = y;
-	// TODO D2D1_DRAW_TEXT_OPTIONS_NO_SNAP?
-	// TODO D2D1_DRAW_TEXT_OPTIONS_CLIP?
-	// TODO LONGTERM when setting 8.1 as minimum (TODO verify), D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT?
-	// TODO what is our pixel snapping setting related to the OPTIONS enum values?
-	c->rt->DrawTextLayout(pt, tl->layout, black, D2D1_DRAW_TEXT_OPTIONS_NONE);
-#endif
-#if renderD2D && renderOur
-	// draw ours semitransparent so we can check
-	// TODO get the actual color Charles Petzold uses and use that
-	black->Release();
-	black = mustMakeSolidBrush(c->rt, 1.0, 0.0, 0.0, 0.75);
-#endif
-#if renderOur
-	renderer = new textRenderer(c->rt,
-		TRUE,			// TODO FALSE for no-snap?
-		black);
-	hr = tl->layout->Draw(NULL,
-		renderer,
-		x, y);
-	if (hr != S_OK)
-		logHRESULT(L"error drawing IDWriteTextLayout", hr);
-	renderer->Release();
-#endif
-
-	black->Release();
+  renderer->Release ();
+  black->Release ();
 }
 
-// TODO for a single line the height includes the leading; should it? TextEdit on OS X always includes the leading and/or paragraph spacing, otherwise Klee won't work...
-// TODO width does not include trailing whitespace
-void uiDrawTextLayoutExtents(uiDrawTextLayout *tl, double *width, double *height)
+void
+uiDrawTextLayoutExtents (const uiDrawTextLayout *tl, double *width, double *height)
 {
-	DWRITE_TEXT_METRICS metrics;
-	HRESULT hr;
+  DWRITE_TEXT_METRICS metrics;
 
-	hr = tl->layout->GetMetrics(&metrics);
-	if (hr != S_OK)
-		logHRESULT(L"error getting IDWriteTextLayout layout metrics", hr);
-	*width = metrics.width;
-	// TODO make sure the behavior of this on empty strings is the same on all platforms (ideally should be 0-width, line height-height; TODO note this in the docs too)
-	*height = metrics.height;
+  const auto hr = tl->layout->GetMetrics (&metrics);
+  if (hr != S_OK)
+    (void)logHRESULT (L"error getting IDWriteTextLayout layout metrics", hr);
+
+  *width  = metrics.width;
+  *height = metrics.height;
 }
 
-void uiLoadControlFont(uiFontDescriptor *f)
+void
+uiLoadControlFont (uiFontDescriptor *f)
 {
-	fontCollection *collection;
-	IDWriteGdiInterop *gdi;
-	IDWriteFont *dwfont;
-	IDWriteFontFamily *dwfamily;
-	NONCLIENTMETRICSW metrics;
-	HDC dc;
-	WCHAR *family;
-	double size;
-	int pixels;
-	HRESULT hr;
+  NONCLIENTMETRICSW metrics;
+  metrics.cbSize = sizeof (metrics);
+  if (SystemParametersInfoW (SPI_GETNONCLIENTMETRICS, metrics.cbSize, &metrics, 0) == 0)
+    (void)logLastError (L"error getting non-client metrics");
 
-	metrics.cbSize = sizeof(metrics);
-	if (!SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, metrics.cbSize, &metrics, 0))
-			logLastError(L"error getting non-client metrics");
-	hr = dwfactory->GetGdiInterop(&gdi);
-	if (hr != S_OK)
-			logHRESULT(L"error getting GDI interop", hr);
+  IDWriteGdiInterop *gdi;
+  auto               hr = dwfactory->GetGdiInterop (&gdi);
+  if (hr != S_OK)
+    (void)logHRESULT (L"error getting GDI interop", hr);
 
-	hr = gdi->CreateFontFromLOGFONT(&metrics.lfMessageFont, &dwfont);
-	if (hr != S_OK)
-			logHRESULT(L"error loading font", hr);
+  IDWriteFont *dwfont;
+  hr = gdi->CreateFontFromLOGFONT (&metrics.lfMessageFont, &dwfont);
+  if (hr != S_OK)
+    (void)logHRESULT (L"error loading font", hr);
 
-	hr = dwfont->GetFontFamily(&dwfamily);
-	if (hr != S_OK)
-			logHRESULT(L"error loading font family", hr);
-	collection = uiprivLoadFontCollection();
-	family = uiprivFontCollectionFamilyName(collection, dwfamily);
+  IDWriteFontFamily *dwfamily;
+  hr = dwfont->GetFontFamily (&dwfamily);
+  if (hr != S_OK)
+    (void)logHRESULT (L"error loading font family", hr);
 
-	dc = GetDC(NULL);
-	if (dc == NULL)
-		logLastError(L"error getting DC");
-	pixels = GetDeviceCaps(dc, LOGPIXELSY);
-	if (pixels == 0)
-			logLastError(L"error getting device caps");
-	size = abs(metrics.lfMessageFont.lfHeight) * 72 / pixels;
+  auto *dc = GetDC (nullptr);
+  if (dc == nullptr)
+    (void)logLastError (L"error getting DC");
 
-	uiprivFontDescriptorFromIDWriteFont(dwfont, f);
-	f->Family = toUTF8(family);
-	f->Size = size;
+  auto pixels = GetDeviceCaps (dc, LOGPIXELSY);
+  if (pixels == 0)
+    (void)logLastError (L"error getting device caps");
 
-	uiprivFree(family);
-	uiprivFontCollectionFree(collection);
-	dwfamily->Release();
-	gdi->Release();
-	if (ReleaseDC(NULL, dc) == 0)
-		logLastError(L"error releasing DC");
+  double size = abs (metrics.lfMessageFont.lfHeight) * 72.0 / pixels;
+
+  auto *collection = uiprivLoadFontCollection ();
+  auto *family     = uiprivFontCollectionFamilyName (collection, dwfamily);
+
+  uiprivFontDescriptorFromIDWriteFont (dwfont, f);
+  f->Family = toUTF8 (family);
+  f->Size   = size;
+
+  uiprivFree (family);
+  uiprivFontCollectionFree (collection);
+
+  dwfamily->Release ();
+  gdi->Release ();
+  if (ReleaseDC (nullptr, dc) == 0)
+    (void)logLastError (L"error releasing DC");
 }
 
-void uiFreeFontDescriptor(uiFontDescriptor *desc)
+void
+uiFreeFontDescriptor (const uiFontDescriptor *desc)
 {
-	uiprivFree((char *) (desc->Family));
+  uiprivFree (desc->Family);
 }

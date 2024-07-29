@@ -1,82 +1,84 @@
 #include "colordialog.h"
 
+#include "d2dscratch.h"
 #include "debug.h"
+#include "init.h"
+#include "resources.hpp"
+#include "sizing.h"
 #include "text.h"
+#include "uipriv_windows.hpp"
 #include "utf16.h"
+#include "winpublic.h"
 #include "winutil.h"
 
+#include <algorithm>
 #include <cmath>
+#include <commctrl.h>
 #include <cstdint>
 #include <d2d1.h>
+#include <map>
+#include <ui_win32.h>
 #include <uipriv.h>
-
-struct colorDialog
-{
-  HWND hwnd;
-
-  HWND svChooser;
-  HWND hSlider;
-  HWND preview;
-  HWND opacitySlider;
-  HWND editH;
-  HWND editS;
-  HWND editV;
-  HWND editRDouble, editRInt;
-  HWND editGDouble, editGInt;
-  HWND editBDouble, editBInt;
-  HWND editADouble, editAInt;
-  HWND editHex;
-
-  double h;
-  double s;
-  double v;
-  double a;
-
-  colorDialogRGBA *out;
-
-  BOOL updating;
-};
 
 static void
 rgb2HSV (const double r, const double g, const double b, double *h, double *s, double *v)
 {
-  double M        = r;
-  int    whichmax = 0;
+  double M = r;
+
+  int whichmax = 0;
+
   if (M < g)
     {
       M        = g;
       whichmax = 1;
     }
+
   if (M < b)
     {
       M        = b;
       whichmax = 2;
     }
+
   double m = r;
-  if (m > g)
-    m = g;
-  if (m > b)
-    m = b;
-  double c = M - m;
+
+  m = std::min (m, g);
+  m = std::min (m, b);
+
+  const double c = M - m;
 
   if (c == 0)
-    *h = 0;
+    {
+      *h = 0;
+    }
+
   else
     {
       switch (whichmax)
         {
         case 0:
-          *h = (g - b) / c;
-          *h = std::fmod (*h, 6);
-          break;
+          {
+            *h = (g - b) / c;
+            *h = std::fmod (*h, 6);
+            break;
+          }
+
         case 1:
-          *h = (b - r) / c + 2;
-          break;
+          {
+            *h = (b - r) / c + 2;
+            break;
+          }
+
         case 2:
-          *h = (r - g) / c + 4;
-          break;
+          {
+            *h = (r - g) / c + 4;
+            break;
+          }
+
+        default:;
         }
-      *h /= 6; // put in range [0,1)
+
+      // put in range [0,1)
+      *h /= 6;
     }
 
   *v = M;
@@ -87,53 +89,72 @@ rgb2HSV (const double r, const double g, const double b, double *h, double *s, d
     *s = c / *v;
 }
 
-// TODO negative R values?
 static void
 hsv2RGB (const double h, const double s, const double v, double *r, double *g, double *b)
 {
+  const double c = v * s;
 
-  double c      = v * s;
-  double hPrime = h * 6;
-  int    h60    = (int)hPrime; // equivalent to splitting into 60° chunks
-  double x      = c * (1.0 - fabs (fmod (hPrime, 2) - 1.0));
-  double m      = v - c;
+  const double hPrime = h * 6;
+
+  // equivalent to splitting into 60° chunks
+  const int h60 = static_cast<int> (hPrime);
+
+  const double x = c * (1.0 - fabs (fmod (hPrime, 2) - 1.0));
+
+  const double m = v - c;
+
   switch (h60)
     {
     case 0:
-      *r = c + m;
-      *g = x + m;
-      *b = m;
-      return;
-    case 1:
-      *r = x + m;
-      *g = c + m;
-      *b = m;
-      return;
-    case 2:
-      *r = m;
-      *g = c + m;
-      *b = x + m;
-      return;
-    case 3:
-      *r = m;
-      *g = x + m;
-      *b = c + m;
-      return;
-    case 4:
-      *r = x + m;
-      *g = m;
-      *b = c + m;
-      return;
-    case 5:
-      *r = c + m;
-      *g = m;
-      *b = x + m;
-      return;
-    }
-  // TODO
-}
+      {
+        *r = c + m;
+        *g = x + m;
+        *b = m;
+        return;
+      }
 
-#define hexd L"0123456789ABCDEF"
+    case 1:
+      {
+        *r = x + m;
+        *g = c + m;
+        *b = m;
+        return;
+      }
+
+    case 2:
+      {
+        *r = m;
+        *g = c + m;
+        *b = x + m;
+        return;
+      }
+
+    case 3:
+      {
+        *r = m;
+        *g = x + m;
+        *b = c + m;
+        return;
+      }
+
+    case 4:
+      {
+        *r = x + m;
+        *g = m;
+        *b = c + m;
+        return;
+      }
+
+    case 5:
+      {
+        *r = c + m;
+        *g = m;
+        *b = x + m;
+      }
+
+    default:;
+    }
+}
 
 static void
 rgba2Hex (const uint8_t r, const uint8_t g, const uint8_t b, const uint8_t a, WCHAR *buf)
@@ -155,56 +176,74 @@ convHexDigit (const WCHAR c)
 {
   if (c >= L'0' && c <= L'9')
     return c - L'0';
+
   if (c >= L'A' && c <= L'F')
     return c - L'A' + 0xA;
+
   if (c >= L'a' && c <= L'f')
     return c - L'a' + 0xA;
+
   return -1;
 }
 
-// TODO allow #NNN shorthand
 static BOOL
 hex2RGBA (const WCHAR *buf, double *r, double *g, double *b, double *a)
 {
-
   if (*buf == L'#')
     buf++;
 
   uint8_t component = 0;
-  int     i         = convHexDigit (*buf++);
+
+  int i = convHexDigit (*buf++);
+
   if (i < 0)
     return FALSE;
-  component |= (uint8_t)i << 4;
+
+  component |= static_cast<uint8_t> (i) << 4;
+
   i = convHexDigit (*buf++);
   if (i < 0)
     return FALSE;
-  component |= (uint8_t)i;
-  *a = (double)component / 255;
+
+  component |= static_cast<uint8_t> (i);
+
+  *a = static_cast<double> (component) / 255;
 
   component = 0;
-  i         = convHexDigit (*buf++);
-  if (i < 0)
-    return FALSE;
-  component |= (uint8_t)i << 4;
+
   i = convHexDigit (*buf++);
   if (i < 0)
     return FALSE;
-  component |= (uint8_t)i;
-  *r = (double)component / 255;
+
+  component |= static_cast<uint8_t> (i) << 4;
+
+  i = convHexDigit (*buf++);
+  if (i < 0)
+    return FALSE;
+
+  component |= static_cast<uint8_t> (i);
+
+  *r = static_cast<double> (component) / 255;
 
   component = 0;
-  i         = convHexDigit (*buf++);
-  if (i < 0)
-    return FALSE;
-  component |= (uint8_t)i << 4;
+
   i = convHexDigit (*buf++);
   if (i < 0)
     return FALSE;
-  component |= (uint8_t)i;
-  *g = (double)component / 255;
+
+  component |= static_cast<uint8_t> (i) << 4;
+
+  i = convHexDigit (*buf++);
+  if (i < 0)
+    return FALSE;
+
+  component |= static_cast<uint8_t> (i);
+
+  *g = static_cast<double> (component) / 255;
 
   if (*buf == L'\0')
-    { // #NNNNNN syntax
+    {
+      // #NNNNNN syntax
       *b = *g;
       *g = *r;
       *r = *a;
@@ -213,27 +252,34 @@ hex2RGBA (const WCHAR *buf, double *r, double *g, double *b, double *a)
     }
 
   component = 0;
-  i         = convHexDigit (*buf++);
-  if (i < 0)
-    return FALSE;
-  component |= (uint8_t)i << 4;
+
   i = convHexDigit (*buf++);
   if (i < 0)
     return FALSE;
-  component |= (uint8_t)i;
-  *b = (double)component / 255;
 
-  return *buf == L'\0';
+  component |= static_cast<uint8_t> (i) << 4;
+
+  i = convHexDigit (*buf++);
+  if (i < 0)
+    return FALSE;
+
+  component |= static_cast<uint8_t> (i);
+
+  *b = static_cast<double> (component) / 255;
+
+  return *buf == L'\0'; // NOLINT(*-implicit-bool-conversion)
 }
 
 static void
-updateDouble (HWND hwnd, double d, const HWND whichChanged)
+updateDouble (const HWND hwnd, const double d, const HWND whichChanged)
 {
-
   if (whichChanged == hwnd)
     return;
+
   WCHAR *str = ftoutf16 (d);
+
   setWindowText (hwnd, str);
+
   uiprivFree (str);
 }
 
@@ -258,10 +304,10 @@ updateDialog (colorDialog *c, const HWND whichChanged)
   updateDouble (c->editBDouble, b, whichChanged);
   updateDouble (c->editADouble, c->a, whichChanged);
 
-  uint8_t rb = (uint8_t)(r * 255);
-  uint8_t gb = (uint8_t)(g * 255);
-  uint8_t bb = (uint8_t)(b * 255);
-  uint8_t ab = (uint8_t)(c->a * 255);
+  const uint8_t rb = static_cast<uint8_t> (r * 255);
+  const uint8_t gb = static_cast<uint8_t> (g * 255);
+  const uint8_t bb = static_cast<uint8_t> (b * 255);
+  const uint8_t ab = static_cast<uint8_t> (c->a * 255);
 
   if (whichChanged != c->editRInt)
     {
@@ -269,18 +315,21 @@ updateDialog (colorDialog *c, const HWND whichChanged)
       setWindowText (c->editRInt, str);
       uiprivFree (str);
     }
+
   if (whichChanged != c->editGInt)
     {
       str = itoutf16 (gb);
       setWindowText (c->editGInt, str);
       uiprivFree (str);
     }
+
   if (whichChanged != c->editBInt)
     {
       str = itoutf16 (bb);
       setWindowText (c->editBInt, str);
       uiprivFree (str);
     }
+
   if (whichChanged != c->editAInt)
     {
       str = itoutf16 (ab);
@@ -295,10 +344,10 @@ updateDialog (colorDialog *c, const HWND whichChanged)
       setWindowText (c->editHex, hexbuf);
     }
 
-  invalidateRect (c->svChooser, NULL, TRUE);
-  invalidateRect (c->hSlider, NULL, TRUE);
-  invalidateRect (c->preview, NULL, TRUE);
-  invalidateRect (c->opacitySlider, NULL, TRUE);
+  invalidateRect (c->svChooser, nullptr, TRUE);
+  invalidateRect (c->hSlider, nullptr, TRUE);
+  invalidateRect (c->preview, nullptr, TRUE);
+  invalidateRect (c->opacitySlider, nullptr, TRUE);
 
   c->updating = FALSE;
 }
@@ -306,17 +355,27 @@ updateDialog (colorDialog *c, const HWND whichChanged)
 static void
 drawGrid (ID2D1RenderTarget *rt, const D2D1_RECT_F *fillRect)
 {
-  D2D1_SIZE_F                  size;
-  D2D1_PIXEL_FORMAT            pformat;
-  ID2D1BitmapRenderTarget     *brt;
-  D2D1_COLOR_F                 color;
-  D2D1_BRUSH_PROPERTIES        bprop;
-  ID2D1SolidColorBrush        *brush;
-  D2D1_RECT_F                  rect;
-  ID2D1Bitmap                 *bitmap;
+  D2D1_SIZE_F size;
+
+  D2D1_PIXEL_FORMAT pformat;
+
+  ID2D1BitmapRenderTarget *brt;
+
+  D2D1_COLOR_F color;
+
+  D2D1_BRUSH_PROPERTIES bprop;
+
+  ID2D1SolidColorBrush *brush;
+
+  D2D1_RECT_F rect;
+
+  ID2D1Bitmap *bitmap;
+
   D2D1_BITMAP_BRUSH_PROPERTIES bbp;
-  ID2D1BitmapBrush            *bb;
-  HRESULT                      hr;
+
+  ID2D1BitmapBrush *bb;
+
+  HRESULT hr;
 
   size.width  = 10;
   size.height = 10;
@@ -333,7 +392,7 @@ drawGrid (ID2D1RenderTarget *rt, const D2D1_RECT_F *fillRect)
   }
 #endif
 
-  hr = rt->CreateCompatibleRenderTarget (&size, NULL, &pformat, D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_NONE, &brt);
+  hr = rt->CreateCompatibleRenderTarget (&size, nullptr, &pformat, D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_NONE, &brt);
   if (hr != S_OK)
     (void)logHRESULT (L"error creating render target for grid", hr);
 
@@ -350,60 +409,83 @@ drawGrid (ID2D1RenderTarget *rt, const D2D1_RECT_F *fillRect)
   bprop.opacity       = 1.0;
   bprop.transform._11 = 1;
   bprop.transform._22 = 1;
-  hr                  = brt->CreateSolidColorBrush (&color, &bprop, &brush);
+
+  hr = brt->CreateSolidColorBrush (&color, &bprop, &brush);
   if (hr != S_OK)
-    logHRESULT (L"error creating brush for grid", hr);
+    (void)logHRESULT (L"error creating brush for grid", hr);
+
   rect.left   = 0;
   rect.top    = 0;
-  rect.right  = 50 / 10;
-  rect.bottom = 50 / 10;
+  rect.right  = 5;
+  rect.bottom = 5;
   brt->FillRectangle (&rect, brush);
-  rect.left   = 50 / 10;
-  rect.top    = 50 / 10;
-  rect.right  = 100 / 10;
-  rect.bottom = 100 / 10;
+
+  rect.left   = 5;
+  rect.top    = 5;
+  rect.right  = 10;
+  rect.bottom = 10;
   brt->FillRectangle (&rect, brush);
+
   brush->Release ();
 
-  hr = brt->EndDraw (NULL, NULL);
+  hr = brt->EndDraw (nullptr, nullptr);
   if (hr != S_OK)
-    logHRESULT (L"error finalizing render target for grid", hr);
+    (void)logHRESULT (L"error finalizing render target for grid", hr);
+
   hr = brt->GetBitmap (&bitmap);
   if (hr != S_OK)
-    logHRESULT (L"error getting bitmap for grid", hr);
+    (void)logHRESULT (L"error getting bitmap for grid", hr);
+
   brt->Release ();
 
   ZeroMemory (&bbp, sizeof (D2D1_BITMAP_BRUSH_PROPERTIES));
   bbp.extendModeX       = D2D1_EXTEND_MODE_WRAP;
   bbp.extendModeY       = D2D1_EXTEND_MODE_WRAP;
   bbp.interpolationMode = D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR;
-  hr                    = rt->CreateBitmapBrush (bitmap, &bbp, &bprop, &bb);
+
+  hr = rt->CreateBitmapBrush (bitmap, &bbp, &bprop, &bb);
   if (hr != S_OK)
-    logHRESULT (L"error creating bitmap brush for grid", hr);
+    (void)logHRESULT (L"error creating bitmap brush for grid", hr);
+
   rt->FillRectangle (fillRect, bb);
   bb->Release ();
   bitmap->Release ();
 }
 
-// this interesting approach comes from
-// http://blogs.msdn.com/b/wpfsdk/archive/2006/10/26/uncommon-dialogs--font-chooser-and-color-picker-dialogs.aspx
 static void
-drawSVChooser (struct colorDialog *c, ID2D1RenderTarget *rt)
+drawSVChooser (colorDialog *c, ID2D1RenderTarget *rt)
 {
-  D2D1_SIZE_F                           size;
-  D2D1_RECT_F                           rect;
-  double                                rTop, gTop, bTop;
-  D2D1_GRADIENT_STOP                    stops[2];
-  ID2D1GradientStopCollection          *collection;
+  D2D1_SIZE_F size;
+
+  D2D1_RECT_F rect;
+
+  double rTop;
+
+  double gTop;
+
+  double bTop;
+
+  D2D1_GRADIENT_STOP stops[2];
+
+  ID2D1GradientStopCollection *collection;
+
   D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES lprop;
-  D2D1_BRUSH_PROPERTIES                 bprop;
-  ID2D1LinearGradientBrush             *brush;
-  ID2D1LinearGradientBrush             *opacity;
-  ID2D1Layer                           *layer;
-  D2D1_LAYER_PARAMETERS                 layerparams;
-  D2D1_ELLIPSE                          mparam;
-  D2D1_COLOR_F                          mcolor;
-  ID2D1SolidColorBrush                 *markerBrush;
+
+  D2D1_BRUSH_PROPERTIES bprop;
+
+  ID2D1LinearGradientBrush *brush;
+
+  ID2D1LinearGradientBrush *opacity;
+
+  ID2D1Layer *layer;
+
+  D2D1_LAYER_PARAMETERS layerparams;
+
+  D2D1_ELLIPSE mparam;
+
+  D2D1_COLOR_F mcolor;
+
+  ID2D1SolidColorBrush *markerBrush;
 
   size        = realGetSize (rt);
   rect.left   = 0;
@@ -416,32 +498,38 @@ drawSVChooser (struct colorDialog *c, ID2D1RenderTarget *rt)
   // first, draw a vertical gradient from the current hue at max S/V to black
   // the source example draws it upside down; let's do so too just to be safe
   hsv2RGB (c->h, 1.0, 1.0, &rTop, &gTop, &bTop);
+
   stops[0].position = 0;
   stops[0].color.r  = 0.0;
   stops[0].color.g  = 0.0;
   stops[0].color.b  = 0.0;
   stops[0].color.a  = 1.0;
+
   stops[1].position = 1;
-  stops[1].color.r  = rTop;
-  stops[1].color.g  = gTop;
-  stops[1].color.b  = bTop;
+  stops[1].color.r  = rTop; // NOLINT(*-narrowing-conversions)
+  stops[1].color.g  = gTop; // NOLINT(*-narrowing-conversions)
+  stops[1].color.b  = bTop; // NOLINT(*-narrowing-conversions)
   stops[1].color.a  = 1.0;
-  HRESULT hr        = rt->CreateGradientStopCollection (stops, 2, D2D1_GAMMA_2_2, D2D1_EXTEND_MODE_CLAMP, &collection);
+
+  HRESULT hr = rt->CreateGradientStopCollection (stops, 2, D2D1_GAMMA_2_2, D2D1_EXTEND_MODE_CLAMP, &collection);
   if (hr != S_OK)
-    logHRESULT (L"error making gradient stop collection for first gradient in SV chooser", hr);
+    (void)logHRESULT (L"error making gradient stop collection for first gradient in SV chooser", hr);
+
   ZeroMemory (&lprop, sizeof (D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES));
   lprop.startPoint.x = size.width / 2;
   lprop.startPoint.y = size.height;
   lprop.endPoint.x   = size.width / 2;
   lprop.endPoint.y   = 0;
-  // TODO decide what to do about the duplication of this
+
   ZeroMemory (&bprop, sizeof (D2D1_BRUSH_PROPERTIES));
-  bprop.opacity       = c->a; // note this part; we also use it below for the layer
+  bprop.opacity       = c->a; // NOLINT(*-narrowing-conversions)
   bprop.transform._11 = 1;
   bprop.transform._22 = 1;
-  hr                  = rt->CreateLinearGradientBrush (&lprop, &bprop, collection, &brush);
+
+  hr = rt->CreateLinearGradientBrush (&lprop, &bprop, collection, &brush);
   if (hr != S_OK)
-    logHRESULT (L"error making gradient brush for first gradient in SV chooser", hr);
+    (void)logHRESULT (L"error making gradient brush for first gradient in SV chooser", hr);
+
   rt->FillRectangle (&rect, brush);
   brush->Release ();
   collection->Release ();
@@ -452,26 +540,31 @@ drawSVChooser (struct colorDialog *c, ID2D1RenderTarget *rt)
   stops[0].color.g  = 0.0;
   stops[0].color.b  = 0.0;
   stops[0].color.a  = 1.0;
+
   stops[1].position = 1;
   stops[1].color.r  = 0.0;
   stops[1].color.g  = 0.0;
   stops[1].color.b  = 0.0;
   stops[1].color.a  = 0.0;
-  hr                = rt->CreateGradientStopCollection (stops, 2, D2D1_GAMMA_2_2, D2D1_EXTEND_MODE_CLAMP, &collection);
+
+  hr = rt->CreateGradientStopCollection (stops, 2, D2D1_GAMMA_2_2, D2D1_EXTEND_MODE_CLAMP, &collection);
   if (hr != S_OK)
-    logHRESULT (L"error making gradient stop collection for opacity mask gradient in SV chooser", hr);
+    (void)logHRESULT (L"error making gradient stop collection for opacity mask gradient in SV chooser", hr);
+
   ZeroMemory (&lprop, sizeof (D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES));
   lprop.startPoint.x = 0;
   lprop.startPoint.y = size.height / 2;
   lprop.endPoint.x   = size.width;
   lprop.endPoint.y   = size.height / 2;
+
   ZeroMemory (&bprop, sizeof (D2D1_BRUSH_PROPERTIES));
   bprop.opacity       = 1.0;
   bprop.transform._11 = 1;
   bprop.transform._22 = 1;
-  hr                  = rt->CreateLinearGradientBrush (&lprop, &bprop, collection, &opacity);
+
+  hr = rt->CreateLinearGradientBrush (&lprop, &bprop, collection, &opacity);
   if (hr != S_OK)
-    logHRESULT (L"error making gradient brush for opacity mask gradient in SV chooser", hr);
+    (void)logHRESULT (L"error making gradient brush for opacity mask gradient in SV chooser", hr);
   collection->Release ();
 
   // finally, make a vertical gradient from white at the top to black at the bottom (right side up this time) and with
@@ -481,45 +574,50 @@ drawSVChooser (struct colorDialog *c, ID2D1RenderTarget *rt)
   stops[0].color.g  = 1.0;
   stops[0].color.b  = 1.0;
   stops[0].color.a  = 1.0;
+
   stops[1].position = 1;
   stops[1].color.r  = 0.0;
   stops[1].color.g  = 0.0;
   stops[1].color.b  = 0.0;
   stops[1].color.a  = 1.0;
-  hr                = rt->CreateGradientStopCollection (stops, 2, D2D1_GAMMA_2_2, D2D1_EXTEND_MODE_CLAMP, &collection);
+
+  hr = rt->CreateGradientStopCollection (stops, 2, D2D1_GAMMA_2_2, D2D1_EXTEND_MODE_CLAMP, &collection);
   if (hr != S_OK)
-    logHRESULT (L"error making gradient stop collection for second gradient in SV chooser", hr);
+    (void)logHRESULT (L"error making gradient stop collection for second gradient in SV chooser", hr);
+
   ZeroMemory (&lprop, sizeof (D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES));
   lprop.startPoint.x = size.width / 2;
   lprop.startPoint.y = 0;
   lprop.endPoint.x   = size.width / 2;
   lprop.endPoint.y   = size.height;
+
   ZeroMemory (&bprop, sizeof (D2D1_BRUSH_PROPERTIES));
   bprop.opacity       = 1.0;
   bprop.transform._11 = 1;
   bprop.transform._22 = 1;
-  hr                  = rt->CreateLinearGradientBrush (&lprop, &bprop, collection, &brush);
+
+  hr = rt->CreateLinearGradientBrush (&lprop, &bprop, collection, &brush);
   if (hr != S_OK)
-    logHRESULT (L"error making gradient brush for second gradient in SV chooser", hr);
-  // oh but wait we can't use FillRectangle() with an opacity mask
-  // and we can't use FillGeometry() with both an opacity mask and a non-bitmap
-  // layers it is!
+    (void)logHRESULT (L"error making gradient brush for second gradient in SV chooser", hr);
+
   hr = rt->CreateLayer (&size, &layer);
   if (hr != S_OK)
-    logHRESULT (L"error making layer for second gradient in SV chooser", hr);
+    (void)logHRESULT (L"error making layer for second gradient in SV chooser", hr);
+
   ZeroMemory (&layerparams, sizeof (D2D1_LAYER_PARAMETERS));
-  layerparams.contentBounds = rect;
-  // TODO make sure these are right
-  layerparams.geometricMask     = NULL;
+  layerparams.contentBounds     = rect;
+  layerparams.geometricMask     = nullptr;
   layerparams.maskAntialiasMode = D2D1_ANTIALIAS_MODE_PER_PRIMITIVE;
   layerparams.maskTransform._11 = 1;
   layerparams.maskTransform._22 = 1;
-  layerparams.opacity           = c->a; // here's the other use of c->a to note
+  layerparams.opacity           = c->a; // NOLINT(*-narrowing-conversions)
   layerparams.opacityBrush      = opacity;
   layerparams.layerOptions      = D2D1_LAYER_OPTIONS_NONE;
+
   rt->PushLayer (&layerparams, layer);
   rt->FillRectangle (&rect, brush);
   rt->PopLayer ();
+
   layer->Release ();
   brush->Release ();
   collection->Release ();
@@ -527,57 +625,72 @@ drawSVChooser (struct colorDialog *c, ID2D1RenderTarget *rt)
 
   // and now we just draw the marker
   ZeroMemory (&mparam, sizeof (D2D1_ELLIPSE));
-  mparam.point.x = c->s * size.width;
-  mparam.point.y = (1 - c->v) * size.height;
+  mparam.point.x = c->s * size.width;        // NOLINT(*-narrowing-conversions)
+  mparam.point.y = (1 - c->v) * size.height; // NOLINT(*-narrowing-conversions)
   mparam.radiusX = 7;
   mparam.radiusY = 7;
-  // TODO make the color contrast?
-  mcolor.r      = 1.0;
-  mcolor.g      = 1.0;
-  mcolor.b      = 1.0;
-  mcolor.a      = 1.0;
+
+  mcolor.r = 1.0;
+  mcolor.g = 1.0;
+  mcolor.b = 1.0;
+  mcolor.a = 1.0;
+
   bprop.opacity = 1.0; // the marker should always be opaque
-  hr            = rt->CreateSolidColorBrush (&mcolor, &bprop, &markerBrush);
+
+  hr = rt->CreateSolidColorBrush (&mcolor, &bprop, &markerBrush);
   if (hr != S_OK)
-    logHRESULT (L"error creating brush for SV chooser marker", hr);
-  rt->DrawEllipse (&mparam, markerBrush, 2, NULL);
+    (void)logHRESULT (L"error creating brush for SV chooser marker", hr);
+
+  rt->DrawEllipse (&mparam, markerBrush, 2, nullptr);
   markerBrush->Release ();
 }
 
 static LRESULT CALLBACK
-svChooserSubProc (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, const DWORD_PTR dwRefData)
+svChooserSubProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPARAM lParam,
+                  const UINT_PTR uIdSubclass, const DWORD_PTR dwRefData)
 {
-  ID2D1RenderTarget *rt;
-  D2D1_POINT_2F     *pos;
-  D2D1_SIZE_F       *size;
+  auto *const c = reinterpret_cast<struct colorDialog *> (dwRefData);
 
-  struct colorDialog *c = (struct colorDialog *)dwRefData;
   switch (uMsg)
     {
     case msgD2DScratchPaint:
-      rt = (ID2D1RenderTarget *)lParam;
-      drawSVChooser (c, rt);
-      return 0;
+      {
+        auto *rt = reinterpret_cast<ID2D1RenderTarget *> (lParam);
+        drawSVChooser (c, rt);
+        return 0;
+      }
     case msgD2DScratchLButtonDown:
-      pos  = (D2D1_POINT_2F *)wParam;
-      size = (D2D1_SIZE_F *)lParam;
-      c->s = pos->x / size->width;
-      c->v = 1 - pos->y / size->height;
-      updateDialog (c, NULL);
-      return 0;
+      {
+        const auto *pos  = reinterpret_cast<D2D1_POINT_2F *> (wParam);
+        const auto *size = reinterpret_cast<D2D1_SIZE_F *> (lParam);
+
+        c->s = pos->x / size->width;
+        c->v = 1 - pos->y / size->height;
+
+        updateDialog (c, nullptr);
+
+        return 0;
+      }
     case WM_NCDESTROY:
-      if (RemoveWindowSubclass (hwnd, svChooserSubProc, uIdSubclass) == FALSE)
-        logLastError (L"error removing color dialog SV chooser subclass");
-      break;
+      {
+        if (RemoveWindowSubclass (hwnd, svChooserSubProc, uIdSubclass) == FALSE)
+          (void)logLastError (L"error removing color dialog SV chooser subclass");
+
+        break;
+      }
+
+    default:;
     }
+
   return DefSubclassProc (hwnd, uMsg, wParam, lParam);
 }
 
 static void
-drawArrow (ID2D1RenderTarget *rt, D2D1_POINT_2F center, double hypot)
+drawArrow (ID2D1RenderTarget *rt, const D2D1_POINT_2F center, double hypot)
 {
   D2D1_RECT_F           rect;
-  D2D1_MATRIX_3X2_F     oldtf, rotate;
+  D2D1_MATRIX_3X2_F     oldtf;
+  D2D1_MATRIX_3X2_F     rotate;
   D2D1_COLOR_F          color;
   D2D1_BRUSH_PROPERTIES bprop;
   ID2D1SolidColorBrush *brush;
@@ -588,14 +701,16 @@ drawArrow (ID2D1RenderTarget *rt, D2D1_POINT_2F center, double hypot)
   // a = sqrt(c^2/2)
   hypot *= hypot;
   hypot /= 2;
-  double leg  = sqrt (hypot);
-  rect.left   = center.x - leg;
-  rect.top    = center.y - leg;
-  rect.right  = center.x + leg;
-  rect.bottom = center.y + leg;
+
+  const double leg = sqrt (hypot);
+  rect.left        = center.x - leg; // NOLINT(*-narrowing-conversions)
+  rect.top         = center.y - leg; // NOLINT(*-narrowing-conversions)
+  rect.right       = center.x + leg; // NOLINT(*-narrowing-conversions)
+  rect.bottom      = center.y + leg; // NOLINT(*-narrowing-conversions)
 
   // now we need to rotate the render target 45° (either way works) about the center point
   rt->GetTransform (&oldtf);
+
   rotate = oldtf * D2D1::Matrix3x2F::Rotation (45, center);
   rt->SetTransform (&rotate);
 
@@ -604,41 +719,47 @@ drawArrow (ID2D1RenderTarget *rt, D2D1_POINT_2F center, double hypot)
   color.g = 0.0;
   color.b = 0.0;
   color.a = 1.0;
+
   ZeroMemory (&bprop, sizeof (D2D1_BRUSH_PROPERTIES));
   bprop.opacity       = 1.0;
   bprop.transform._11 = 1;
   bprop.transform._22 = 1;
-  HRESULT hr          = rt->CreateSolidColorBrush (&color, &bprop, &brush);
+
+  const HRESULT hr = rt->CreateSolidColorBrush (&color, &bprop, &brush);
   if (hr != S_OK)
-    logHRESULT (L"error creating brush for arrow", hr);
+    (void)logHRESULT (L"error creating brush for arrow", hr);
+
   rt->FillRectangle (&rect, brush);
   brush->Release ();
 
-  // clean up
   rt->SetTransform (&oldtf);
 }
 
-// the gradient stuff also comes from
-// http://blogs.msdn.com/b/wpfsdk/archive/2006/10/26/uncommon-dialogs--font-chooser-and-color-picker-dialogs.aspx
-#define nStops     (30)
-#define degPerStop (360 / nStops)
-#define stopIncr   (1.0 / ((double)nStops))
-
 static void
-drawHSlider (const struct colorDialog *c, ID2D1RenderTarget *rt)
+drawHSlider (const colorDialog *c, ID2D1RenderTarget *rt)
 {
-  D2D1_SIZE_F                           size;
-  D2D1_RECT_F                           rect;
-  D2D1_GRADIENT_STOP                    stops[nStops];
-  double                                r, g, b;
-  int                                   i;
-  ID2D1GradientStopCollection          *collection;
-  D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES lprop;
-  D2D1_BRUSH_PROPERTIES                 bprop;
-  ID2D1LinearGradientBrush             *brush;
-  D2D1_POINT_2F                         center;
+  D2D1_RECT_F rect;
 
-  size        = realGetSize (rt);
+  D2D1_GRADIENT_STOP stops[nStops];
+
+  double r;
+  double g;
+  double b;
+
+  int i;
+
+  D2D1_BRUSH_PROPERTIES bprop;
+
+  D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES lprop;
+
+  D2D1_POINT_2F center;
+
+  ID2D1GradientStopCollection *collection;
+
+  ID2D1LinearGradientBrush *brush;
+
+  const D2D1_SIZE_F size = realGetSize (rt);
+
   rect.left   = size.width / 6; // leftmost sixth for arrow
   rect.top    = 0;
   rect.right  = size.width;
@@ -646,87 +767,112 @@ drawHSlider (const struct colorDialog *c, ID2D1RenderTarget *rt)
 
   for (i = 0; i < nStops; i++)
     {
-      double h = (double)(i * degPerStop) / 360.0;
+      double h = i * (360.0 / nStops) / 360.0;
       if (i == nStops - 1)
         h = 0;
+
       hsv2RGB (h, 1.0, 1.0, &r, &g, &b);
-      stops[i].position = (double)i * stopIncr;
-      stops[i].color.r  = r;
-      stops[i].color.g  = g;
-      stops[i].color.b  = b;
+      stops[i].position = static_cast<double> (i) * stopIncr; // NOLINT(*-narrowing-conversions)
+      stops[i].color.r  = r;                                  // NOLINT(*-narrowing-conversions)
+      stops[i].color.g  = g;                                  // NOLINT(*-narrowing-conversions)
+      stops[i].color.b  = b;                                  // NOLINT(*-narrowing-conversions)
       stops[i].color.a  = 1.0;
     }
+
   // and pin the last one
   stops[i - 1].position = 1.0;
 
-  HRESULT hr
-      = rt->CreateGradientStopCollection (stops, nStops,
-                                          // note that in this case this gamma is explicitly specified by the original
-                                          D2D1_GAMMA_2_2, D2D1_EXTEND_MODE_CLAMP, &collection);
+  HRESULT hr = rt->CreateGradientStopCollection (stops, nStops, D2D1_GAMMA_2_2, D2D1_EXTEND_MODE_CLAMP, &collection);
   if (hr != S_OK)
-    logHRESULT (L"error creating stop collection for H slider gradient", hr);
+    (void)logHRESULT (L"error creating stop collection for H slider gradient", hr);
+
   ZeroMemory (&lprop, sizeof (D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES));
   lprop.startPoint.x = (rect.right - rect.left) / 2;
   lprop.startPoint.y = 0;
   lprop.endPoint.x   = (rect.right - rect.left) / 2;
   lprop.endPoint.y   = size.height;
+
   ZeroMemory (&bprop, sizeof (D2D1_BRUSH_PROPERTIES));
   bprop.opacity       = 1.0;
   bprop.transform._11 = 1;
   bprop.transform._22 = 1;
-  hr                  = rt->CreateLinearGradientBrush (&lprop, &bprop, collection, &brush);
+
+  hr = rt->CreateLinearGradientBrush (&lprop, &bprop, collection, &brush);
   if (hr != S_OK)
-    logHRESULT (L"error creating gradient brush for H slider", hr);
+    (void)logHRESULT (L"error creating gradient brush for H slider", hr);
+
   rt->FillRectangle (&rect, brush);
   brush->Release ();
   collection->Release ();
 
   // now draw a black arrow
-  center.x     = 0;
-  center.y     = c->h * size.height;
-  double hypot = rect.left;
+  center.x           = 0;
+  center.y           = c->h * size.height; // NOLINT(*-narrowing-conversions)
+  const double hypot = rect.left;
   drawArrow (rt, center, hypot);
 }
 
 static LRESULT CALLBACK
-hSliderSubProc (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, const DWORD_PTR dwRefData)
+hSliderSubProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPARAM lParam, const UINT_PTR uIdSubclass,
+                const DWORD_PTR dwRefData)
 {
-  ID2D1RenderTarget *rt;
-  D2D1_POINT_2F     *pos;
-  D2D1_SIZE_F       *size;
 
-  struct colorDialog *c = (struct colorDialog *)dwRefData;
+  auto *const c = reinterpret_cast<struct colorDialog *> (dwRefData);
   switch (uMsg)
     {
     case msgD2DScratchPaint:
-      rt = (ID2D1RenderTarget *)lParam;
-      drawHSlider (c, rt);
-      return 0;
+      {
+        auto *const rt = reinterpret_cast<ID2D1RenderTarget *> (lParam);
+
+        drawHSlider (c, rt);
+
+        return 0;
+      }
+
     case msgD2DScratchLButtonDown:
-      pos  = (D2D1_POINT_2F *)wParam;
-      size = (D2D1_SIZE_F *)lParam;
-      c->h = pos->y / size->height;
-      updateDialog (c, NULL);
-      return 0;
+      {
+        const auto *pos  = reinterpret_cast<D2D1_POINT_2F *> (wParam);
+        const auto *size = reinterpret_cast<D2D1_SIZE_F *> (lParam);
+
+        c->h = pos->y / size->height;
+
+        updateDialog (c, nullptr);
+
+        return 0;
+      }
     case WM_NCDESTROY:
-      if (RemoveWindowSubclass (hwnd, hSliderSubProc, uIdSubclass) == FALSE)
-        logLastError (L"error removing color dialog H slider subclass");
-      break;
+      {
+        if (RemoveWindowSubclass (hwnd, hSliderSubProc, uIdSubclass) == FALSE)
+          (void)logLastError (L"error removing color dialog H slider subclass");
+
+        break;
+      }
+
+    default:;
     }
+
   return DefSubclassProc (hwnd, uMsg, wParam, lParam);
 }
 
 static void
-drawPreview (const struct colorDialog *c, ID2D1RenderTarget *rt)
+drawPreview (const colorDialog *c, ID2D1RenderTarget *rt)
 {
-  D2D1_SIZE_F           size;
-  D2D1_RECT_F           rect;
-  double                r, g, b;
-  D2D1_COLOR_F          color;
+  D2D1_RECT_F rect;
+
+  double r;
+
+  double g;
+
+  double b;
+
+  D2D1_COLOR_F color;
+
   D2D1_BRUSH_PROPERTIES bprop;
+
   ID2D1SolidColorBrush *brush;
 
-  size        = realGetSize (rt);
+  const D2D1_SIZE_F size = realGetSize (rt);
+
   rect.left   = 0;
   rect.top    = 0;
   rect.right  = size.width;
@@ -735,59 +881,76 @@ drawPreview (const struct colorDialog *c, ID2D1RenderTarget *rt)
   drawGrid (rt, &rect);
 
   hsv2RGB (c->h, c->s, c->v, &r, &g, &b);
-  color.r = r;
-  color.g = g;
-  color.b = b;
-  color.a = c->a;
+  color.r = r;    // NOLINT(*-narrowing-conversions)
+  color.g = g;    // NOLINT(*-narrowing-conversions)
+  color.b = b;    // NOLINT(*-narrowing-conversions)
+  color.a = c->a; // NOLINT(*-narrowing-conversions)
+
   ZeroMemory (&bprop, sizeof (D2D1_BRUSH_PROPERTIES));
   bprop.opacity       = 1.0;
   bprop.transform._11 = 1;
   bprop.transform._22 = 1;
-  HRESULT hr          = rt->CreateSolidColorBrush (&color, &bprop, &brush);
+
+  const HRESULT hr = rt->CreateSolidColorBrush (&color, &bprop, &brush);
   if (hr != S_OK)
-    logHRESULT (L"error creating brush for preview", hr);
+    (void)logHRESULT (L"error creating brush for preview", hr);
+
   rt->FillRectangle (&rect, brush);
   brush->Release ();
 }
 
 static LRESULT CALLBACK
-previewSubProc (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, const DWORD_PTR dwRefData)
+previewSubProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPARAM lParam, const UINT_PTR uIdSubclass,
+                const DWORD_PTR dwRefData)
 {
-  ID2D1RenderTarget *rt;
 
-  struct colorDialog *c = (struct colorDialog *)dwRefData;
+  const auto *const c = reinterpret_cast<colorDialog *> (dwRefData);
   switch (uMsg)
     {
     case msgD2DScratchPaint:
-      rt = (ID2D1RenderTarget *)lParam;
-      drawPreview (c, rt);
-      return 0;
+      {
+        auto *const rt = reinterpret_cast<ID2D1RenderTarget *> (lParam);
+
+        drawPreview (c, rt);
+
+        return 0;
+      }
     case WM_NCDESTROY:
-      if (RemoveWindowSubclass (hwnd, previewSubProc, uIdSubclass) == FALSE)
-        logLastError (L"error removing color dialog previewer subclass");
-      break;
+      {
+        if (RemoveWindowSubclass (hwnd, previewSubProc, uIdSubclass) == FALSE)
+          (void)logLastError (L"error removing color dialog previewer subclass");
+        break;
+      }
+
+    default:;
     }
+
   return DefSubclassProc (hwnd, uMsg, wParam, lParam);
 }
 
-// once again, this is based on the Microsoft sample above
 static void
-drawOpacitySlider (const struct colorDialog *c, ID2D1RenderTarget *rt)
+drawOpacitySlider (const colorDialog *c, ID2D1RenderTarget *rt)
 {
-  D2D1_SIZE_F                           size;
-  D2D1_RECT_F                           rect;
-  D2D1_GRADIENT_STOP                    stops[2];
-  ID2D1GradientStopCollection          *collection;
-  D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES lprop;
-  D2D1_BRUSH_PROPERTIES                 bprop;
-  ID2D1LinearGradientBrush             *brush;
-  D2D1_POINT_2F                         center;
+  D2D1_RECT_F rect;
 
-  size        = realGetSize (rt);
+  D2D1_GRADIENT_STOP stops[2];
+
+  ID2D1GradientStopCollection *collection;
+
+  D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES lprop;
+
+  D2D1_BRUSH_PROPERTIES bprop;
+
+  ID2D1LinearGradientBrush *brush;
+
+  D2D1_POINT_2F center;
+
+  const D2D1_SIZE_F size = realGetSize (rt);
+
   rect.left   = 0;
   rect.top    = 0;
   rect.right  = size.width;
-  rect.bottom = size.height * (5.0 / 6.0); // bottommost sixth for arrow
+  rect.bottom = size.height * (5.0 / 6.0); // NOLINT(*-narrowing-conversions)
 
   drawGrid (rt, &rect);
 
@@ -796,161 +959,178 @@ drawOpacitySlider (const struct colorDialog *c, ID2D1RenderTarget *rt)
   stops[0].color.g  = 0.0;
   stops[0].color.b  = 0.0;
   stops[0].color.a  = 1.0;
+
   stops[1].position = 1.0;
-  stops[1].color.r  = 1.0; // this is the XAML color Transparent, as in the source
+  stops[1].color.r  = 1.0;
   stops[1].color.g  = 1.0;
   stops[1].color.b  = 1.0;
   stops[1].color.a  = 0.0;
-  HRESULT hr
-      = rt->CreateGradientStopCollection (stops, 2,
-                                          // note that in this case this gamma is explicitly specified by the original
-                                          D2D1_GAMMA_2_2, D2D1_EXTEND_MODE_CLAMP, &collection);
+
+  HRESULT hr = rt->CreateGradientStopCollection (stops, 2, D2D1_GAMMA_2_2, D2D1_EXTEND_MODE_CLAMP, &collection);
   if (hr != S_OK)
-    logHRESULT (L"error creating stop collection for opacity slider gradient", hr);
+    (void)logHRESULT (L"error creating stop collection for opacity slider gradient", hr);
+
   ZeroMemory (&lprop, sizeof (D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES));
   lprop.startPoint.x = 0;
   lprop.startPoint.y = (rect.bottom - rect.top) / 2;
   lprop.endPoint.x   = size.width;
   lprop.endPoint.y   = (rect.bottom - rect.top) / 2;
+
   ZeroMemory (&bprop, sizeof (D2D1_BRUSH_PROPERTIES));
   bprop.opacity       = 1.0;
   bprop.transform._11 = 1;
   bprop.transform._22 = 1;
-  hr                  = rt->CreateLinearGradientBrush (&lprop, &bprop, collection, &brush);
+
+  hr = rt->CreateLinearGradientBrush (&lprop, &bprop, collection, &brush);
   if (hr != S_OK)
-    logHRESULT (L"error creating gradient brush for opacity slider", hr);
+    (void)logHRESULT (L"error creating gradient brush for opacity slider", hr);
+
   rt->FillRectangle (&rect, brush);
   brush->Release ();
   collection->Release ();
 
   // now draw a black arrow
-  center.x     = (1 - c->a) * size.width;
-  center.y     = size.height;
-  double hypot = size.height - rect.bottom;
+  center.x = (1 - c->a) * size.width; // NOLINT(*-narrowing-conversions)
+  center.y = size.height;
+
+  const double hypot = size.height - rect.bottom;
   drawArrow (rt, center, hypot);
 }
 
 static LRESULT CALLBACK
-opacitySliderSubProc (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass,
-                      const DWORD_PTR dwRefData)
+opacitySliderSubProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPARAM lParam,
+                      const UINT_PTR uIdSubclass, const DWORD_PTR dwRefData)
 {
-  ID2D1RenderTarget *rt;
-  D2D1_POINT_2F     *pos;
-  D2D1_SIZE_F       *size;
+  auto *const c = reinterpret_cast<colorDialog *> (dwRefData);
 
-  struct colorDialog *c = (struct colorDialog *)dwRefData;
   switch (uMsg)
     {
     case msgD2DScratchPaint:
-      rt = (ID2D1RenderTarget *)lParam;
-      drawOpacitySlider (c, rt);
-      return 0;
+      {
+        auto *const rt = reinterpret_cast<ID2D1RenderTarget *> (lParam);
+        drawOpacitySlider (c, rt);
+        return 0;
+      }
+
     case msgD2DScratchLButtonDown:
-      pos  = (D2D1_POINT_2F *)wParam;
-      size = (D2D1_SIZE_F *)lParam;
-      c->a = 1 - pos->x / size->width;
-      updateDialog (c, NULL);
-      return 0;
+      {
+        const auto *const pos  = reinterpret_cast<D2D1_POINT_2F *> (wParam);
+        const auto *const size = reinterpret_cast<D2D1_SIZE_F *> (lParam);
+
+        c->a = 1 - pos->x / size->width;
+
+        updateDialog (c, nullptr);
+
+        return 0;
+      }
+
     case WM_NCDESTROY:
-      if (RemoveWindowSubclass (hwnd, opacitySliderSubProc, uIdSubclass) == FALSE)
-        logLastError (L"error removing color dialog opacity slider subclass");
-      break;
+      {
+        if (RemoveWindowSubclass (hwnd, opacitySliderSubProc, uIdSubclass) == FALSE)
+          (void)logLastError (L"error removing color dialog opacity slider subclass");
+
+        break;
+      }
+
+    default:;
     }
+
   return DefSubclassProc (hwnd, uMsg, wParam, lParam);
 }
 
-// TODO extract into d2dscratch.cpp, use in font dialog
 HWND
-replaceWithD2DScratch (HWND parent, int id, SUBCLASSPROC subproc, void *data)
+replaceWithD2DScratch (const HWND parent, const int id, SUBCLASSPROC subproc, void *data)
 {
   RECT r;
 
-  HWND replace = getDlgItem (parent, id);
+  const HWND replace = getDlgItem (parent, id);
   uiWindowsEnsureGetWindowRect (replace, &r);
-  mapWindowRect (NULL, parent, &r);
+
+  mapWindowRect (nullptr, parent, &r);
   uiWindowsEnsureDestroyWindow (replace);
-  return newD2DScratch (parent, &r, (HMENU)id, subproc, (DWORD_PTR)data);
-  // TODO preserve Z-order
+
+  return newD2DScratch (parent, &r, reinterpret_cast<HMENU> (id), subproc, reinterpret_cast<DWORD_PTR> (data));
 }
 
-// a few issues:
-// - some controls are positioned wrong; see
-// http://stackoverflow.com/questions/37263267/why-are-some-of-my-controls-positioned-slightly-off-in-a-dialog-template-in-a-re
-// - labels are too low; need to adjust them by the font's internal leading
-// fixupControlPositions() and the following helper routines fix that for us
-
 static LONG
-offsetTo (HWND a, HWND b)
+offsetTo (const HWND a, const HWND b)
 {
-  RECT ra, rb;
-
+  RECT ra;
   uiWindowsEnsureGetWindowRect (a, &ra);
+
+  RECT rb;
   uiWindowsEnsureGetWindowRect (b, &rb);
+
   return rb.top - ra.bottom;
 }
 
 static void
-moveWindowsUp (const struct colorDialog *c, LONG by, ...)
+moveWindowsUp (const colorDialog *c, const LONG by, ...) // NOLINT(*-dcl50-cpp)
 {
   va_list ap;
-  RECT    r;
+
+  RECT r;
 
   va_start (ap, by);
   for (;;)
     {
-      HWND cur = va_arg (ap, HWND);
-      if (cur == NULL)
+      const HWND cur = va_arg (ap, HWND);
+      if (cur == nullptr)
         break;
+
       uiWindowsEnsureGetWindowRect (cur, &r);
-      mapWindowRect (NULL, c->hwnd, &r);
+      mapWindowRect (nullptr, c->hwnd, &r);
+
       r.top -= by;
       r.bottom -= by;
-      // TODO this isn't technically during a resize
+
       uiWindowsEnsureMoveWindowDuringResize (cur, r.left, r.top, r.right - r.left, r.bottom - r.top);
     }
   va_end (ap);
 }
 
 static void
-fixupControlPositions (struct colorDialog *c)
+fixupControlPositions (const colorDialog *c)
 {
   uiWindowsSizing sizing;
 
-  HWND labelH   = getDlgItem (c->hwnd, rcHLabel);
-  HWND labelS   = getDlgItem (c->hwnd, rcSLabel);
-  HWND labelV   = getDlgItem (c->hwnd, rcVLabel);
-  HWND labelR   = getDlgItem (c->hwnd, rcRLabel);
-  HWND labelG   = getDlgItem (c->hwnd, rcGLabel);
-  HWND labelB   = getDlgItem (c->hwnd, rcBLabel);
-  HWND labelA   = getDlgItem (c->hwnd, rcALabel);
-  HWND labelHex = getDlgItem (c->hwnd, rcHexLabel);
+  const HWND labelH   = getDlgItem (c->hwnd, rcHLabel);
+  const HWND labelS   = getDlgItem (c->hwnd, rcSLabel);
+  const HWND labelV   = getDlgItem (c->hwnd, rcVLabel);
+  const HWND labelR   = getDlgItem (c->hwnd, rcRLabel);
+  const HWND labelG   = getDlgItem (c->hwnd, rcGLabel);
+  const HWND labelB   = getDlgItem (c->hwnd, rcBLabel);
+  const HWND labelA   = getDlgItem (c->hwnd, rcALabel);
+  const HWND labelHex = getDlgItem (c->hwnd, rcHexLabel);
 
   LONG offset = offsetTo (c->editH, c->editS);
-  moveWindowsUp (c, offset, labelS, c->editS, labelG, c->editGDouble, c->editGInt, NULL);
-  offset = offsetTo (c->editS, c->editV);
-  moveWindowsUp (c, offset, labelV, c->editV, labelB, c->editBDouble, c->editBInt, NULL);
-  offset = offsetTo (c->editBDouble, c->editADouble);
-  moveWindowsUp (c, offset, labelA, c->editADouble, c->editAInt, NULL);
+  moveWindowsUp (c, offset, labelS, c->editS, labelG, c->editGDouble, c->editGInt, nullptr);
 
-  getSizing (c->hwnd, &sizing, (HFONT)SendMessageW (labelH, WM_GETFONT, 0, 0));
+  offset = offsetTo (c->editS, c->editV);
+  moveWindowsUp (c, offset, labelV, c->editV, labelB, c->editBDouble, c->editBInt, nullptr);
+
+  offset = offsetTo (c->editBDouble, c->editADouble);
+  moveWindowsUp (c, offset, labelA, c->editADouble, c->editAInt, nullptr);
+
+  getSizing (c->hwnd, &sizing, reinterpret_cast<HFONT> (SendMessageW (labelH, WM_GETFONT, 0, 0)));
   offset = sizing.InternalLeading;
-  moveWindowsUp (c, offset, labelH, labelS, labelV, labelR, labelG, labelB, labelA, labelHex, NULL);
+
+  moveWindowsUp (c, offset, labelH, labelS, labelV, labelR, labelG, labelB, labelA, labelHex, nullptr);
 }
 
-static struct colorDialog *
+static colorDialog *
 beginColorDialog (const HWND hwnd, const LPARAM lParam)
 {
 
-  struct colorDialog *c = uiprivNew (struct colorDialog);
-  c->hwnd               = hwnd;
-  c->out                = (struct colorDialogRGBA *)lParam;
+  auto *const c = uiprivNew (struct colorDialog);
+  c->hwnd       = hwnd;
+  c->out        = reinterpret_cast<colorDialogRGBA *> (lParam);
+
   // load initial values now
   rgb2HSV (c->out->r, c->out->g, c->out->b, &c->h, &c->s, &c->v);
+
   c->a = c->out->a;
 
-  // TODO set up d2dscratches
-
-  // TODO prefix all these with rcColor instead of just rc
   c->editH       = getDlgItem (c->hwnd, rcH);
   c->editS       = getDlgItem (c->hwnd, rcS);
   c->editV       = getDlgItem (c->hwnd, rcV);
@@ -972,21 +1152,21 @@ beginColorDialog (const HWND hwnd, const LPARAM lParam)
   fixupControlPositions (c);
 
   // and get the ball rolling
-  updateDialog (c, NULL);
+  updateDialog (c, nullptr);
   return c;
 }
 
 static void
-endColorDialog (struct colorDialog *c, INT_PTR code)
+endColorDialog (colorDialog *c, const INT_PTR code)
 {
   if (EndDialog (c->hwnd, code) == 0)
-    logLastError (L"error ending color dialog");
+    (void)logLastError (L"error ending color dialog");
+
   uiprivFree (c);
 }
 
-// TODO make this void on the font dialog too
 static void
-tryFinishDialog (struct colorDialog *c, const WPARAM wParam)
+tryFinishDialog (colorDialog *c, const WPARAM wParam)
 {
   // cancelling
   if (LOWORD (wParam) != IDOK)
@@ -1002,204 +1182,263 @@ tryFinishDialog (struct colorDialog *c, const WPARAM wParam)
 }
 
 static double
-editDouble (HWND hwnd)
+editDouble (const HWND hwnd)
 {
-
   WCHAR *s = windowText (hwnd);
-  double d = _wtof (s);
+
+  const double d = _wtof (s);
+
   uiprivFree (s);
+
   return d;
 }
 
 static void
-hChanged (struct colorDialog *c)
+hChanged (colorDialog *c)
 {
+  const double h = editDouble (c->editH);
 
-  double h = editDouble (c->editH);
-  if (h < 0 || h >= 1.0) // note the >=
+  if (h < 0 || h >= 1.0)
     return;
+
   c->h = h;
+
   updateDialog (c, c->editH);
 }
 
 static void
-sChanged (struct colorDialog *c)
+sChanged (colorDialog *c)
 {
 
-  double s = editDouble (c->editS);
+  const double s = editDouble (c->editS);
+
   if (s < 0 || s > 1)
     return;
+
   c->s = s;
+
   updateDialog (c, c->editS);
 }
 
 static void
-vChanged (struct colorDialog *c)
+vChanged (colorDialog *c)
 {
+  const double v = editDouble (c->editV);
 
-  double v = editDouble (c->editV);
   if (v < 0 || v > 1)
     return;
+
   c->v = v;
+
   updateDialog (c, c->editV);
 }
 
 static void
-rDoubleChanged (struct colorDialog *c)
+rDoubleChanged (colorDialog *c)
 {
-  double r, g, b;
+  double r;
+  double g;
+  double b;
 
   hsv2RGB (c->h, c->s, c->v, &r, &g, &b);
+
   r = editDouble (c->editRDouble);
   if (r < 0 || r > 1)
     return;
+
   rgb2HSV (r, g, b, &c->h, &c->s, &c->v);
+
   updateDialog (c, c->editRDouble);
 }
 
 static void
-gDoubleChanged (struct colorDialog *c)
+gDoubleChanged (colorDialog *c)
 {
-  double r, g, b;
+  double r;
+  double g;
+  double b;
 
   hsv2RGB (c->h, c->s, c->v, &r, &g, &b);
+
   g = editDouble (c->editGDouble);
   if (g < 0 || g > 1)
     return;
+
   rgb2HSV (r, g, b, &c->h, &c->s, &c->v);
+
   updateDialog (c, c->editGDouble);
 }
 
 static void
-bDoubleChanged (struct colorDialog *c)
+bDoubleChanged (colorDialog *c)
 {
-  double r, g, b;
+  double r;
+  double g;
+  double b;
 
   hsv2RGB (c->h, c->s, c->v, &r, &g, &b);
+
   b = editDouble (c->editBDouble);
   if (b < 0 || b > 1)
     return;
+
   rgb2HSV (r, g, b, &c->h, &c->s, &c->v);
+
   updateDialog (c, c->editBDouble);
 }
 
 static void
-aDoubleChanged (struct colorDialog *c)
+aDoubleChanged (colorDialog *c)
 {
-
-  double a = editDouble (c->editADouble);
+  const double a = editDouble (c->editADouble);
   if (a < 0 || a > 1)
     return;
+
   c->a = a;
+
   updateDialog (c, c->editADouble);
 }
 
 static int
-editInt (HWND hwnd)
+editInt (const HWND hwnd)
 {
-
   WCHAR *s = windowText (hwnd);
-  int    i = _wtoi (s);
+
+  const int i = _wtoi (s);
+
   uiprivFree (s);
+
   return i;
 }
 
 static void
-rIntChanged (struct colorDialog *c)
+rIntChanged (colorDialog *c)
 {
-  double r, g, b;
+  double r;
+  double g;
+  double b;
 
   hsv2RGB (c->h, c->s, c->v, &r, &g, &b);
-  int i = editInt (c->editRInt);
+
+  const int i = editInt (c->editRInt);
   if (i < 0 || i > 255)
     return;
-  r = (double)i / 255.0;
+
+  r = static_cast<double> (i) / 255.0;
+
   rgb2HSV (r, g, b, &c->h, &c->s, &c->v);
+
   updateDialog (c, c->editRInt);
 }
 
 static void
-gIntChanged (struct colorDialog *c)
+gIntChanged (colorDialog *c)
 {
-  double r, g, b;
+  double r;
+  double g;
+  double b;
 
   hsv2RGB (c->h, c->s, c->v, &r, &g, &b);
-  int i = editInt (c->editGInt);
+
+  const int i = editInt (c->editGInt);
   if (i < 0 || i > 255)
     return;
-  g = (double)i / 255.0;
+
+  g = static_cast<double> (i) / 255.0;
+
   rgb2HSV (r, g, b, &c->h, &c->s, &c->v);
+
   updateDialog (c, c->editGInt);
 }
 
 static void
-bIntChanged (struct colorDialog *c)
+bIntChanged (colorDialog *c)
 {
-  double r, g, b;
+  double r;
+  double g;
+  double b;
 
   hsv2RGB (c->h, c->s, c->v, &r, &g, &b);
-  int i = editInt (c->editBInt);
+
+  const int i = editInt (c->editBInt);
   if (i < 0 || i > 255)
     return;
-  b = (double)i / 255.0;
+
+  b = static_cast<double> (i) / 255.0;
+
   rgb2HSV (r, g, b, &c->h, &c->s, &c->v);
+
   updateDialog (c, c->editBInt);
 }
 
 static void
-aIntChanged (struct colorDialog *c)
+aIntChanged (colorDialog *c)
 {
-
-  int a = editInt (c->editAInt);
+  const int a = editInt (c->editAInt);
   if (a < 0 || a > 255)
     return;
-  c->a = (double)a / 255;
+
+  c->a = static_cast<double> (a) / 255;
+
   updateDialog (c, c->editAInt);
 }
 
 static void
-hexChanged (struct colorDialog *c)
+hexChanged (colorDialog *c)
 {
-  double r, g, b, a;
+  double r;
+  double g;
+  double b;
+  double a;
 
   WCHAR *buf = windowText (c->editHex);
-  BOOL   is  = hex2RGBA (buf, &r, &g, &b, &a);
+
+  const BOOL is = hex2RGBA (buf, &r, &g, &b, &a);
+
   uiprivFree (buf);
-  if (!is)
+
+  if (is == 0)
     return;
+
   rgb2HSV (r, g, b, &c->h, &c->s, &c->v);
+
   c->a = a;
+
   updateDialog (c, c->editHex);
 }
 
-// TODO change fontdialog to use this
-// note that if we make this const, we get lots of weird compiler errors
-static std::map<int, void (*) (struct colorDialog *)> changed = {
-  { rcH,       hChanged       },
-  { rcS,       sChanged       },
-  { rcV,       vChanged       },
-  { rcRDouble, rDoubleChanged },
-  { rcGDouble, gDoubleChanged },
-  { rcBDouble, bDoubleChanged },
-  { rcADouble, aDoubleChanged },
-  { rcRInt,    rIntChanged    },
-  { rcGInt,    gIntChanged    },
-  { rcBInt,    bIntChanged    },
-  { rcAInt,    aIntChanged    },
-  { rcHex,     hexChanged     },
-};
+static std::map<int, void (*) (colorDialog *)>
+get_changed ()
+{
+  static const std::map<int, void (*) (colorDialog *)> changed = {
+    { rcH,       hChanged       },
+    { rcS,       sChanged       },
+    { rcV,       vChanged       },
+    { rcRDouble, rDoubleChanged },
+    { rcGDouble, gDoubleChanged },
+    { rcBDouble, bDoubleChanged },
+    { rcADouble, aDoubleChanged },
+    { rcRInt,    rIntChanged    },
+    { rcGInt,    gIntChanged    },
+    { rcBInt,    bIntChanged    },
+    { rcAInt,    aIntChanged    },
+    { rcHex,     hexChanged     },
+  };
+
+  return changed;
+}
 
 static INT_PTR CALLBACK
-colorDialogDlgProc (HWND hwnd, UINT uMsg, const WPARAM wParam, const LPARAM lParam)
+colorDialogDlgProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPARAM lParam)
 {
+  auto *c = reinterpret_cast<colorDialog *> (GetWindowLongPtrW (hwnd, DWLP_USER));
 
-  struct colorDialog *c = (struct colorDialog *)GetWindowLongPtrW (hwnd, DWLP_USER);
-  if (c == NULL)
+  if (c == nullptr)
     {
       if (uMsg == WM_INITDIALOG)
         {
           c = beginColorDialog (hwnd, lParam);
-          SetWindowLongPtrW (hwnd, DWLP_USER, (LONG_PTR)c);
+          SetWindowLongPtrW (hwnd, DWLP_USER, reinterpret_cast<LONG_PTR> (c));
           return TRUE;
         }
       return FALSE;
@@ -1208,36 +1447,78 @@ colorDialogDlgProc (HWND hwnd, UINT uMsg, const WPARAM wParam, const LPARAM lPar
   switch (uMsg)
     {
     case WM_COMMAND:
-      SetWindowLongPtrW (c->hwnd, DWLP_MSGRESULT, 0); // just in case
+      SetWindowLongPtrW (c->hwnd, DWLP_MSGRESULT, 0);
+
       switch (LOWORD (wParam))
         {
         case IDOK:
+          [[fallthrough]];
+
         case IDCANCEL:
-          if (HIWORD (wParam) != BN_CLICKED)
-            return FALSE;
-          tryFinishDialog (c, wParam);
-          return TRUE;
+          {
+            if (HIWORD (wParam) != BN_CLICKED)
+              return FALSE;
+
+            tryFinishDialog (c, wParam);
+
+            return TRUE;
+          }
         case rcH:
+          [[fallthrough]];
+
         case rcS:
+          [[fallthrough]];
+
         case rcV:
+          [[fallthrough]];
+
         case rcRDouble:
+          [[fallthrough]];
+
         case rcGDouble:
+          [[fallthrough]];
+
         case rcBDouble:
+          [[fallthrough]];
+
         case rcADouble:
+          [[fallthrough]];
+
         case rcRInt:
+          [[fallthrough]];
+
         case rcGInt:
+          [[fallthrough]];
+
         case rcBInt:
+          [[fallthrough]];
+
         case rcAInt:
+          [[fallthrough]];
+
         case rcHex:
-          if (HIWORD (wParam) != EN_CHANGE)
-            return FALSE;
-          if (c->updating) // prevent infinite recursion during an update
-            return FALSE;
-          (*changed[LOWORD (wParam)]) (c);
-          return TRUE;
+          {
+            if (HIWORD (wParam) != EN_CHANGE)
+              return FALSE;
+
+            if (c->updating != 0) // prevent infinite recursion during an update
+              return FALSE;
+
+            (*get_changed ()[LOWORD (wParam)]) (c);
+
+            return TRUE;
+          }
+
+        default:
+          break;
         }
+
       return FALSE;
+
+    default:
+      break;
     }
+
   return FALSE;
 }
 
@@ -1352,18 +1633,24 @@ static const uint8_t data_rcColorDialog[] = {
 static_assert (ARRAYSIZE (data_rcColorDialog) == 1144, "wrong size for resource rcColorDialog");
 
 BOOL
-showColorDialog (HWND parent, struct colorDialogRGBA *c)
+showColorDialog (const HWND parent, colorDialogRGBA *c)
 {
-  switch (DialogBoxIndirectParamW (hInstance, (const DLGTEMPLATE *)data_rcColorDialog, parent, colorDialogDlgProc,
-                                   (LPARAM)c))
+  const auto result = DialogBoxIndirectParamW (hInstance, reinterpret_cast<const DLGTEMPLATE *> (data_rcColorDialog),
+                                               parent, colorDialogDlgProc, reinterpret_cast<LPARAM> (c));
+
+  switch (result)
     {
-    case 1: // cancel
+    case 1:
+      // cancel
       return FALSE;
-    case 2: // ok
-      // make the compiler happy by putting the return after the switch
+
+    case 2:
+      // ok
       break;
+
     default:
-      logLastError (L"error running color dialog");
+      (void)logLastError (L"error running color dialog");
     }
+
   return TRUE;
 }

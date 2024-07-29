@@ -4,6 +4,9 @@
 
 #include <ui/multiline_entry.h>
 
+#define entryWidth  107
+#define entryHeight 14
+
 struct uiMultilineEntry
 {
   uiWindowsControl c;

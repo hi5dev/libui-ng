@@ -10,7 +10,8 @@
 struct containerInit
 {
   uiWindowsControl *c;
-  void              (*onResize) (uiWindowsControl *);
+
+  void (*onResize) (uiWindowsControl *);
 };
 
 static HWND
@@ -92,7 +93,7 @@ containerWndProc (HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPARAM 
       {
         dc = BeginPaint (hwnd, &ps);
 
-        if (dc == NULL)
+        if (dc == nullptr)
           break;
 
         hwndParent = parentWithBackground (hwnd);

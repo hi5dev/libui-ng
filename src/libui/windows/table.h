@@ -3,12 +3,19 @@
 #include <ui/table.h>
 #include <ui/table_model.h>
 
-#include <commctrl.h>
 #include <ui_win32.h>
 
 #include <map>
 
-#define uiprivNumLVN_GETDISPINFOSkip 3
+/**
+ * @brief in line with other controls
+ */
+#define tableMinWidth 107
+
+/**
+ * @brief header + 2 lines (roughly)
+ */
+#define tableMinHeight (14 * 3)
 
 typedef struct uiprivTableColumnParams uiprivTableColumnParams;
 

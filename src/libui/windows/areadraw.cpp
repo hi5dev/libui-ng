@@ -57,7 +57,7 @@ doPaint (uiArea *a, ID2D1RenderTarget *rt, const RECT *clip)
 
   freeContext (dp.Context);
 
-  return rt->EndDraw (NULL, NULL);
+  return rt->EndDraw (nullptr, nullptr);
 }
 
 static void
@@ -80,7 +80,7 @@ onWM_PAINT (uiArea *a)
     {
     case S_OK:
       {
-        if (ValidateRect (a->hwnd, NULL) == 0)
+        if (ValidateRect (a->hwnd, nullptr) == 0)
           (void)logLastError (L"error validating rect");
         break;
       }
@@ -88,7 +88,7 @@ onWM_PAINT (uiArea *a)
     case static_cast<HRESULT> (D2DERR_RECREATE_TARGET):
       {
         a->rt->Release ();
-        a->rt = NULL;
+        a->rt = nullptr;
         break;
       }
 
@@ -147,5 +147,5 @@ areaDrawOnResize (const uiArea *a, const RECT *newClient)
 
   (void)a->rt->Resize (&size);
 
-  invalidateRect (a->hwnd, NULL, TRUE);
+  invalidateRect (a->hwnd, nullptr, TRUE);
 }

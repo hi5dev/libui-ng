@@ -1,5 +1,7 @@
 #include "text.h"
 #include "debug.h"
+#include "init.h"
+#include "utf16.h"
 
 #include <uipriv.h>
 
@@ -11,9 +13,9 @@ windowTextAndLen (const HWND hwnd, LRESULT *len)
   if (len != nullptr)
     *len = n;
 
-  const auto text = static_cast<WCHAR *> (uiprivAlloc ((n + 1) * sizeof (WCHAR), "WCHAR[]"));
+  auto *const text = static_cast<WCHAR *> (uiprivAlloc ((n + 1) * sizeof (WCHAR), "WCHAR[]"));
 
-  if (GetWindowTextW (hwnd, text, n + 1) != n)
+  if (GetWindowTextW (hwnd, text, n + 1) != n) // NOLINT(*-narrowing-conversions)
     {
       (void)logLastError (L"error getting window text");
 

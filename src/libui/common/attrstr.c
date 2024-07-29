@@ -1,6 +1,9 @@
 #include "attrstr.h"
-#include "ui.h"
 #include "uipriv.h"
+#include "utf.h"
+
+#include <stdint.h>
+#include <string.h>
 
 struct uiAttributedString
 {

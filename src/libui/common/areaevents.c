@@ -1,4 +1,7 @@
-#include "areaevents.h"
+#include <ui/area.h>
+#include <ui/areaevents.h>
+
+#include <stdint.h>
 
 /**
  * @brief Maps system scan-codes to LibUI equivilent key-codes.

@@ -11,12 +11,12 @@ getSizing (const HWND hwnd, uiWindowsSizing *sizing, const HFONT font)
 
   const HDC dc = GetDC (hwnd);
 
-  if (dc == NULL)
+  if (dc == nullptr)
     (void)logLastError (L"error getting DC");
 
   auto *const prevfont = static_cast<HFONT> (SelectObject (dc, font));
 
-  if (prevfont == NULL)
+  if (prevfont == nullptr)
     (void)logLastError (L"error loading control font into device context");
 
   ZeroMemory (&tm, sizeof (TEXTMETRICW));
@@ -50,10 +50,10 @@ uiWindowsGetSizing (const HWND hwnd, uiWindowsSizing *sizing)
 void
 uiWindowsSizingDlgUnitsToPixels (const uiWindowsSizing *sizing, int *x, int *y)
 {
-  if (x != NULL)
+  if (x != nullptr)
     *x = dlgUnitsToX (*x, sizing->BaseX);
 
-  if (y != NULL)
+  if (y != nullptr)
     *y = dlgUnitsToY (*y, sizing->BaseY);
 }
 
@@ -63,9 +63,9 @@ uiWindowsSizingDlgUnitsToPixels (const uiWindowsSizing *sizing, int *x, int *y)
 void
 uiWindowsSizingStandardPadding (const uiWindowsSizing *sizing, int *x, int *y)
 {
-  if (x != NULL)
+  if (x != nullptr)
     *x = dlgUnitsToX (winXPadding, sizing->BaseX);
 
-  if (y != NULL)
+  if (y != nullptr)
     *y = dlgUnitsToY (winYPadding, sizing->BaseY);
 }

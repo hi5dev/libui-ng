@@ -20,7 +20,7 @@ areaWndProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPARAM
   const WINDOWPOS     *wp = reinterpret_cast<WINDOWPOS *> (lParam);               // NOLINT(*-no-int-to-ptr)
   auto *a = reinterpret_cast<uiArea *> (GetWindowLongPtrW (hwnd, GWLP_USERDATA)); // NOLINT(*-no-int-to-ptr)
 
-  if (a == NULL)
+  if (a == nullptr)
     {
       if (uMsg == WM_CREATE)
         {
@@ -35,7 +35,7 @@ areaWndProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPARAM
     }
 
   // always recreate the render target if necessary
-  if (a->rt == NULL)
+  if (a->rt == nullptr)
     a->rt = makeHWNDRenderTarget (a->hwnd);
 
   if (areaDoDraw (a, uMsg, wParam, lParam, &lResult) != FALSE)
@@ -177,7 +177,6 @@ uiAreaChildVisibilityChanged (uiWindowsControl *)
 static void
 uiAreaMinimumSize (uiWindowsControl *c, int *width, int *height)
 {
-  // TODO
   *width  = 0;
   *height = 0;
 }
@@ -218,7 +217,7 @@ uiAreaSetSize (uiArea *a, const int width, const int height)
 void
 uiAreaQueueRedrawAll (const uiArea *a)
 {
-  invalidateRect (a->hwnd, NULL, FALSE);
+  invalidateRect (a->hwnd, nullptr, FALSE);
 }
 
 void
@@ -229,10 +228,11 @@ uiAreaScrollTo (uiArea *, double, double, double, double)
 void
 uiAreaBeginUserWindowMove (const uiArea *a)
 {
-  ReleaseCapture (); // TODO use properly and reset internal data structures
+  ReleaseCapture ();
+
   const HWND toplevel = parentToplevel (a->hwnd);
 
-  if (toplevel == NULL)
+  if (toplevel == nullptr)
     return;
 
   SendMessageW (toplevel, WM_SYSCOMMAND, SC_MOVE | 2, 0);
@@ -244,7 +244,7 @@ uiAreaBeginUserWindowResize (const uiArea *a, const uiWindowResizeEdge edge)
   ReleaseCapture ();
 
   const HWND toplevel = parentToplevel (a->hwnd);
-  if (toplevel == NULL)
+  if (toplevel == nullptr)
     return;
 
   WPARAM wParam = SC_SIZE;

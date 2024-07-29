@@ -1,4 +1,3 @@
-// ReSharper disable CppDFAConstantParameter
 #include "winapi.h"
 
 #include "table.h"
@@ -11,10 +10,13 @@
 #include "debug.h"
 #include "init.h"
 #include "utf16.h"
+#include "winpublic.h"
 
 #include <controlsigs.h>
 #include <ui/userbugs.h>
 #include <uipriv.h>
+
+#define uiprivNumLVN_GETDISPINFOSkip 3
 
 API const uiTableTextColumnOptionalParams uiprivDefaultTextColumnOptionalParams;
 
@@ -272,7 +274,7 @@ uiprivTableProgress (uiTable *t, const int item, const int subitem, const int mo
         {
           startTimer                      = t->indeterminatePositions->empty ();
           (*t->indeterminatePositions)[p] = 0;
-          if (pos != NULL)
+          if (pos != nullptr)
             *pos = 0;
         }
     }
@@ -281,10 +283,10 @@ uiprivTableProgress (uiTable *t, const int item, const int subitem, const int mo
       t->indeterminatePositions->erase (p);
       stopTimer = t->indeterminatePositions->empty ();
     }
-  else if (pos != NULL)
+  else if (pos != nullptr)
     *pos = iter->second;
 
-  if (startTimer && SetTimer (t->hwnd, reinterpret_cast<UINT_PTR> (t), 30, NULL) == 0)
+  if (startTimer && SetTimer (t->hwnd, reinterpret_cast<UINT_PTR> (t), 30, nullptr) == 0)
     (void)logLastError (L"SetTimer()");
 
   if (stopTimer && KillTimer (t->hwnd, reinterpret_cast<UINT_PTR> (&t)) == 0)
@@ -373,7 +375,7 @@ uiTableGetSelection (const uiTable *t)
   auto *const s    = uiprivNew (uiTableSelection);
 
   s->NumRows = ListView_GetSelectedCount (t->hwnd);
-  s->Rows    = NULL;
+  s->Rows    = nullptr;
 
   if (s->NumRows > 0)
     s->Rows = static_cast<int *> (uiprivAlloc (s->NumRows * sizeof (*s->Rows), "uiTableSelection->Rows"));
@@ -387,14 +389,10 @@ uiTableGetSelection (const uiTable *t)
 void
 uiTableSetSelection (const uiTable *t, const uiTableSelection *sel)
 {
-
   if ((t->selectionMode == uiTableSelectionModeNone && sel->NumRows > 0)
       || (t->selectionMode == uiTableSelectionModeZeroOrOne && sel->NumRows > 1)
       || (t->selectionMode == uiTableSelectionModeOne && sel->NumRows > 1))
-    {
-      // TODO log error
-      return;
-    }
+    return;
 
   /* clear selection */
   ListView_SetItemState (t->hwnd, -1, 0, LVIS_SELECTED);
@@ -410,7 +408,6 @@ _uiTableSignalOnSelectionChanged (uiTable *t)
     t->onSelectionChanged (t, t->onSelectionChangedData);
 }
 
-// TODO properly integrate compound statements
 static BOOL
 onWM_NOTIFY (uiControl *c, HWND, NMHDR *nmhdr, LRESULT *lResult)
 {
@@ -420,30 +417,39 @@ onWM_NOTIFY (uiControl *c, HWND, NMHDR *nmhdr, LRESULT *lResult)
   switch (nmhdr->code)
     {
     case LVN_GETDISPINFO:
-      hr = uiprivTableHandleLVN_GETDISPINFO (t, reinterpret_cast<NMLVDISPINFOW *> (nmhdr), lResult);
-      if (hr != S_OK)
-        {
-          // TODO
-          return FALSE;
-        }
-      return TRUE;
+      {
+        hr = uiprivTableHandleLVN_GETDISPINFO (t, reinterpret_cast<NMLVDISPINFOW *> (nmhdr));
+        if (hr != S_OK)
+          {
+            (void)logHRESULT (L"uiprivTableHandleLVN_GETDISPINFO", hr);
+            return FALSE;
+          }
+
+        return TRUE;
+      }
+
     case NM_CUSTOMDRAW:
-      hr = uiprivTableHandleNM_CUSTOMDRAW (t, reinterpret_cast<NMLVCUSTOMDRAW *> (nmhdr), lResult);
-      if (hr != S_OK)
-        {
-          // TODO
-          return FALSE;
-        }
-      return TRUE;
+      {
+        hr = uiprivTableHandleNM_CUSTOMDRAW (t, reinterpret_cast<NMLVCUSTOMDRAW *> (nmhdr), lResult);
+        if (hr != S_OK)
+          {
+            (void)logHRESULT (L"uiprivTableHandleNM_CUSTOMDRAW", hr);
+            return FALSE;
+          }
+        return TRUE;
+      }
+
     case NM_CLICK:
       {
         LVHITTESTINFO ht = {};
-        ht.pt            = reinterpret_cast<NMITEMACTIVATE *> (nmhdr)->ptAction;
+
+        ht.pt = reinterpret_cast<NMITEMACTIVATE *> (nmhdr)->ptAction;
+
         if (SendMessageW (t->hwnd, LVM_SUBITEMHITTEST, 0, reinterpret_cast<LPARAM> (&ht)) == -1)
           return FALSE;
+
         (*t->onRowClicked) (t, ht.iItem, t->onRowClickedData);
 
-        // Handle editing
         hr = uiprivTableHandleNM_CLICK (t, reinterpret_cast<NMITEMACTIVATE *> (nmhdr), lResult);
         if (hr != S_OK)
           {
@@ -462,6 +468,7 @@ onWM_NOTIFY (uiControl *c, HWND, NMHDR *nmhdr, LRESULT *lResult)
         (*t->onRowDoubleClicked) (t, ht.iItem, t->onRowDoubleClickedData);
         return TRUE;
       }
+
     case LVN_ITEMCHANGED:
       {
         auto *nm = reinterpret_cast<NMLISTVIEW *> (nmhdr);
@@ -469,7 +476,6 @@ onWM_NOTIFY (uiControl *c, HWND, NMHDR *nmhdr, LRESULT *lResult)
         UINT  newFocused;
         UINT  oldSelected;
         UINT  newSelected;
-        int   nSelected;
 
         oldSelected = nm->uOldState & LVIS_SELECTED;
         newSelected = nm->uNewState & LVIS_SELECTED;
@@ -479,120 +485,133 @@ onWM_NOTIFY (uiControl *c, HWND, NMHDR *nmhdr, LRESULT *lResult)
         switch (t->selectionMode)
           {
           case uiTableSelectionModeNone:
-            if (newSelected != 0 || newFocused != 0)
-              ListView_SetItemState (t->hwnd, nm->iItem, 0, LVIS_SELECTED | LVIS_FOCUSED);
-            break;
+            {
+              if (newSelected != 0 || newFocused != 0)
+                ListView_SetItemState (t->hwnd, nm->iItem, 0, LVIS_SELECTED | LVIS_FOCUSED);
+              break;
+            }
+
           case uiTableSelectionModeOne:
-            // Ignore deselect all
-            if (nm->iItem == -1)
-              break;
-            // Prevent deselection via CTRL+SPACE (win32 bug)
-            if (oldSelected != 0 && newSelected == 0)
-              {
-                t->maskOnSelectionChanged = TRUE;
-                ListView_SetItemState (t->hwnd, nm->iItem, LVIS_SELECTED, LVIS_SELECTED);
-                t->maskOnSelectionChanged = FALSE;
-              }
-            // Signal selection change on selection of a new item
-            if (nm->iItem != t->lastFocusedItem && oldSelected == 0 && newSelected != 0)
-              _uiTableSignalOnSelectionChanged (t);
-
-            t->lastFocusedItem           = nm->iItem;
-            t->lastFocusedItemIsSelected = TRUE;
-            break;
-          case uiTableSelectionModeZeroOrOne:
-            // Set focused item to be selected
-            if (oldFocused == 0 && newFocused != 0)
-              {
-                t->lastFocusedItem           = nm->iItem;
-                t->lastFocusedItemIsSelected = FALSE;
-                ListView_SetItemState (t->hwnd, -1, 0, LVIS_SELECTED);
-                ListView_SetItemState (t->hwnd, nm->iItem, LVIS_SELECTED, LVIS_SELECTED);
+            {
+              // Ignore deselect all
+              if (nm->iItem == -1)
                 break;
-              }
-            /* Ignore CTRL+SHIFT+SPACE on the focused item if selected
-             * as it immediately does a reselect again */
-            if (nm->iItem == t->lastFocusedItem && t->lastFocusedItemIsSelected != 0
-                && HIBYTE (GetKeyState (VK_CONTROL)) && HIBYTE (GetKeyState (VK_SHIFT))
-                && HIBYTE (GetKeyState (VK_SPACE)))
-              break;
-            if (nm->iItem == t->lastFocusedItem && t->lastFocusedItemIsSelected != 0 && oldSelected != 0
-                && newSelected == 0)
-              {
-                t->lastFocusedItemIsSelected = FALSE;
+
+              // Prevent deselection via CTRL+SPACE (win32 bug)
+              if (oldSelected != 0 && newSelected == 0)
+                {
+                  t->maskOnSelectionChanged = TRUE;
+                  ListView_SetItemState (t->hwnd, nm->iItem, LVIS_SELECTED, LVIS_SELECTED);
+                  t->maskOnSelectionChanged = FALSE;
+                }
+
+              // Signal selection change on selection of a new item
+              if (nm->iItem != t->lastFocusedItem && oldSelected == 0 && newSelected != 0)
                 _uiTableSignalOnSelectionChanged (t);
-              }
-            if (nm->iItem == t->lastFocusedItem && t->lastFocusedItemIsSelected == 0 && oldSelected == 0
-                && newSelected != 0)
-              {
-                t->lastFocusedItemIsSelected = TRUE;
-                _uiTableSignalOnSelectionChanged (t);
-              }
-            break;
-          case uiTableSelectionModeZeroOrMany:
-            nSelected = ListView_GetSelectedCount (t->hwnd);
-            // Ignore deselect all
-            if (nm->iItem == -1)
+
+              t->lastFocusedItem           = nm->iItem;
+              t->lastFocusedItemIsSelected = TRUE;
               break;
-            /* CTRL+SHIFT+SPACE on the focused item */
-            if (nm->iItem == t->lastFocusedItem && HIBYTE (GetKeyState (VK_CONTROL)) && HIBYTE (GetKeyState (VK_SHIFT))
-                && HIBYTE (GetKeyState (VK_SPACE)))
-              {
-                /* Do not signal deselect as it immediately
-                 * does a reselect again */
-                if (t->lastFocusedItemIsSelected != 0)
-                  {
-                    /* Deselect the focused item if others are still
-                     * selected to trigger a signal later on */
-                    if (oldSelected != 0 && newSelected == 0 && ListView_GetSelectedCount (t->hwnd) > 0)
-                      t->lastFocusedItemIsSelected = FALSE;
-                    break;
-                  }
-                /* Do not signal select if multiple items are still
-                 * selected, as these will still get deselect later
-                 * on in the sequence */
-                if (t->lastFocusedItemIsSelected == 0 && newSelected != 0 && ListView_GetSelectedCount (t->hwnd) > 1)
+            }
+
+          case uiTableSelectionModeZeroOrOne:
+            {
+              // Set focused item to be selected
+              if (oldFocused == 0 && newFocused != 0)
+                {
+                  t->lastFocusedItem           = nm->iItem;
+                  t->lastFocusedItemIsSelected = FALSE;
+                  ListView_SetItemState (t->hwnd, -1, 0, LVIS_SELECTED);
+                  ListView_SetItemState (t->hwnd, nm->iItem, LVIS_SELECTED, LVIS_SELECTED);
                   break;
-              }
-            /* Do not signal select of a selected item unless
-             * the selection count has changed (other items
-             * have been deselected) */
-            if (nm->iItem == t->lastFocusedItem && t->lastFocusedItemIsSelected != 0 && newSelected != 0
-                && nSelected == t->lastNumSelected)
+                }
+
+              if (nm->iItem == t->lastFocusedItem && t->lastFocusedItemIsSelected != 0
+                  && HIBYTE (GetKeyState (VK_CONTROL)) && HIBYTE (GetKeyState (VK_SHIFT))
+                  && HIBYTE (GetKeyState (VK_SPACE)))
+                break;
+
+              if (nm->iItem == t->lastFocusedItem && t->lastFocusedItemIsSelected != 0 && oldSelected != 0
+                  && newSelected == 0)
+                {
+                  t->lastFocusedItemIsSelected = FALSE;
+                  _uiTableSignalOnSelectionChanged (t);
+                }
+
+              if (nm->iItem == t->lastFocusedItem && t->lastFocusedItemIsSelected == 0 && oldSelected == 0
+                  && newSelected != 0)
+                {
+                  t->lastFocusedItemIsSelected = TRUE;
+                  _uiTableSignalOnSelectionChanged (t);
+                }
+
               break;
+            }
 
-            // Single item de/select
-            if ((oldSelected == 0 && newSelected != 0) || (oldSelected != 0 && newSelected == 0) ||
-                // SHIFT multi select
-                (oldFocused == 0 && newFocused != 0 && HIBYTE (GetKeyState (VK_SHIFT))
-                 && nm->iItem != ListView_GetSelectionMark (t->hwnd)))
-              _uiTableSignalOnSelectionChanged (t);
+          case uiTableSelectionModeZeroOrMany:
+            {
+              int nSelected = ListView_GetSelectedCount (t->hwnd);
 
-            if (oldFocused == 0 && newFocused != 0)
-              t->lastFocusedItem = nm->iItem;
-            if (nm->iItem == t->lastFocusedItem)
-              t->lastFocusedItemIsSelected
-                  = ListView_GetItemState (t->hwnd, t->lastFocusedItem, LVIS_SELECTED) & LVIS_SELECTED;
-            t->lastNumSelected = nSelected;
+              if (nm->iItem == -1)
+                break;
 
-            break;
+              // CTRL+SHIFT+SPACE on the focused item
+              if (nm->iItem == t->lastFocusedItem && HIBYTE (GetKeyState (VK_CONTROL))
+                  && HIBYTE (GetKeyState (VK_SHIFT)) && HIBYTE (GetKeyState (VK_SPACE)))
+                {
+                  // Do not signal deselect as it immediately does a reselect again
+                  if (t->lastFocusedItemIsSelected != 0)
+                    {
+                      // Deselect the focused item if others are still selected to trigger a signal later on
+                      if (oldSelected != 0 && newSelected == 0 && ListView_GetSelectedCount (t->hwnd) > 0)
+                        t->lastFocusedItemIsSelected = FALSE;
+                      break;
+                    }
+
+                  // Do not signal select if multiple items are still selected, as these will still get deselect later
+                  // on in the sequence
+                  if (t->lastFocusedItemIsSelected == 0 && newSelected != 0 && ListView_GetSelectedCount (t->hwnd) > 1)
+                    break;
+                }
+
+              // Do not signal select of a selected item unless the selection count has changed (other items have been
+              // deselected)
+              if (nm->iItem == t->lastFocusedItem && t->lastFocusedItemIsSelected != 0 && newSelected != 0
+                  && nSelected == t->lastNumSelected)
+                break;
+
+              // Single item de/select or SHIFT multi-selected
+              if ((oldSelected == 0 && newSelected != 0) || (oldSelected != 0 && newSelected == 0)
+                  || (oldFocused == 0 && newFocused != 0 && HIBYTE (GetKeyState (VK_SHIFT))
+                      && nm->iItem != ListView_GetSelectionMark (t->hwnd)))
+                _uiTableSignalOnSelectionChanged (t);
+
+              if (oldFocused == 0 && newFocused != 0)
+                t->lastFocusedItem = nm->iItem;
+
+              if (nm->iItem == t->lastFocusedItem)
+                t->lastFocusedItemIsSelected
+                    = ListView_GetItemState (t->hwnd, t->lastFocusedItem, LVIS_SELECTED) & LVIS_SELECTED;
+
+              t->lastNumSelected = nSelected;
+
+              break;
+            }
           }
 
-        // TODO clean up these if cases
-        if (t->inLButtonDown == 0 && t->edit == NULL)
+        if (t->inLButtonDown == 0 && t->edit == nullptr)
           return FALSE;
 
         if (t->inLButtonDown != 0 && oldFocused == 0 && newFocused != 0)
           {
             t->inDoubleClickTimer = TRUE;
-            // TODO check error
-            SetTimer (t->hwnd, reinterpret_cast<UINT_PTR> (&t->inDoubleClickTimer), GetDoubleClickTime (), NULL);
+            SetTimer (t->hwnd, reinterpret_cast<UINT_PTR> (&t->inDoubleClickTimer), GetDoubleClickTime (), nullptr);
             *lResult = 0;
             return TRUE;
           }
-        // the nm->iItem == -1 case is because that is used if "the change has been applied to all items in the list
-        // view"
-        if (t->edit != NULL && oldFocused != 0 && newFocused == 0 && (t->editedItem == nm->iItem || nm->iItem == -1))
+
+        if (t->edit != nullptr && oldFocused != 0 && newFocused == 0
+            && (t->editedItem == nm->iItem || nm->iItem == -1))
           {
             HRESULT hresult = uiprivTableFinishEditingText (t);
             if (hresult != S_OK)
@@ -605,6 +624,7 @@ onWM_NOTIFY (uiControl *c, HWND, NMHDR *nmhdr, LRESULT *lResult)
           }
         return FALSE;
       }
+
     case LVN_ODSTATECHANGED:
       {
         auto *nm = reinterpret_cast<NMLVODSTATECHANGE *> (nmhdr);
@@ -637,6 +657,7 @@ onWM_NOTIFY (uiControl *c, HWND, NMHDR *nmhdr, LRESULT *lResult)
           }
         return TRUE;
       }
+
     case LVN_COLUMNCLICK:
       {
         auto *nm = reinterpret_cast<NMLISTVIEW *> (nmhdr);
@@ -644,22 +665,27 @@ onWM_NOTIFY (uiControl *c, HWND, NMHDR *nmhdr, LRESULT *lResult)
         hr = uiprivTableFinishEditingText (t);
         if (hr != S_OK)
           {
-            // TODO
+            (void)logHRESULT (L"uiprivTableFinishEditingText", hr);
             return FALSE;
           }
+
         t->headerOnClicked (t, nm->iSubItem, t->headerOnClickedData);
         return TRUE;
       }
-    // the real list view accepts changes when scrolling or clicking column headers
+
     case LVN_BEGINSCROLL:
-      hr = uiprivTableFinishEditingText (t);
-      if (hr != S_OK)
-        {
-          // TODO
-          return FALSE;
-        }
-      *lResult = 0;
-      return TRUE;
+      {
+        hr = uiprivTableFinishEditingText (t);
+        if (hr != S_OK)
+          {
+            (void)logHRESULT (L"uiprivTableFinishEditingText", hr);
+            return FALSE;
+          }
+
+        *lResult = 0;
+        return TRUE;
+      }
+
     default:
       break;
     }
@@ -698,28 +724,129 @@ uiTableDestroy (uiControl *c)
   uiFreeControl (uiControl (t));
 }
 
-uiWindowsControlAllDefaultsExceptDestroy (uiTable);
+static uintptr_t
+uiTableHandle (uiControl *c)
+{
+  return reinterpret_cast<uintptr_t> (reinterpret_cast<uiTable *> (c)->hwnd);
+}
 
-#define tableMinWidth  107      /* in line with other controls */
-#define tableMinHeight (14 * 3) /* header + 2 lines (roughly) */
+static uiControl *
+uiTableParent (uiControl *c)
+{
+  return reinterpret_cast<uiWindowsControl *> (c)->parent;
+}
+
+static void
+uiTableSetParent (uiControl *c, uiControl *parent)
+{
+  uiControlVerifySetParent (c, parent);
+  reinterpret_cast<uiWindowsControl *> (c)->parent = parent;
+}
+
+static int
+uiTableToplevel (uiControl *c)
+{
+  return 0;
+}
+
+static int
+uiTableVisible (uiControl *c)
+{
+  return reinterpret_cast<uiWindowsControl *> (c)->visible;
+}
+
+static void
+uiTableShow (uiControl *c)
+{
+  reinterpret_cast<uiWindowsControl *> (c)->visible = 1;
+  ShowWindow (reinterpret_cast<uiTable *> (c)->hwnd, SW_SHOW);
+  uiWindowsControlNotifyVisibilityChanged (reinterpret_cast<uiWindowsControl *> (c));
+}
+
+static void
+uiTableHide (uiControl *c)
+{
+  reinterpret_cast<uiWindowsControl *> (c)->visible = 0;
+  ShowWindow (reinterpret_cast<uiTable *> (c)->hwnd, SW_HIDE);
+  uiWindowsControlNotifyVisibilityChanged (reinterpret_cast<uiWindowsControl *> (c));
+}
+
+static int
+uiTableEnabled (uiControl *c)
+{
+  return reinterpret_cast<uiWindowsControl *> (c)->enabled;
+}
+
+static void
+uiTableEnable (uiControl *c)
+{
+  reinterpret_cast<uiWindowsControl *> (c)->enabled = 1;
+  uiWindowsControlSyncEnableState (reinterpret_cast<uiWindowsControl *> (c), uiControlEnabledToUser (c));
+}
+
+static void
+uiTableDisable (uiControl *c)
+{
+  reinterpret_cast<uiWindowsControl *> (c)->enabled = 0;
+  uiWindowsControlSyncEnableState (reinterpret_cast<uiWindowsControl *> (c), uiControlEnabledToUser (c));
+}
+
+static void
+uiTableSyncEnableState (uiWindowsControl *c, const int enabled)
+{
+  if (uiWindowsShouldStopSyncEnableState (c, enabled))
+    return;
+  EnableWindow (reinterpret_cast<uiTable *> (c)->hwnd, enabled);
+}
+
+static void
+uiTableSetParentHWND (uiWindowsControl *c, const HWND parent)
+{
+  uiWindowsEnsureSetParentHWND (reinterpret_cast<uiTable *> (c)->hwnd, parent);
+}
+
+static void
+uiTableMinimumSizeChanged (uiWindowsControl *c)
+{
+  if (uiWindowsControlTooSmall (c))
+    uiWindowsControlContinueMinimumSizeChanged (c);
+}
+
+static void
+uiTableLayoutRect (uiWindowsControl *c, RECT *r)
+{
+  uiWindowsEnsureGetWindowRect (reinterpret_cast<uiTable *> (c)->hwnd, r);
+}
+
+static void
+uiTableAssignControlIDZOrder (uiWindowsControl *c, LONG_PTR *controlID, HWND *insertAfter)
+{
+  uiWindowsEnsureAssignControlIDZOrder (reinterpret_cast<uiTable *> (c)->hwnd, controlID, insertAfter);
+}
+
+static void
+uiTableChildVisibilityChanged (uiWindowsControl *)
+{
+}
 
 static void
 uiTableMinimumSize (uiWindowsControl *c, int *width, int *height)
 {
-  uiTable        *t = uiTable (c);
-  uiWindowsSizing sizing;
-  int             x;
-  int             y;
+  const uiTable *t = reinterpret_cast<uiTable *> (c);
 
-  x = tableMinWidth;
-  y = tableMinHeight;
+  uiWindowsSizing sizing;
   uiWindowsGetSizing (t->hwnd, &sizing);
+
+  int x = tableMinWidth;
+  int y = tableMinHeight;
   uiWindowsSizingDlgUnitsToPixels (&sizing, &x, &y);
+
   *width  = x;
   *height = y;
 }
 
 static uiprivTableColumnParams *
+// ReSharper disable once CppDFAConstantParameter
 appendColumn (uiTable *t, const char *name, const int colfmt)
 {
   LVCOLUMNW lvc;
@@ -727,7 +854,7 @@ appendColumn (uiTable *t, const char *name, const int colfmt)
   ZeroMemory (&lvc, sizeof (LVCOLUMNW));
   lvc.mask    = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT;
   lvc.fmt     = colfmt;
-  lvc.cx      = 120; // TODO
+  lvc.cx      = 120;
   WCHAR *wstr = toUTF16 (name);
   lvc.pszText = wstr;
   if (SendMessageW (t->hwnd, LVM_INSERTCOLUMNW, t->nColumns, reinterpret_cast<LPARAM> (&lvc))
@@ -758,7 +885,7 @@ uiTableAppendTextColumn (uiTable *t, const char *name, const int textModelColumn
   uiprivTableColumnParams *p = appendColumn (t, name, LVCFMT_LEFT);
   p->textModelColumn         = textModelColumn;
   p->textEditableModelColumn = textEditableModelColumn;
-  if (textParams != NULL)
+  if (textParams != nullptr)
     p->textParams = *textParams;
 }
 
@@ -778,7 +905,7 @@ uiTableAppendImageTextColumn (uiTable *t, const char *name, const int imageModel
   uiprivTableColumnParams *p = appendColumn (t, name, LVCFMT_LEFT);
   p->textModelColumn         = textModelColumn;
   p->textEditableModelColumn = textEditableModelColumn;
-  if (textParams != NULL)
+  if (textParams != nullptr)
     p->textParams = *textParams;
   p->imageModelColumn = imageModelColumn;
 }
@@ -802,7 +929,7 @@ uiTableAppendCheckboxTextColumn (uiTable *t, const char *name, const int checkbo
   uiprivTableColumnParams *p = appendColumn (t, name, LVCFMT_LEFT);
   p->textModelColumn         = textModelColumn;
   p->textEditableModelColumn = textEditableModelColumn;
-  if (textParams != NULL)
+  if (textParams != nullptr)
     p->textParams = *textParams;
   p->checkboxModelColumn         = checkboxModelColumn;
   p->checkboxEditableModelColumn = checkboxEditableModelColumn;
@@ -820,30 +947,30 @@ void
 uiTableAppendButtonColumn (uiTable *t, const char *name, const int buttonModelColumn,
                            const int buttonClickableModelColumn)
 {
-
-  // TODO see if we can get rid of this parameter
   uiprivTableColumnParams *p    = appendColumn (t, name, LVCFMT_LEFT);
   p->buttonModelColumn          = buttonModelColumn;
   p->buttonClickableModelColumn = buttonClickableModelColumn;
 }
 
 int
-uiTableHeaderVisible (uiTable *t)
+uiTableHeaderVisible (const uiTable *t)
 {
-  const HWND header = static_cast<HWND> (SendMessageW (t->hwnd, LVM_GETHEADER, 0, 0));
+  auto *const header = reinterpret_cast<HWND> (SendMessageW (t->hwnd, LVM_GETHEADER, 0, 0));
   if (header != nullptr)
     {
-      LONG style = GetWindowLong (header, GWL_STYLE);
+      const LONG style = GetWindowLong (header, GWL_STYLE);
       return (style & HDS_HIDDEN) == 0; // NOLINT(*-implicit-bool-conversion)
     }
+
   uiprivImplBug ("window handle %p unknown error from send LVM_GETHEADER", t->hwnd);
+
   return 0;
 }
 
 void
-uiTableHeaderSetVisible (uiTable *t, const int visible)
+uiTableHeaderSetVisible (const uiTable *t, const int visible)
 {
-  LONG style = GetWindowLong (t->hwnd, GWL_STYLE);
+  const LONG style = GetWindowLong (t->hwnd, GWL_STYLE);
   if (visible != 0)
     SetWindowLong (t->hwnd, GWL_STYLE, style & ~LVS_NOCOLUMNHEADER);
   else
@@ -851,15 +978,15 @@ uiTableHeaderSetVisible (uiTable *t, const int visible)
 }
 
 uiTableSelectionMode
-uiTableGetSelectionMode (uiTable *t)
+uiTableGetSelectionMode (const uiTable *t)
 {
   return t->selectionMode;
 }
 
 void
-uiTableSetSelectionMode (uiTable *t, uiTableSelectionMode mode)
+uiTableSetSelectionMode (uiTable *t, const uiTableSelectionMode mode)
 {
-  LONG style = GetWindowLong (t->hwnd, GWL_STYLE);
+  const LONG style = GetWindowLong (t->hwnd, GWL_STYLE);
 
   t->selectionMode = mode;
 
@@ -917,62 +1044,81 @@ uiTableSetSelectionMode (uiTable *t, uiTableSelectionMode mode)
 }
 
 uiTable *
-uiNewTable (uiTableParams *p)
+uiNewTable (const uiTableParams *params)
 {
-  uiTable *t;
+  auto *t = reinterpret_cast<uiTable *> (uiWindowsAllocControl (sizeof (uiTable), uiTableSignature, "uiTable"));
 
-  uiWindowsNewControl (uiTable, t);
+  auto *control      = reinterpret_cast<uiControl *> (t);
+  control->Destroy   = uiTableDestroy;
+  control->Disable   = uiTableDisable;
+  control->Enable    = uiTableEnable;
+  control->Enabled   = uiTableEnabled;
+  control->Handle    = uiTableHandle;
+  control->Hide      = uiTableHide;
+  control->Parent    = uiTableParent;
+  control->SetParent = uiTableSetParent;
+  control->Show      = uiTableShow;
+  control->Toplevel  = uiTableToplevel;
+  control->Visible   = uiTableVisible;
+
+  auto *windows_control                   = reinterpret_cast<uiWindowsControl *> (t);
+  windows_control->AssignControlIDZOrder  = uiTableAssignControlIDZOrder;
+  windows_control->ChildVisibilityChanged = uiTableChildVisibilityChanged;
+  windows_control->LayoutRect             = uiTableLayoutRect;
+  windows_control->MinimumSize            = uiTableMinimumSize;
+  windows_control->MinimumSizeChanged     = uiTableMinimumSizeChanged;
+  windows_control->SetParentHWND          = uiTableSetParentHWND;
+  windows_control->SyncEnableState        = uiTableSyncEnableState;
+  windows_control->visible                = 1;
+  windows_control->enabled                = 1;
 
   t->columns          = new std::vector<uiprivTableColumnParams *>;
-  t->model            = p->Model;
-  t->backgroundColumn = p->RowBackgroundColorModelColumn;
-  uiTableHeaderOnClicked (t, defaultHeaderOnClicked, NULL);
-  uiTableOnSelectionChanged (t, defaultOnSelectionChanged, NULL);
+  t->model            = params->Model;
+  t->backgroundColumn = params->RowBackgroundColorModelColumn;
+  uiTableHeaderOnClicked (t, defaultHeaderOnClicked, nullptr);
+  uiTableOnSelectionChanged (t, defaultOnSelectionChanged, nullptr);
 
-  // WS_CLIPCHILDREN is here to prevent drawing over the edit box used for editing text
-  t->hwnd = uiWindowsEnsureCreateControlHWND (
-      WS_EX_CLIENTEDGE, WC_LISTVIEW, L"",
-      LVS_REPORT | LVS_OWNERDATA | WS_CLIPCHILDREN | WS_TABSTOP | WS_HSCROLL | WS_VSCROLL, hInstance, NULL, TRUE);
+  DWORD styles = LVS_REPORT | LVS_OWNERDATA | WS_CLIPCHILDREN | WS_TABSTOP | WS_HSCROLL | WS_VSCROLL;
+  t->hwnd = uiWindowsEnsureCreateControlHWND (WS_EX_CLIENTEDGE, WC_LISTVIEW, L"", styles, hInstance, nullptr, TRUE);
   t->model->tables->push_back (t);
 
   uiWindowsRegisterWM_NOTIFYHandler (t->hwnd, onWM_NOTIFY, uiControl (t));
 
-  SendMessageW (t->hwnd, LVM_SETEXTENDEDLISTVIEWSTYLE,
-                static_cast<WPARAM> ((LVS_EX_FULLROWSELECT | LVS_EX_LABELTIP | LVS_EX_SUBITEMIMAGES)),
-                static_cast<LPARAM> ((LVS_EX_FULLROWSELECT | LVS_EX_LABELTIP | LVS_EX_SUBITEMIMAGES)));
-  int n = uiprivTableModelNumRows (t->model);
+  styles = LVS_EX_FULLROWSELECT | LVS_EX_LABELTIP | LVS_EX_SUBITEMIMAGES;
+  SendMessageW (t->hwnd, LVM_SETEXTENDEDLISTVIEWSTYLE, styles, styles);
+
+  const int n = uiprivTableModelNumRows (t->model);
   if (SendMessageW (t->hwnd, LVM_SETITEMCOUNT, static_cast<WPARAM> (n), 0) == 0)
     (void)logLastError (L"error calling LVM_SETITEMCOUNT in uiNewTable()");
 
-  HRESULT hr = uiprivUpdateImageListSize (t);
+  const HRESULT hr = uiprivUpdateImageListSize (t);
   if (hr != S_OK)
-    {
-      // TODO
-    }
+    (void)logHRESULT (L"uiprivUpdateImageListSize", hr);
 
   t->indeterminatePositions = new std::map<std::pair<int, int>, LONG>;
-  if (SetWindowSubclass (t->hwnd, tableSubProc, 0, static_cast<DWORD_PTR> (t)) == FALSE)
+  if (SetWindowSubclass (t->hwnd, tableSubProc, 0, reinterpret_cast<DWORD_PTR> (t)) == FALSE)
     (void)logLastError (L"SetWindowSubclass()");
 
-  uiTableOnRowClicked (t, defaultOnRowClicked, NULL);
-  uiTableOnRowDoubleClicked (t, defaultOnRowDoubleClicked, NULL);
+  uiTableOnRowClicked (t, defaultOnRowClicked, nullptr);
+  uiTableOnRowDoubleClicked (t, defaultOnRowDoubleClicked, nullptr);
   uiTableSetSelectionMode (t, uiTableSelectionModeZeroOrOne);
 
   return t;
 }
 
 int
-uiTableColumnWidth (uiTable *t, const int column)
+uiTableColumnWidth (const uiTable *t, const int column)
 {
-  return SendMessageW (t->hwnd, LVM_GETCOLUMNWIDTH, static_cast<WPARAM> (column), // NOLINT(*-narrowing-conversions)
-                       0);
+  const auto result = SendMessageW (t->hwnd, LVM_GETCOLUMNWIDTH, static_cast<WPARAM> (column), 0);
+
+  return static_cast<int> (result);
 }
 
 void
-uiTableColumnSetWidth (uiTable *t, const int column, int width)
+uiTableColumnSetWidth (const uiTable *t, const int column, int width)
 {
   if (width == -1)
     width = LVSCW_AUTOSIZE_USEHEADER;
 
-  SendMessageW (t->hwnd, LVM_SETCOLUMNWIDTH, static_cast<WPARAM> (column), static_cast<LPARAM> (width));
+  SendMessageW (t->hwnd, LVM_SETCOLUMNWIDTH, static_cast<WPARAM> (column), width);
 }

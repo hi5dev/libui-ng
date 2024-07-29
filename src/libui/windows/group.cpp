@@ -1,218 +1,351 @@
-// 16 may 2015
-#include "uipriv_windows.hpp"
-#include "controlsigs.h"
+#include "group.h"
 
-struct uiGroup {
-	uiWindowsControl c;
-	HWND hwnd;
-	struct uiControl *child;
-	int margined;
-};
+#include "debug.h"
+#include "init.h"
+#include "parent.h"
+#include "utf16.h"
+#include "winpublic.h"
 
-// from https://msdn.microsoft.com/en-us/library/windows/desktop/dn742486.aspx#sizingandspacing
-#define groupXMargin 6
-#define groupYMarginTop 11 /* note this value /includes/ the groupbox label */
-#define groupYMarginBottom 7
+#include <ui/group.h>
 
-// unfortunately because the client area of a groupbox includes the frame and caption text, we have to apply some margins ourselves, even if we don't want "any"
-// these were deduced by hand based on the standard DLU conversions; the X and Y top margins are the width and height, respectively, of one character cell
-// they can be fine-tuned later
-#define groupUnmarginedXMargin 4
-#define groupUnmarginedYMarginTop 8
-#define groupUnmarginedYMarginBottom 3
+#include <algorithm>
+#include <commctrl.h>
+#include <controlsigs.h>
+#include <uipriv.h>
 
-static void groupMargins(uiGroup *g, int *mx, int *mtop, int *mbottom)
+static void
+groupMargins (const uiGroup *g, int *mx, int *mtop, int *mbottom)
 {
-	uiWindowsSizing sizing;
+  uiWindowsSizing sizing;
 
-	*mx = groupUnmarginedXMargin;
-	*mtop = groupUnmarginedYMarginTop;
-	*mbottom = groupUnmarginedYMarginBottom;
-	if (g->margined) {
-		*mx = groupXMargin;
-		*mtop = groupYMarginTop;
-		*mbottom = groupYMarginBottom;
-	}
-	uiWindowsGetSizing(g->hwnd, &sizing);
-	uiWindowsSizingDlgUnitsToPixels(&sizing, mx, mtop);
-	uiWindowsSizingDlgUnitsToPixels(&sizing, NULL, mbottom);
+  *mx      = groupUnmarginedXMargin;
+  *mtop    = groupUnmarginedYMarginTop;
+  *mbottom = groupUnmarginedYMarginBottom;
+
+  if (g->margined != 0)
+    {
+      *mx      = groupXMargin;
+      *mtop    = groupYMarginTop;
+      *mbottom = groupYMarginBottom;
+    }
+
+  uiWindowsGetSizing (g->hwnd, &sizing);
+  uiWindowsSizingDlgUnitsToPixels (&sizing, mx, mtop);
+  uiWindowsSizingDlgUnitsToPixels (&sizing, nullptr, mbottom);
 }
 
-static void groupRelayout(uiGroup *g)
+static void
+groupRelayout (const uiGroup *g)
 {
-	RECT r;
-	int mx, mtop, mbottom;
+  if (g->child == nullptr)
+    return;
 
-	if (g->child == NULL)
-		return;
-	uiWindowsEnsureGetClientRect(g->hwnd, &r);
-	groupMargins(g, &mx, &mtop, &mbottom);
-	r.left += mx;
-	r.top += mtop;
-	r.right -= mx;
-	r.bottom -= mbottom;
-	uiWindowsEnsureMoveWindowDuringResize((HWND) uiControlHandle(g->child), r.left, r.top, r.right - r.left, r.bottom - r.top);
+  RECT r;
+  uiWindowsEnsureGetClientRect (g->hwnd, &r);
+
+  int mx;
+  int mtop;
+  int mbottom;
+  groupMargins (g, &mx, &mtop, &mbottom);
+
+  r.left += mx;
+  r.top += mtop;
+  r.right -= mx;
+  r.bottom -= mbottom;
+
+  uiWindowsEnsureMoveWindowDuringResize (reinterpret_cast<HWND> (uiControlHandle (g->child)), r.left, r.top,
+                                         r.right - r.left, r.bottom - r.top);
 }
 
-static void uiGroupDestroy(uiControl *c)
+static void
+uiGroupDestroy (uiControl *c)
 {
-	uiGroup *g = uiGroup(c);
+  auto *g = reinterpret_cast<uiGroup *> (c);
 
-	if (g->child != NULL) {
-		uiControlSetParent(g->child, NULL);
-		uiControlDestroy(g->child);
-	}
-	uiWindowsEnsureDestroyWindow(g->hwnd);
-	uiFreeControl(uiControl(g));
+  if (g->child != nullptr)
+    {
+      uiControlSetParent (g->child, nullptr);
+      uiControlDestroy (g->child);
+    }
+
+  uiWindowsEnsureDestroyWindow (g->hwnd);
+  uiFreeControl (reinterpret_cast<uiControl *> (g));
 }
 
-uiWindowsControlDefaultHandle(uiGroup)
-uiWindowsControlDefaultParent(uiGroup)
-uiWindowsControlDefaultSetParent(uiGroup)
-uiWindowsControlDefaultToplevel(uiGroup)
-uiWindowsControlDefaultVisible(uiGroup)
-uiWindowsControlDefaultShow(uiGroup)
-uiWindowsControlDefaultHide(uiGroup)
-uiWindowsControlDefaultEnabled(uiGroup)
-uiWindowsControlDefaultEnable(uiGroup)
-uiWindowsControlDefaultDisable(uiGroup)
-
-static void uiGroupSyncEnableState(uiWindowsControl *c, int enabled)
+static uintptr_t
+uiGroupHandle (uiControl *c)
 {
-	uiGroup *g = uiGroup(c);
-
-	if (uiWindowsShouldStopSyncEnableState(uiWindowsControl(g), enabled))
-		return;
-	EnableWindow(g->hwnd, enabled);
-	if (g->child != NULL)
-		uiWindowsControlSyncEnableState(uiWindowsControl(g->child), enabled);
+  return reinterpret_cast<uintptr_t> (reinterpret_cast<uiGroup *> (c)->hwnd);
 }
 
-uiWindowsControlDefaultSetParentHWND(uiGroup)
-
-static void uiGroupMinimumSize(uiWindowsControl *c, int *width, int *height)
+static uiControl *
+uiGroupParent (uiControl *c)
 {
-	uiGroup *g = uiGroup(c);
-	int mx, mtop, mbottom;
-	int labelWidth;
-
-	*width = 0;
-	*height = 0;
-	if (g->child != NULL)
-		uiWindowsControlMinimumSize(uiWindowsControl(g->child), width, height);
-	labelWidth = uiWindowsWindowTextWidth(g->hwnd);
-	if (*width < labelWidth)		// don't clip the label; it doesn't ellipsize
-		*width = labelWidth;
-	groupMargins(g, &mx, &mtop, &mbottom);
-	*width += 2 * mx;
-	*height += mtop + mbottom;
+  return reinterpret_cast<uiWindowsControl *> (c)->parent;
 }
 
-static void uiGroupMinimumSizeChanged(uiWindowsControl *c)
+static void
+uiGroupSetParent (uiControl *c, uiControl *parent)
 {
-	uiGroup *g = uiGroup(c);
-
-	if (uiWindowsControlTooSmall(uiWindowsControl(g))) {
-		uiWindowsControlContinueMinimumSizeChanged(uiWindowsControl(g));
-		return;
-	}
-	groupRelayout(g);
+  uiControlVerifySetParent (c, parent);
+  uiWindowsControl (c)->parent = parent;
 }
 
-uiWindowsControlDefaultLayoutRect(uiGroup)
-uiWindowsControlDefaultAssignControlIDZOrder(uiGroup)
-
-static void uiGroupChildVisibilityChanged(uiWindowsControl *c)
+static int
+uiGroupToplevel (uiControl *)
 {
-	// TODO eliminate the redundancy
-	uiWindowsControlMinimumSizeChanged(c);
+  return 0;
 }
 
-char *uiGroupTitle(uiGroup *g)
+static int
+uiGroupVisible (uiControl *c)
 {
-	return uiWindowsWindowText(g->hwnd);
+  return reinterpret_cast<uiWindowsControl *> (c)->visible;
 }
 
-void uiGroupSetTitle(uiGroup *g, const char *text)
+static void
+uiGroupShow (uiControl *c)
 {
-	uiWindowsSetWindowText(g->hwnd, text);
-	// changing the text might necessitate a change in the groupbox's size
-	uiWindowsControlMinimumSizeChanged(uiWindowsControl(g));
+  reinterpret_cast<uiWindowsControl *> (c)->visible = 1;
+  ShowWindow (reinterpret_cast<uiGroup *> (c)->hwnd, SW_SHOW);
+  uiWindowsControlNotifyVisibilityChanged (reinterpret_cast<uiWindowsControl *> (c));
 }
 
-void uiGroupSetChild(uiGroup *g, uiControl *child)
+static void
+uiGroupHide (uiControl *c)
 {
-	if (g->child != NULL) {
-		uiControlSetParent(g->child, NULL);
-		uiWindowsControlSetParentHWND(uiWindowsControl(g->child), NULL);
-	}
-	g->child = child;
-	if (g->child != NULL) {
-		uiControlSetParent(g->child, uiControl(g));
-		uiWindowsControlSetParentHWND(uiWindowsControl(g->child), g->hwnd);
-		uiWindowsControlAssignSoleControlIDZOrder(uiWindowsControl(g->child));
-		uiWindowsControlMinimumSizeChanged(uiWindowsControl(g));
-	}
+  reinterpret_cast<uiWindowsControl *> (c)->visible = 0;
+  ShowWindow (reinterpret_cast<uiGroup *> (c)->hwnd, SW_HIDE);
+  uiWindowsControlNotifyVisibilityChanged (reinterpret_cast<uiWindowsControl *> (c));
 }
 
-int uiGroupMargined(uiGroup *g)
+static int
+uiGroupEnabled (uiControl *c)
 {
-	return g->margined;
+  return reinterpret_cast<uiWindowsControl *> (c)->enabled;
 }
 
-void uiGroupSetMargined(uiGroup *g, int margined)
+static void
+uiGroupEnable (uiControl *c)
 {
-	g->margined = margined;
-	uiWindowsControlMinimumSizeChanged(uiWindowsControl(g));
+  reinterpret_cast<uiWindowsControl *> (c)->enabled = 1;
+  uiWindowsControlSyncEnableState (reinterpret_cast<uiWindowsControl *> (c), uiControlEnabledToUser (c));
 }
 
-static LRESULT CALLBACK groupSubProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+static void
+uiGroupDisable (uiControl *c)
 {
-	uiGroup *g = uiGroup(dwRefData);
-	WINDOWPOS *wp = (WINDOWPOS *) lParam;
-	MINMAXINFO *mmi = (MINMAXINFO *) lParam;
-	int minwid, minht;
-	LRESULT lResult;
-
-	if (handleParentMessages(hwnd, uMsg, wParam, lParam, &lResult) != FALSE)
-		return lResult;
-	switch (uMsg) {
-	case WM_WINDOWPOSCHANGED:
-		if ((wp->flags & SWP_NOSIZE) != 0)
-			break;
-		groupRelayout(g);
-		return 0;
-	case WM_GETMINMAXINFO:
-		lResult = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-		uiWindowsControlMinimumSize(uiWindowsControl(g), &minwid, &minht);
-		mmi->ptMinTrackSize.x = minwid;
-		mmi->ptMinTrackSize.y = minht;
-		return lResult;
-	case WM_NCDESTROY:
-		if (RemoveWindowSubclass(hwnd, groupSubProc, uIdSubclass) == FALSE)
-			logLastError(L"error removing groupbox subclass");
-		break;
-	}
-	return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+  reinterpret_cast<uiWindowsControl *> (c)->enabled = 0;
+  uiWindowsControlSyncEnableState (reinterpret_cast<uiWindowsControl *> (c), uiControlEnabledToUser (c));
 }
 
-uiGroup *uiNewGroup(const char *text)
+static void
+uiGroupSyncEnableState (uiWindowsControl *c, const int enabled)
 {
-	uiGroup *g;
-	WCHAR *wtext;
+  auto *g = reinterpret_cast<uiGroup *> (c);
 
-	uiWindowsNewControl(uiGroup, g);
+  if (uiWindowsShouldStopSyncEnableState (reinterpret_cast<uiWindowsControl *> (g), enabled) != 0)
+    return;
 
-	wtext = toUTF16(text);
-	g->hwnd = uiWindowsEnsureCreateControlHWND(WS_EX_CONTROLPARENT,
-		L"button", wtext,
-		BS_GROUPBOX,
-		hInstance, NULL,
-		TRUE);
-	uiprivFree(wtext);
+  EnableWindow (g->hwnd, enabled);
+  if (g->child != nullptr)
+    uiWindowsControlSyncEnableState (reinterpret_cast<uiWindowsControl *> (g->child), enabled);
+}
 
-	if (SetWindowSubclass(g->hwnd, groupSubProc, 0, (DWORD_PTR) g) == FALSE)
-		logLastError(L"error subclassing groupbox to handle parent messages");
+static void
+uiGroupSetParentHWND (uiWindowsControl *c, const HWND parent)
+{
+  uiWindowsEnsureSetParentHWND (reinterpret_cast<uiGroup *> (c)->hwnd, parent);
+}
 
-	return g;
+static void
+uiGroupMinimumSize (uiWindowsControl *c, int *width, int *height)
+{
+  const auto *g = reinterpret_cast<uiGroup *> (c);
+
+  int mx;
+  int mtop;
+  int mbottom;
+
+  *width  = 0;
+  *height = 0;
+  if (g->child != nullptr)
+    uiWindowsControlMinimumSize (uiWindowsControl (g->child), width, height);
+
+  const int labelWidth = uiWindowsWindowTextWidth (g->hwnd);
+
+  *width = std::max (*width, labelWidth);
+
+  groupMargins (g, &mx, &mtop, &mbottom);
+  *width += 2 * mx;
+  *height += mtop + mbottom;
+}
+
+static void
+uiGroupMinimumSizeChanged (uiWindowsControl *c)
+{
+  auto *g = reinterpret_cast<uiGroup *> (c);
+
+  if (uiWindowsControlTooSmall (reinterpret_cast<uiWindowsControl *> (g)) != 0)
+    {
+      uiWindowsControlContinueMinimumSizeChanged (reinterpret_cast<uiWindowsControl *> (g));
+      return;
+    }
+
+  groupRelayout (g);
+}
+
+static void
+uiGroupLayoutRect (uiWindowsControl *c, RECT *r)
+{
+  uiWindowsEnsureGetWindowRect (reinterpret_cast<uiGroup *> (c)->hwnd, r);
+}
+
+static void
+uiGroupAssignControlIDZOrder (uiWindowsControl *c, LONG_PTR *controlID, HWND *insertAfter)
+{
+  uiWindowsEnsureAssignControlIDZOrder (reinterpret_cast<uiGroup *> (c)->hwnd, controlID, insertAfter);
+}
+
+static void
+uiGroupChildVisibilityChanged (uiWindowsControl *c)
+{
+  uiWindowsControlMinimumSizeChanged (c);
+}
+
+char *
+uiGroupTitle (const uiGroup *g)
+{
+  return uiWindowsWindowText (g->hwnd);
+}
+
+void
+uiGroupSetTitle (uiGroup *g, const char *title)
+{
+  uiWindowsSetWindowText (g->hwnd, title);
+  uiWindowsControlMinimumSizeChanged (uiWindowsControl (g));
+}
+
+void
+uiGroupSetChild (uiGroup *g, uiControl *c)
+{
+  if (g->child != nullptr)
+    {
+      uiControlSetParent (g->child, nullptr);
+      uiWindowsControlSetParentHWND (reinterpret_cast<uiWindowsControl *> (g->child), nullptr);
+    }
+
+  g->child = c;
+
+  if (g->child != nullptr)
+    {
+      uiControlSetParent (g->child, reinterpret_cast<uiControl *> (g));
+      uiWindowsControlSetParentHWND (reinterpret_cast<uiWindowsControl *> (g->child), g->hwnd);
+      uiWindowsControlAssignSoleControlIDZOrder (reinterpret_cast<uiWindowsControl *> (g->child));
+      uiWindowsControlMinimumSizeChanged (reinterpret_cast<uiWindowsControl *> (g));
+    }
+}
+
+int
+uiGroupMargined (const uiGroup *g)
+{
+  return g->margined;
+}
+
+void
+uiGroupSetMargined (uiGroup *g, const int margined)
+{
+  g->margined = margined;
+  uiWindowsControlMinimumSizeChanged (reinterpret_cast<uiWindowsControl *> (g));
+}
+
+static LRESULT CALLBACK
+groupSubProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPARAM lParam, const UINT_PTR uIdSubclass,
+              const DWORD_PTR dwRefData)
+{
+  auto       *g   = reinterpret_cast<uiGroup *> (dwRefData);
+  const auto *wp  = reinterpret_cast<WINDOWPOS *> (lParam);
+  auto       *mmi = reinterpret_cast<MINMAXINFO *> (lParam);
+
+  int minwid;
+  int minht;
+
+  LRESULT lResult;
+
+  if (handleParentMessages (hwnd, uMsg, wParam, lParam, &lResult) != FALSE)
+    return lResult;
+
+  switch (uMsg)
+    {
+    case WM_WINDOWPOSCHANGED:
+      {
+        if ((wp->flags & SWP_NOSIZE) != 0)
+          break;
+        groupRelayout (g);
+        return 0;
+      }
+
+    case WM_GETMINMAXINFO:
+      {
+        lResult = DefWindowProcW (hwnd, uMsg, wParam, lParam);
+
+        uiWindowsControlMinimumSize (uiWindowsControl (g), &minwid, &minht);
+
+        mmi->ptMinTrackSize.x = minwid;
+        mmi->ptMinTrackSize.y = minht;
+
+        return lResult;
+      }
+
+    case WM_NCDESTROY:
+      {
+        if (RemoveWindowSubclass (hwnd, groupSubProc, uIdSubclass) == FALSE)
+          (void)logLastError (L"error removing groupbox subclass");
+
+        break;
+      }
+
+    default:;
+    }
+  return DefSubclassProc (hwnd, uMsg, wParam, lParam);
+}
+
+uiGroup *
+uiNewGroup (const char *title)
+{
+  auto *g = reinterpret_cast<uiGroup *> (uiWindowsAllocControl (sizeof (uiGroup), uiGroupSignature, "uiGroup"));
+
+  auto *control      = reinterpret_cast<uiControl *> (g);
+  control->Destroy   = uiGroupDestroy;
+  control->Disable   = uiGroupDisable;
+  control->Enable    = uiGroupEnable;
+  control->Enabled   = uiGroupEnabled;
+  control->Handle    = uiGroupHandle;
+  control->Hide      = uiGroupHide;
+  control->Parent    = uiGroupParent;
+  control->SetParent = uiGroupSetParent;
+  control->Show      = uiGroupShow;
+  control->Toplevel  = uiGroupToplevel;
+  control->Visible   = uiGroupVisible;
+
+  auto *windows_control                   = reinterpret_cast<uiWindowsControl *> (g);
+  windows_control->AssignControlIDZOrder  = uiGroupAssignControlIDZOrder;
+  windows_control->ChildVisibilityChanged = uiGroupChildVisibilityChanged;
+  windows_control->LayoutRect             = uiGroupLayoutRect;
+  windows_control->MinimumSize            = uiGroupMinimumSize;
+  windows_control->MinimumSizeChanged     = uiGroupMinimumSizeChanged;
+  windows_control->SetParentHWND          = uiGroupSetParentHWND;
+  windows_control->SyncEnableState        = uiGroupSyncEnableState;
+  windows_control->enabled                = 1;
+  windows_control->visible                = 1;
+
+  auto *wtext = toUTF16 (title);
+  g->hwnd = uiWindowsEnsureCreateControlHWND (WS_EX_CONTROLPARENT, L"button", wtext, BS_GROUPBOX, hInstance, nullptr,
+                                              TRUE);
+  uiprivFree (wtext);
+
+  if (SetWindowSubclass (g->hwnd, groupSubProc, 0, reinterpret_cast<DWORD_PTR> (g)) == FALSE)
+    (void)logLastError (L"error subclassing groupbox to handle parent messages");
+
+  return g;
 }

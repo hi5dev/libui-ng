@@ -4,7 +4,7 @@
 
 #include <uipriv.h>
 
-IDWriteFactory *dwfactory = NULL;
+IDWriteFactory *dwfactory = nullptr;
 
 HRESULT
 uiprivInitDrawText ()
@@ -22,7 +22,7 @@ uiprivUninitDrawText ()
 fontCollection *
 uiprivLoadFontCollection ()
 {
-  const auto fc = uiprivNew (fontCollection);
+  auto *const fc = uiprivNew (fontCollection);
 
   const HRESULT hr = dwfactory->GetSystemFontCollection (&fc->fonts, TRUE);
   if (hr != S_OK)
@@ -65,7 +65,7 @@ uiprivFontCollectionCorrectString (const fontCollection *fc, IDWriteLocalizedStr
 
   // FindLocaleName returns S_OK and sets index to UINT_MAX when the locale isn't found
   HRESULT hr    = S_OK;
-  UINT32  index = UINT_MAX;
+  UINT32  index = UINT_MAX; // NOLINT(*-math-missing-parentheses)
   if (fc->userLocaleSuccess != 0)
     hr = names->FindLocaleName (fc->userLocale, &index, &exists);
 
@@ -89,7 +89,7 @@ uiprivFontCollectionCorrectString (const fontCollection *fc, IDWriteLocalizedStr
   if (hr != S_OK)
     (void)logHRESULT (L"error getting length of font name", hr);
 
-  const auto wname = static_cast<WCHAR *> (uiprivAlloc ((length + 1) * sizeof (WCHAR), "WCHAR[]"));
+  auto *const wname = static_cast<WCHAR *> (uiprivAlloc ((length + 1) * sizeof (WCHAR), "WCHAR[]"));
 
   hr = names->GetString (index, wname, length + 1);
   if (hr != S_OK)

@@ -1,8 +1,8 @@
-#include "opentype.h"
-#include "debug.h"
-#include "dwrite_impl.h"
-
 #include <ui/api.h>
+
+#include "debug.h"
+#include "fontcollection.h"
+#include "opentype.h"
 
 #include <cstdint>
 

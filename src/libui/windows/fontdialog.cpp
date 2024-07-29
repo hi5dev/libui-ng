@@ -8,6 +8,7 @@
 #include "sizing.h"
 #include "text.h"
 #include "uipriv_windows.hpp"
+#include "winpublic.h"
 #include "winutil.h"
 
 #include <commctrl.h>
@@ -217,7 +218,6 @@ familyChanged (fontDialog *f)
   const DWRITE_FONT_STRETCH stretch = matchFont->GetStretch ();
   matchFont->Release ();
 
-  // TODO test mutliple streteches; all the fonts I have have only one stretch value?
   wipeStylesBox (f);
   const UINT32 n        = family->GetFontCount ();
   UINT32       matching = 0; // a safe/suitable default just in case
@@ -451,10 +451,10 @@ beginFontDialog (const HWND hwnd, const LPARAM lParam)
     cbInsertString (f->sizeCombobox, defaultSizes[i].text, i);
 
   const HWND samplePlacement = getDlgItem (f->hwnd, rcFontSamplePlacement);
-  uiWindowsEnsureGetWindowRect (samplePlacement, &(f->sampleRect));
-  mapWindowRect (nullptr, f->hwnd, &(f->sampleRect));
+  uiWindowsEnsureGetWindowRect (samplePlacement, &f->sampleRect);
+  mapWindowRect (nullptr, f->hwnd, &f->sampleRect);
   uiWindowsEnsureDestroyWindow (samplePlacement);
-  f->sampleBox = newD2DScratch (f->hwnd, &(f->sampleRect), reinterpret_cast<HMENU> (rcFontSamplePlacement),
+  f->sampleBox = newD2DScratch (f->hwnd, &f->sampleRect, reinterpret_cast<HMENU> (rcFontSamplePlacement),
                                 fontDialogSampleSubProc, reinterpret_cast<DWORD_PTR> (f));
 
   setupInitialFontDialogState (f);

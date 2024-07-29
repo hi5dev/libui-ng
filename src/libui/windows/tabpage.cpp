@@ -1,5 +1,4 @@
 #include "tabpage.h"
-
 #include "debug.h"
 #include "init.h"
 #include "parent.h"

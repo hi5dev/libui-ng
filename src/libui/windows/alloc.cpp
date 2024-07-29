@@ -52,7 +52,7 @@ uiprivRealloc (void *_p, const size_t size, const char *type)
 {
   auto *const p = static_cast<uint8_t *> (_p);
 
-  if (p == NULL)
+  if (p == nullptr)
     // ReSharper disable once CppDFALocalValueEscapesFunction
     return uiprivAlloc (size, type);
 
@@ -73,7 +73,7 @@ uiprivFree (void *_p)
 {
   auto *const p = static_cast<uint8_t *> (_p);
 
-  if (p == NULL)
+  if (p == nullptr)
     uiprivImplBug ("attempt to uiprivFree(NULL)");
 
   types.erase (heap[p]);

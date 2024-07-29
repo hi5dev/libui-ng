@@ -333,7 +333,6 @@ areaKeyEvent (uiArea *a, const int up, const WPARAM wParam, const LPARAM lParam)
     goto keyFound;
 
   // not a supported key, assume unhandled
-  // TODO the original code only did this if ke.Modifiers == 0 - why?
   return 0;
 
 keyFound:

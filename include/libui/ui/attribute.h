@@ -1,7 +1,8 @@
 #pragma once
 
 #include "api.h"
-#include "ui.h"
+
+#include <stddef.h>
 
 /**
  * @brief Stores information about an attribute in a @p uiAttributedString.

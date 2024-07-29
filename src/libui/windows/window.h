@@ -1,14 +1,16 @@
 #pragma once
 
-#include <ui_win32.h>
+#include <windef.h>
+#include <winuser.h>
 
-#include <ui/window.h>
+#include <ui_win32.h>
 
 #define windowClass  L"libui_uiWindowClass"
 #define windowMargin 7
 
 #define INFINITE_HEIGHT 0x7FFF
 
+/// @implements uiWindow
 struct uiWindow
 {
   uiWindowsControl c;

@@ -1,10 +1,17 @@
-#include "table.hpp"
-#include "uipriv_windows.hpp"
-#include "uipriv.h"
+#include <windows.h>
+
+#include <uipriv.h>
+
+#include "debug.h"
+#include "table.h"
+#include "tablemetrics.h"
+
+#include <commctrl.h>
 
 static HRESULT
-itemRect (const HRESULT hr, uiTable *t, const UINT uMsg, const WPARAM wParam, const LONG left, const LONG top,
-          LRESULT bad, RECT *r)
+itemRect (const HRESULT hr, const uiTable *t, const UINT uMsg, const WPARAM wParam, const LONG left, const LONG top,
+          // ReSharper disable once CppDFAConstantParameter
+          const LRESULT bad, RECT *r)
 {
   if (hr != S_OK)
     return hr;
@@ -23,79 +30,69 @@ itemRect (const HRESULT hr, uiTable *t, const UINT uMsg, const WPARAM wParam, co
 }
 
 HRESULT
-uiprivTableGetMetrics (uiTable *t, const int iItem, int iSubItem, uiprivTableMetrics **mout)
+uiprivTableGetMetrics (uiTable *t, const int iItem, const int iSubItem, uiprivTableMetrics **mout)
 {
   if (mout == nullptr)
     return E_POINTER;
 
-  uiprivTableMetrics *m = uiprivNew (uiprivTableMetrics);
+  auto *const m = uiprivNew (uiprivTableMetrics);
 
-  uiprivTableColumnParams *p = (*(t->columns))[iSubItem];
-  m->hasText  = p->textModelColumn != -1;
-  m->hasImage = (p->imageModelColumn != -1) || (p->checkboxModelColumn != -1);
-  LRESULT state              = SendMessageW (t->hwnd, LVM_GETITEMSTATE, iItem, LVIS_FOCUSED | LVIS_SELECTED);
-  m->focused  = (state & LVIS_FOCUSED) != 0;
-  m->selected = (state & LVIS_SELECTED) != 0;
+  const uiprivTableColumnParams *p = (*t->columns)[iSubItem];
 
-  // TODO check LRESULT bad parameters here
+  m->hasText  = static_cast<BOOL> (p->textModelColumn != -1);
+  m->hasImage = static_cast<BOOL> (p->imageModelColumn != -1 || p->checkboxModelColumn != -1);
+
+  const LRESULT state = SendMessageW (t->hwnd, LVM_GETITEMSTATE, iItem, LVIS_FOCUSED | LVIS_SELECTED);
+  m->focused          = static_cast<BOOL> ((state & LVIS_FOCUSED) != 0);
+  m->selected         = static_cast<BOOL> ((state & LVIS_SELECTED) != 0);
+
   HRESULT hr = itemRect (S_OK, t, LVM_GETITEMRECT, iItem, LVIR_BOUNDS, 0, FALSE, &(m->itemBounds));
-  hr = itemRect (hr, t, LVM_GETITEMRECT, iItem, LVIR_ICON, 0, FALSE, &(m->itemIcon));
-  hr = itemRect (hr, t, LVM_GETITEMRECT, iItem, LVIR_LABEL, 0, FALSE, &(m->itemLabel));
-  hr = itemRect (hr, t, LVM_GETSUBITEMRECT, iItem, LVIR_BOUNDS, iSubItem, 0, &(m->subitemBounds));
-  hr = itemRect (hr, t, LVM_GETSUBITEMRECT, iItem, LVIR_ICON, iSubItem, 0, &(m->subitemIcon));
+  hr         = itemRect (hr, t, LVM_GETITEMRECT, iItem, LVIR_ICON, 0, FALSE, &(m->itemIcon));
+  hr         = itemRect (hr, t, LVM_GETITEMRECT, iItem, LVIR_LABEL, 0, FALSE, &(m->itemLabel));
+  hr         = itemRect (hr, t, LVM_GETSUBITEMRECT, iItem, LVIR_BOUNDS, iSubItem, 0, &(m->subitemBounds));
+  hr         = itemRect (hr, t, LVM_GETSUBITEMRECT, iItem, LVIR_ICON, iSubItem, 0, &(m->subitemIcon));
   if (hr != S_OK)
     goto fail;
-  // LVM_GETSUBITEMRECT treats LVIR_LABEL as the same as
-  // LVIR_BOUNDS, so we can't use that directly. Instead, let's
-  // assume the text is immediately after the icon. The correct
-  // rect will be determined by
-  // computeOtherRectsAndDrawBackgrounds() above.
+
   m->subitemLabel      = m->subitemBounds;
   m->subitemLabel.left = m->subitemIcon.right;
-  // And on iSubItem == 0, LVIF_GETSUBITEMRECT still includes
-  // all the subitems, which we don't want.
+
   if (iSubItem == 0)
     {
       m->subitemBounds.right = m->itemLabel.right;
       m->subitemLabel.right  = m->itemLabel.right;
     }
 
-  HWND header     = (HWND)SendMessageW (t->hwnd, LVM_GETHEADER, 0, 0);
+  auto *const header = reinterpret_cast<HWND> (SendMessageW (t->hwnd, LVM_GETHEADER, 0, 0));
+
   m->bitmapMargin = SendMessageW (header, HDM_GETBITMAPMARGIN, 0, 0);
   if (ImageList_GetIconSize (t->imagelist, &(m->cxIcon), &(m->cyIcon)) == 0)
     {
-      logLastError (L"ImageList_GetIconSize()");
+      (void)logLastError (L"ImageList_GetIconSize()");
       hr = E_FAIL;
       goto fail;
     }
 
   RECT r = m->subitemLabel;
-  if (!m->hasText && !m->hasImage)
+  if (m->hasText == 0 && m->hasImage == 0)
     r = m->subitemBounds;
-  else if (!m->hasImage && iSubItem != 0)
-    // By default, this will include images; we're not drawing
-    // images, so we will manually draw over the image area.
-    // There's a second part to this; see below.
-    r.left = m->subitemBounds.left;
-  m->realTextBackground = r;
 
-  m->realTextRect = r;
-  // TODO confirm whether this really happens on column 0 as well
-  if (m->hasImage && iSubItem != 0)
-    // Normally there's this many hard-coded logical units
-    // of blank space, followed by the background, followed
-    // by a bitmap margin's worth of space. This looks bad,
-    // so we overrule that to start the background immediately
-    // and the text after the hard-coded amount.
+  else if (m->hasImage == 0 && iSubItem != 0)
+    r.left = m->subitemBounds.left;
+
+  m->realTextBackground = r;
+  m->realTextRect       = r;
+
+  if (m->hasImage != 0 && iSubItem != 0)
     m->realTextRect.left += 2;
+
   else if (iSubItem != 0)
-    // In the case of subitem text without an image, we draw
-    // text one bitmap margin away from the left edge.
-    m->realTextRect.left += m->bitmapMargin;
+    m->realTextRect.left += m->bitmapMargin; // NOLINT(*-narrowing-conversions)
 
   *mout = m;
   return S_OK;
-fail:
+
+fail:;
   uiprivFree (m);
   *mout = nullptr;
   return hr;

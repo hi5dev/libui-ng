@@ -3,6 +3,7 @@
 #include "debug.h"
 #include "init.h"
 #include "utf16.h"
+#include "winpublic.h"
 #include "winutil.h"
 
 #include <controlsigs.h>
@@ -37,22 +38,121 @@ uiMultilineEntryDestroy (uiControl *c)
   uiFreeControl (uiControl (e));
 }
 
-uiWindowsControlAllDefaultsExceptDestroy (uiMultilineEntry)
+static uintptr_t
+uiMultilineEntryHandle (uiControl *c)
+{
+  return reinterpret_cast<uintptr_t> (reinterpret_cast<uiMultilineEntry *> (c)->hwnd);
+}
 
-#define entryWidth  107
-#define entryHeight 14
+static uiControl *
+uiMultilineEntryParent (uiControl *c)
+{
+  return reinterpret_cast<uiWindowsControl *> (c)->parent;
+}
+
+static void
+uiMultilineEntrySetParent (uiControl *c, uiControl *parent)
+{
+  uiControlVerifySetParent (c, parent);
+  reinterpret_cast<uiWindowsControl *> (c)->parent = parent;
+}
+
+static int
+uiMultilineEntryToplevel (uiControl *c)
+{
+  return 0;
+}
+
+static int
+uiMultilineEntryVisible (uiControl *c)
+{
+  return reinterpret_cast<uiWindowsControl *> (c)->visible;
+}
+
+static void
+uiMultilineEntryShow (uiControl *c)
+{
+  reinterpret_cast<uiWindowsControl *> (c)->visible = 1;
+  ShowWindow (reinterpret_cast<uiMultilineEntry *> (c)->hwnd, SW_SHOW);
+  uiWindowsControlNotifyVisibilityChanged (reinterpret_cast<uiWindowsControl *> (c));
+}
+
+static void
+uiMultilineEntryHide (uiControl *c)
+{
+  reinterpret_cast<uiWindowsControl *> (c)->visible = 0;
+  ShowWindow (reinterpret_cast<uiMultilineEntry *> (c)->hwnd, SW_HIDE);
+  uiWindowsControlNotifyVisibilityChanged (reinterpret_cast<uiWindowsControl *> (c));
+}
+
+static int
+uiMultilineEntryEnabled (uiControl *c)
+{
+  return reinterpret_cast<uiWindowsControl *> (c)->enabled;
+}
+
+static void
+uiMultilineEntryEnable (uiControl *c)
+{
+  reinterpret_cast<uiWindowsControl *> (c)->enabled = 1;
+  uiWindowsControlSyncEnableState (reinterpret_cast<uiWindowsControl *> (c), uiControlEnabledToUser (c));
+}
+
+static void
+uiMultilineEntryDisable (uiControl *c)
+{
+  reinterpret_cast<uiWindowsControl *> (c)->enabled = 0;
+  uiWindowsControlSyncEnableState (reinterpret_cast<uiWindowsControl *> (c), uiControlEnabledToUser (c));
+}
+
+static void
+uiMultilineEntrySyncEnableState (uiWindowsControl *c, const int enabled)
+{
+  if (uiWindowsShouldStopSyncEnableState (c, enabled) != 0)
+    return;
+  EnableWindow (reinterpret_cast<uiMultilineEntry *> (c)->hwnd, enabled);
+}
+
+static void
+uiMultilineEntrySetParentHWND (uiWindowsControl *c, const HWND parent)
+{
+  uiWindowsEnsureSetParentHWND (reinterpret_cast<uiMultilineEntry *> (c)->hwnd, parent);
+}
+
+static void
+uiMultilineEntryMinimumSizeChanged (uiWindowsControl *c)
+{
+  if (uiWindowsControlTooSmall (c) != 0)
+    uiWindowsControlContinueMinimumSizeChanged (c);
+}
+
+static void
+uiMultilineEntryLayoutRect (uiWindowsControl *c, RECT *r)
+{
+  uiWindowsEnsureGetWindowRect (reinterpret_cast<uiMultilineEntry *> (c)->hwnd, r);
+}
+
+static void
+uiMultilineEntryAssignControlIDZOrder (uiWindowsControl *c, LONG_PTR *controlID, HWND *insertAfter)
+{
+  uiWindowsEnsureAssignControlIDZOrder (reinterpret_cast<uiMultilineEntry *> (c)->hwnd, controlID, insertAfter);
+}
+
+static void
+uiMultilineEntryChildVisibilityChanged (uiWindowsControl *)
+{
+}
 
 static void
 uiMultilineEntryMinimumSize (uiWindowsControl *c, int *width, int *height)
 {
-  const auto *e = uiMultilineEntry (c);
+  const auto *e = reinterpret_cast<uiMultilineEntry *> (c);
 
   uiWindowsSizing sizing;
+  uiWindowsGetSizing (e->hwnd, &sizing);
 
   int x = entryWidth;
   int y = entryHeight;
-
-  uiWindowsGetSizing (e->hwnd, &sizing);
   uiWindowsSizingDlgUnitsToPixels (&sizing, &x, &y);
 
   *width  = x;
@@ -78,7 +178,6 @@ uiMultilineEntryText (const uiMultilineEntry *e)
 void
 uiMultilineEntrySetText (uiMultilineEntry *e, const char *text)
 {
-  // doing this raises an EN_CHANGED
   e->inhibitChanged = TRUE;
 
   char *crlf = LFtoCRLF (text);
@@ -96,11 +195,10 @@ uiMultilineEntryAppend (uiMultilineEntry *e, const char *text)
   DWORD selStart;
   DWORD selEnd;
 
-  // doing this raises an EN_CHANGED
   e->inhibitChanged = TRUE;
 
   // Save current selection
-  SendMessageW (e->hwnd, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
+  SendMessageW (e->hwnd, EM_GETSEL, reinterpret_cast<WPARAM> (&selStart), reinterpret_cast<LPARAM> (&selEnd));
 
   // Append by replacing an empty selection at the end of the input
   const LRESULT l = SendMessageW (e->hwnd, WM_GETTEXTLENGTH, 0, 0);
@@ -133,7 +231,7 @@ uiMultilineEntryReadOnly (const uiMultilineEntry *e)
 }
 
 void
-uiMultilineEntrySetReadOnly (uiMultilineEntry *e, int readonly)
+uiMultilineEntrySetReadOnly (const uiMultilineEntry *e, const int readonly)
 {
   if (Edit_SetReadOnly (e->hwnd, readonly) == 0)
     (void)logLastError (L"error setting uiMultilineEntry read-only state");
@@ -142,17 +240,17 @@ uiMultilineEntrySetReadOnly (uiMultilineEntry *e, int readonly)
 static uiMultilineEntry *
 finishMultilineEntry (const DWORD style)
 {
-  uiMultilineEntry *e = NULL;
+  uiMultilineEntry *e;
 
   uiWindowsNewControl (uiMultilineEntry, e);
 
   static constexpr auto flags
       = ES_AUTOVSCROLL | ES_LEFT | ES_MULTILINE | ES_NOHIDESEL | ES_WANTRETURN | WS_TABSTOP | WS_VSCROLL;
 
-  e->hwnd = uiWindowsEnsureCreateControlHWND (WS_EX_CLIENTEDGE, L"edit", L"", flags | style, hInstance, NULL, TRUE);
+  e->hwnd = uiWindowsEnsureCreateControlHWND (WS_EX_CLIENTEDGE, L"edit", L"", flags | style, hInstance, nullptr, TRUE);
 
   uiWindowsRegisterWM_COMMANDHandler (e->hwnd, onWM_COMMAND, uiControl (e));
-  uiMultilineEntryOnChanged (e, defaultOnChanged, NULL);
+  uiMultilineEntryOnChanged (e, defaultOnChanged, nullptr);
 
   return e;
 }

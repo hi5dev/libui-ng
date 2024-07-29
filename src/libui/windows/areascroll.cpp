@@ -14,7 +14,7 @@ scrollto (const uiArea *a, const int which, const scrollParams *p, int pos)
 
   pos = std::max (0, std::min (pos, p->length - p->pagesize));
 
-  invalidateRect (a->hwnd, NULL, FALSE);
+  invalidateRect (a->hwnd, nullptr, FALSE);
 
   *p->pos = pos;
 

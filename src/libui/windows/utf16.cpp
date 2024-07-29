@@ -1,7 +1,7 @@
 #include "utf16.h"
 #include "uipriv.h"
-#include "uipriv_windows.hpp"
 
+#include <cstdarg>
 #include <utf.h>
 
 #include <sstream>

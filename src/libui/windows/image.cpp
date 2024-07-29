@@ -177,7 +177,6 @@ uiprivImageAppropriateForDC (const uiImage *i, const HDC dc)
   return m.best;
 }
 
-// TODO this needs to center images if the given size is not the same aspect ratio
 HRESULT
 uiprivWICToGDI (IWICBitmap *b, const HDC dc, int width, int height, HBITMAP *hb)
 {

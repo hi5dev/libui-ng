@@ -1,60 +1,56 @@
-// 25 may 2016
-#include "uipriv_windows.hpp"
-#include "attrstr.hpp"
+#include <windows.h>
 
-// We could use CharNextW() to generate grapheme cluster boundaries, but it doesn't handle surrogate pairs properly (see http://archives.miloush.net/michkap/archive/2008/12/16/9223301.html).
-// We could also use Uniscribe (see http://archives.miloush.net/michkap/archive/2005/01/14/352802.html, http://www.catch22.net/tuts/uniscribe-mysteries, http://www.catch22.net/tuts/keyboard-navigation, and https://maxradi.us/documents/uniscribe/), but its rules for buffer sizes is convoluted.
-// Let's just deal with the CharNextW() bug.
+#include <attrstr.h>
+#include <uipriv.h>
 
-int uiprivGraphemesTakesUTF16(void)
+int
+uiprivGraphemesTakesUTF16 ()
 {
-	return 1;
+  return 1;
 }
 
-uiprivGraphemes *uiprivNewGraphemes(void *s, size_t len)
+uiprivGraphemes *
+uiprivNewGraphemes (void *s, const size_t len)
 {
-	uiprivGraphemes *g;
-	WCHAR *str;
-	size_t *pPTG, *pGTP;
+  auto *g = uiprivNew (uiprivGraphemes);
+  g->len  = 0;
 
-	g = uiprivNew(uiprivGraphemes);
+  auto *str = static_cast<WCHAR *> (s);
+  while (*str != L'\0')
+    {
+      g->len++;
+      str = CharNextW (str);
+    }
 
-	g->len = 0;
-	str = (WCHAR *) s;
-	while (*str != L'\0') {
-		g->len++;
-		str = CharNextW(str);
-		// no need to worry about surrogates if we're just counting
-	}
+  g->pointsToGraphemes = static_cast<size_t *> (uiprivAlloc ((len + 1) * sizeof (size_t), "size_t[] (graphemes)"));
+  g->graphemesToPoints = static_cast<size_t *> (uiprivAlloc ((g->len + 1) * sizeof (size_t), "size_t[] (graphemes)"));
 
-	g->pointsToGraphemes = (size_t *) uiprivAlloc((len + 1) * sizeof (size_t), "size_t[] (graphemes)");
-	g->graphemesToPoints = (size_t *) uiprivAlloc((g->len + 1) * sizeof (size_t), "size_t[] (graphemes)");
+  size_t *pPTG = g->pointsToGraphemes;
+  size_t *pGTP = g->graphemesToPoints;
 
-	pPTG = g->pointsToGraphemes;
-	pGTP = g->graphemesToPoints;
-	str = (WCHAR *) s;
-	while (*str != L'\0') {
-		WCHAR *next, *p;
-		ptrdiff_t nextoff;
+  str = static_cast<WCHAR *> (s);
+  while (*str != L'\0')
+    {
+      ptrdiff_t nextoff = 0;
 
-		// as part of the bug, we need to make sure we only call CharNextW() on low halves, otherwise it'll return the same low half forever
-		nextoff = 0;
-		if (IS_HIGH_SURROGATE(*str))
-			nextoff = 1;
-		next = CharNextW(str + nextoff);
-		if (IS_LOW_SURROGATE(*next))
-			next--;
+      if (IS_HIGH_SURROGATE (*str))
+        nextoff = 1;
 
-		*pGTP = pPTG - g->pointsToGraphemes;
-		for (p = str; p < next; p++)
-			*pPTG++ = pGTP - g->graphemesToPoints;
-		pGTP++;
+      WCHAR *next = CharNextW (str + nextoff);
+      if (IS_LOW_SURROGATE (*next))
+        next--;
 
-		str = next;
-	}
-	// and handle the last item for the end of the string
-	*pGTP = pPTG - g->pointsToGraphemes;
-	*pPTG = pGTP - g->graphemesToPoints;
+      *pGTP = pPTG - g->pointsToGraphemes;
+      for (WCHAR *p = str; p < next; p++)
+        *pPTG++ = pGTP - g->graphemesToPoints;
 
-	return g;
+      pGTP++;
+
+      str = next;
+    }
+
+  *pGTP = pPTG - g->pointsToGraphemes;
+  *pPTG = pGTP - g->graphemesToPoints;
+
+  return g;
 }

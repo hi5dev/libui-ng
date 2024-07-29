@@ -294,17 +294,16 @@ applyClip (const uiDrawContext *c)
   params.contentBounds.right  = FLT_MAX;
   params.contentBounds.bottom = FLT_MAX;
   params.geometricMask        = static_cast<ID2D1Geometry *> (c->currentClip);
-  // TODO is this correct?
-  params.maskAntialiasMode = c->rt->GetAntialiasMode ();
-  // identity matrix
-  params.maskTransform._11 = 1;
-  params.maskTransform._22 = 1;
-  params.opacity           = 1.0;
-  params.opacityBrush      = nullptr;
-  params.layerOptions      = D2D1_LAYER_OPTIONS_NONE;
-  // TODO is this correct?
+  params.maskAntialiasMode    = c->rt->GetAntialiasMode ();
+  params.maskTransform._11    = 1;
+  params.maskTransform._22    = 1;
+  params.opacity              = 1.0;
+  params.opacityBrush         = nullptr;
+  params.layerOptions         = D2D1_LAYER_OPTIONS_NONE;
+
   if (c->rt->GetTextAntialiasMode () == D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE)
     params.layerOptions = D2D1_LAYER_OPTIONS_INITIALIZE_FOR_CLEARTYPE;
+
   c->rt->PushLayer (&params, layer);
 
   // return the layer so it can be freed later
@@ -392,7 +391,7 @@ uiDrawStroke (const uiDrawContext *c, uiDrawPath *p, const uiDrawBrush *b, const
     uiprivFree (dashes);
 
   ID2D1Layer *cliplayer = applyClip (c);
-  c->rt->DrawGeometry (pathGeometry (p), brush, sp->Thickness, style);
+  c->rt->DrawGeometry (pathGeometry (p), brush, sp->Thickness, style); // NOLINT(*-narrowing-conversions)
   unapplyClip (c, cliplayer);
 
   style->Release ();

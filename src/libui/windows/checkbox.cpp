@@ -1,118 +1,246 @@
-// 7 april 2015
-#include "uipriv_windows.hpp"
+#include <windows.h>
+
+#include "checkbox.h"
 #include "controlsigs.h"
+#include "init.h"
+#include "utf16.h"
 
-struct uiCheckbox {
-	uiWindowsControl c;
-	HWND hwnd;
-	void (*onToggled)(uiCheckbox *, void *);
-	void *onToggledData;
-};
+#include <ui/checkbox.h>
+#include <uipriv.h>
 
-static BOOL onWM_COMMAND(uiControl *cc, HWND hwnd, WORD code, LRESULT *lResult)
+static BOOL
+onWM_COMMAND (uiControl *cc, HWND, const WORD code, LRESULT *lResult)
 {
-	uiCheckbox *c = uiCheckbox(cc);
-	WPARAM check;
+  auto *c = reinterpret_cast<uiCheckbox *> (cc);
 
-	if (code != BN_CLICKED)
-		return FALSE;
+  if (code != BN_CLICKED)
+    return FALSE;
 
-	// we didn't use BS_AUTOCHECKBOX (http://blogs.msdn.com/b/oldnewthing/archive/2014/05/22/10527522.aspx) so we have to manage the check state ourselves
-	check = BST_CHECKED;
-	if (SendMessage(c->hwnd, BM_GETCHECK, 0, 0) == BST_CHECKED)
-		check = BST_UNCHECKED;
-	SendMessage(c->hwnd, BM_SETCHECK, check, 0);
+  WPARAM check = BST_CHECKED;
+  if (SendMessage (c->hwnd, BM_GETCHECK, 0, 0) == BST_CHECKED)
+    check = BST_UNCHECKED;
 
-	(*(c->onToggled))(c, c->onToggledData);
-	*lResult = 0;
-	return TRUE;
+  SendMessage (c->hwnd, BM_SETCHECK, check, 0);
+
+  (*c->onToggled) (c, c->onToggledData);
+  *lResult = 0;
+  return TRUE;
 }
 
-static void uiCheckboxDestroy(uiControl *cc)
+static void
+uiCheckboxDestroy (uiControl *cc)
 {
-	uiCheckbox *c = uiCheckbox(cc);
+  auto *c = reinterpret_cast<uiCheckbox *> (cc);
 
-	uiWindowsUnregisterWM_COMMANDHandler(c->hwnd);
-	uiWindowsEnsureDestroyWindow(c->hwnd);
-	uiFreeControl(uiControl(c));
+  uiWindowsUnregisterWM_COMMANDHandler (c->hwnd);
+  uiWindowsEnsureDestroyWindow (c->hwnd);
+  uiFreeControl (reinterpret_cast<uiControl *> (c));
 }
 
-uiWindowsControlAllDefaultsExceptDestroy(uiCheckbox)
-
-// from http://msdn.microsoft.com/en-us/library/windows/desktop/dn742486.aspx#sizingandspacing
-#define checkboxHeight 10
-// from http://msdn.microsoft.com/en-us/library/windows/desktop/bb226818%28v=vs.85%29.aspx
-#define checkboxXFromLeftOfBoxToLeftOfLabel 12
-
-static void uiCheckboxMinimumSize(uiWindowsControl *cc, int *width, int *height)
+static uintptr_t
+uiCheckboxHandle (uiControl *c)
 {
-	uiCheckbox *c = uiCheckbox(cc);
-	uiWindowsSizing sizing;
-	int x, y;
-
-	x = checkboxXFromLeftOfBoxToLeftOfLabel;
-	y = checkboxHeight;
-	uiWindowsGetSizing(c->hwnd, &sizing);
-	uiWindowsSizingDlgUnitsToPixels(&sizing, &x, &y);
-	*width = x + uiWindowsWindowTextWidth(c->hwnd);
-	*height = y;
+  return reinterpret_cast<uintptr_t> (reinterpret_cast<uiCheckbox *> (c)->hwnd);
 }
 
-static void defaultOnToggled(uiCheckbox *c, void *data)
+static uiControl *
+uiCheckboxParent (uiControl *c)
 {
-	// do nothing
+  return reinterpret_cast<uiWindowsControl *> (c)->parent;
 }
 
-char *uiCheckboxText(uiCheckbox *c)
+static void
+uiCheckboxSetParent (uiControl *c, uiControl *parent)
 {
-	return uiWindowsWindowText(c->hwnd);
+  uiControlVerifySetParent (c, parent);
+  reinterpret_cast<uiWindowsControl *> (c)->parent = parent;
 }
 
-void uiCheckboxSetText(uiCheckbox *c, const char *text)
+static int
+uiCheckboxToplevel (uiControl *)
 {
-	uiWindowsSetWindowText(c->hwnd, text);
-	// changing the text might necessitate a change in the checkbox's size
-	uiWindowsControlMinimumSizeChanged(uiWindowsControl(c));
+  return 0;
 }
 
-void uiCheckboxOnToggled(uiCheckbox *c, void (*f)(uiCheckbox *, void *), void *data)
+static int
+uiCheckboxVisible (uiControl *c)
 {
-	c->onToggled = f;
-	c->onToggledData = data;
+  return reinterpret_cast<uiWindowsControl *> (c)->visible;
 }
 
-int uiCheckboxChecked(uiCheckbox *c)
+static void
+uiCheckboxShow (uiControl *c)
 {
-	return SendMessage(c->hwnd, BM_GETCHECK, 0, 0) == BST_CHECKED;
+  reinterpret_cast<uiWindowsControl *> (c)->visible = 1;
+  ShowWindow (reinterpret_cast<uiCheckbox *> (c)->hwnd, 5);
+  uiWindowsControlNotifyVisibilityChanged (reinterpret_cast<uiWindowsControl *> (c));
 }
 
-void uiCheckboxSetChecked(uiCheckbox *c, int checked)
+static void
+uiCheckboxHide (uiControl *c)
 {
-	WPARAM check;
-
-	check = BST_CHECKED;
-	if (!checked)
-		check = BST_UNCHECKED;
-	SendMessage(c->hwnd, BM_SETCHECK, check, 0);
+  reinterpret_cast<uiWindowsControl *> (c)->visible = 0;
+  ShowWindow (reinterpret_cast<uiCheckbox *> (c)->hwnd, 0);
+  uiWindowsControlNotifyVisibilityChanged (reinterpret_cast<uiWindowsControl *> (c));
 }
 
-uiCheckbox *uiNewCheckbox(const char *text)
+static int
+uiCheckboxEnabled (uiControl *c)
 {
-	uiCheckbox *c;
-	WCHAR *wtext;
+  return reinterpret_cast<uiWindowsControl *> (c)->enabled;
+}
 
-	uiWindowsNewControl(uiCheckbox, c);
+static void
+uiCheckboxEnable (uiControl *c)
+{
+  reinterpret_cast<uiWindowsControl *> (c)->enabled = 1;
+  uiWindowsControlSyncEnableState (reinterpret_cast<uiWindowsControl *> (c), uiControlEnabledToUser (c));
+}
 
-	wtext = toUTF16(text);
-	c->hwnd = uiWindowsEnsureCreateControlHWND(0,
-		L"button", wtext,
-		BS_CHECKBOX | WS_TABSTOP,
-		hInstance, NULL,
-		TRUE);
-	uiprivFree(wtext);
+static void
+uiCheckboxDisable (uiControl *c)
+{
+  reinterpret_cast<uiWindowsControl *> (c)->enabled = 0;
+  uiWindowsControlSyncEnableState (reinterpret_cast<uiWindowsControl *> (c), uiControlEnabledToUser (c));
+}
 
-	uiWindowsRegisterWM_COMMANDHandler(c->hwnd, onWM_COMMAND, uiControl(c));
-	uiCheckboxOnToggled(c, defaultOnToggled, NULL);
+static void
+uiCheckboxSyncEnableState (uiWindowsControl *c, const int enabled)
+{
+  if (uiWindowsShouldStopSyncEnableState (c, enabled) != 0)
+    return;
 
-	return c;
+  EnableWindow (reinterpret_cast<uiCheckbox *> (c)->hwnd, enabled);
+}
+
+static void
+uiCheckboxSetParentHWND (uiWindowsControl *c, const HWND parent)
+{
+  uiWindowsEnsureSetParentHWND (reinterpret_cast<uiCheckbox *> (c)->hwnd, parent);
+}
+
+static void
+uiCheckboxMinimumSizeChanged (uiWindowsControl *c)
+{
+  if (uiWindowsControlTooSmall (c) != 0)
+    uiWindowsControlContinueMinimumSizeChanged (c);
+}
+
+static void
+uiCheckboxLayoutRect (uiWindowsControl *c, RECT *r)
+{
+  uiWindowsEnsureGetWindowRect (reinterpret_cast<uiCheckbox *> (c)->hwnd, r);
+}
+
+static void
+uiCheckboxAssignControlIDZOrder (uiWindowsControl *c, LONG_PTR *controlID, HWND *insertAfter)
+{
+  uiWindowsEnsureAssignControlIDZOrder (reinterpret_cast<uiCheckbox *> (c)->hwnd, controlID, insertAfter);
+}
+
+static void
+uiCheckboxChildVisibilityChanged (uiWindowsControl *)
+{
+}
+
+static void
+uiCheckboxMinimumSize (uiWindowsControl *cc, int *width, int *height)
+{
+  const auto *c = reinterpret_cast<uiCheckbox *> (cc);
+
+  uiWindowsSizing sizing;
+
+  int x = checkboxXFromLeftOfBoxToLeftOfLabel;
+  int y = checkboxHeight;
+
+  uiWindowsGetSizing (c->hwnd, &sizing);
+  uiWindowsSizingDlgUnitsToPixels (&sizing, &x, &y);
+
+  *width  = x + uiWindowsWindowTextWidth (c->hwnd);
+  *height = y;
+}
+
+static void
+defaultOnToggled (uiCheckbox *, void *)
+{
+  // do nothing
+}
+
+char *
+uiCheckboxText (const uiCheckbox *c)
+{
+  return uiWindowsWindowText (c->hwnd);
+}
+
+void
+uiCheckboxSetText (uiCheckbox *c, const char *text)
+{
+  uiWindowsSetWindowText (c->hwnd, text);
+
+  // changing the text might necessitate a change in the checkbox's size
+  uiWindowsControlMinimumSizeChanged (reinterpret_cast<uiWindowsControl *> (c));
+}
+
+void
+uiCheckboxOnToggled (uiCheckbox *c, void (*f) (uiCheckbox *, void *), void *data)
+{
+  c->onToggled     = f;
+  c->onToggledData = data;
+}
+
+int
+uiCheckboxChecked (const uiCheckbox *c)
+{
+  return SendMessage (c->hwnd, BM_GETCHECK, 0, 0) == BST_CHECKED;
+}
+
+void
+uiCheckboxSetChecked (const uiCheckbox *c, const int checked)
+{
+  WPARAM check = BST_CHECKED;
+
+  if (checked == 0)
+    check = BST_UNCHECKED;
+
+  SendMessage (c->hwnd, BM_SETCHECK, check, 0);
+}
+
+uiCheckbox *
+uiNewCheckbox (const char *text)
+{
+  auto *const c = reinterpret_cast<uiCheckbox *> (
+      uiWindowsAllocControl (sizeof (uiCheckbox), uiCheckboxSignature, "uiCheckbox"));
+
+  auto *control      = reinterpret_cast<uiControl *> (c);
+  control->Destroy   = uiCheckboxDestroy;
+  control->Disable   = uiCheckboxDisable;
+  control->Enable    = uiCheckboxEnable;
+  control->Enabled   = uiCheckboxEnabled;
+  control->Handle    = uiCheckboxHandle;
+  control->Hide      = uiCheckboxHide;
+  control->Parent    = uiCheckboxParent;
+  control->SetParent = uiCheckboxSetParent;
+  control->Show      = uiCheckboxShow;
+  control->Toplevel  = uiCheckboxToplevel;
+  control->Visible   = uiCheckboxVisible;
+
+  auto *windows_control                   = reinterpret_cast<uiWindowsControl *> (c);
+  windows_control->AssignControlIDZOrder  = uiCheckboxAssignControlIDZOrder;
+  windows_control->ChildVisibilityChanged = uiCheckboxChildVisibilityChanged;
+  windows_control->LayoutRect             = uiCheckboxLayoutRect;
+  windows_control->MinimumSize            = uiCheckboxMinimumSize;
+  windows_control->MinimumSizeChanged     = uiCheckboxMinimumSizeChanged;
+  windows_control->SetParentHWND          = uiCheckboxSetParentHWND;
+  windows_control->SyncEnableState        = uiCheckboxSyncEnableState;
+  windows_control->enabled                = 1;
+  windows_control->visible                = 1;
+
+  WCHAR *wtext = toUTF16 (text);
+  c->hwnd = uiWindowsEnsureCreateControlHWND (0, L"button", wtext, BS_CHECKBOX | WS_TABSTOP, hInstance, nullptr, TRUE);
+  uiprivFree (wtext);
+
+  uiWindowsRegisterWM_COMMANDHandler (c->hwnd, onWM_COMMAND, uiControl (c));
+  uiCheckboxOnToggled (c, defaultOnToggled, nullptr);
+
+  return c;
 }

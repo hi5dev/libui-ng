@@ -1,11 +1,8 @@
-#ifndef __LIBUI_RESOURCES_HPP__
-#define __LIBUI_RESOURCES_HPP__
+#pragma once
 
 #define rcTabPageDialog 29000
 #define rcFontDialog 29001
 #define rcColorDialog 29002
-
-// TODO normalize these
 
 #define rcFontFamilyCombobox 1000
 #define rcFontStyleCombobox 1001
@@ -36,6 +33,3 @@
 #define rcBLabel 1121
 #define rcALabel 1122
 #define rcHexLabel 1123
-
-#endif
-

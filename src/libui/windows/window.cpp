@@ -1,3 +1,5 @@
+// ReSharper disable CppDFAConstantParameter
+
 #include "window.h"
 
 #include "debug.h"
@@ -12,8 +14,9 @@
 #include <map>
 
 #include <ui/userbugs.h>
-#include <ui_win32.h>
 #include <uipriv.h>
+
+static std::map<uiWindow *, bool> windows;
 
 static void
 windowMargins (const uiWindow *w, int *mx, int *my)
@@ -80,6 +83,7 @@ windowWndProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPAR
 
   if (handleParentMessages (hwnd, uMsg, wParam, lParam, &lResult) != FALSE)
     return lResult;
+
   switch (uMsg)
     {
     case WM_COMMAND:
@@ -114,8 +118,11 @@ windowWndProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPAR
     case WM_GETMINMAXINFO:
       {
         lResult = DefWindowProcW (hwnd, uMsg, wParam, lParam);
+
         uiWindowsControlMinimumSize (uiWindowsControl (w), &width, &height);
+
         clientSizeToWindowSize (w->hwnd, &width, &height, w->hasMenubar);
+
         if (mmi != nullptr)
           {
             mmi->ptMinTrackSize.x = width;
@@ -148,6 +155,7 @@ windowWndProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPAR
     default:
       break;
     }
+
   return DefWindowProcW (hwnd, uMsg, wParam, lParam);
 }
 
@@ -193,8 +201,6 @@ defaultOnFocusChanged (uiWindow *, void *)
   // no-op
 }
 
-static std::map<uiWindow *, bool> windows;
-
 static void
 uiWindowDestroy (uiControl *c)
 {
@@ -218,26 +224,30 @@ uiWindowDestroy (uiControl *c)
   uiFreeControl (uiControl (w));
 }
 
-uiWindowsControlDefaultHandle (uiWindow)
+static uintptr_t
+uiWindowHandle (uiControl *c)
+{
+  return reinterpret_cast<uintptr_t> (reinterpret_cast<uiWindow *> (c)->hwnd);
+}
 
-    uiControl *uiWindowParent (uiControl *c)
+uiControl *
+uiWindowParent (uiControl *)
 {
   return nullptr;
 }
 
 void
-uiWindowSetParent (uiControl *c, uiControl *parent)
+uiWindowSetParent (uiControl *, uiControl *)
 {
   uiUserBugCannotSetParentOnToplevel ("uiWindow");
 }
 
 static int
-uiWindowToplevel (uiControl *c)
+uiWindowToplevel (uiControl *)
 {
   return 1;
 }
 
-// TODO initial state of windows is hidden; ensure this here and make it so on other platforms
 static int
 uiWindowVisible (uiControl *c)
 {
@@ -281,11 +291,40 @@ uiWindowHide (uiControl *c)
   ShowWindow (w->hwnd, SW_HIDE);
 }
 
-uiWindowsControlDefaultEnabled (uiWindow);
-uiWindowsControlDefaultEnable (uiWindow);
-uiWindowsControlDefaultDisable (uiWindow);
-uiWindowsControlDefaultSyncEnableState (uiWindow);
-uiWindowsControlDefaultSetParentHWND (uiWindow);
+static int
+uiWindowEnabled (uiControl *c)
+{
+  return reinterpret_cast<uiWindowsControl *> (c)->enabled;
+}
+
+static void
+uiWindowEnable (uiControl *c)
+{
+  reinterpret_cast<uiWindowsControl *> (c)->enabled = 1;
+  uiWindowsControlSyncEnableState (reinterpret_cast<uiWindowsControl *> (c), uiControlEnabledToUser (c));
+}
+
+static void
+uiWindowDisable (uiControl *c)
+{
+  reinterpret_cast<uiWindowsControl *> (c)->enabled = 0;
+  uiWindowsControlSyncEnableState (reinterpret_cast<uiWindowsControl *> (c), uiControlEnabledToUser (c));
+};
+
+static void
+uiWindowSyncEnableState (uiWindowsControl *c, const int enabled)
+{
+  if (uiWindowsShouldStopSyncEnableState (c, enabled) != 0)
+    return;
+
+  EnableWindow (reinterpret_cast<uiWindow *> (c)->hwnd, enabled);
+}
+
+static void
+uiWindowSetParentHWND (uiWindowsControl *c, const HWND parent)
+{
+  uiWindowsEnsureSetParentHWND (reinterpret_cast<uiWindow *> (c)->hwnd, parent);
+}
 
 static void
 uiWindowMinimumSize (uiWindowsControl *c, int *width, int *height)
@@ -326,15 +365,18 @@ uiWindowLayoutRect (uiWindowsControl *c, RECT *r)
 {
   const uiWindow *w = uiWindow (c);
 
-  // the layout rect is the client rect in this case
   uiWindowsEnsureGetClientRect (w->hwnd, r);
 }
 
-uiWindowsControlDefaultAssignControlIDZOrder (uiWindow)
-
-    static void uiWindowChildVisibilityChanged (uiWindowsControl *c)
+static void
+uiWindowAssignControlIDZOrder (uiWindowsControl *c, LONG_PTR *controlID, HWND *insertAfter)
 {
-  // TODO eliminate the redundancy
+  uiWindowsEnsureAssignControlIDZOrder (uiWindow (c)->hwnd, controlID, insertAfter);
+}
+
+static void
+uiWindowChildVisibilityChanged (uiWindowsControl *c)
+{
   uiWindowsControlMinimumSizeChanged (c);
 }
 
@@ -418,10 +460,10 @@ void
 uiWindowSetContentSize (uiWindow *w, int width, int height)
 {
   w->changingSize = TRUE;
+
   clientSizeToWindowSize (w->hwnd, &width, &height, w->hasMenubar);
 
   static constexpr auto flags = SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER;
-
   if (SetWindowPos (w->hwnd, nullptr, 0, 0, width, height, flags) == 0)
     (void)logLastError (L"error resizing window");
 
@@ -517,6 +559,7 @@ void
 uiWindowSetBorderless (uiWindow *w, const int borderless)
 {
   w->borderless = borderless;
+
   if (w->borderless != 0)
     setStyle (w->hwnd, getStyle (w->hwnd) & ~WS_OVERLAPPEDWINDOW);
 
@@ -532,7 +575,9 @@ uiWindowSetChild (uiWindow *w, uiControl *child)
       uiControlSetParent (w->child, nullptr);
       uiWindowsControlSetParentHWND (uiWindowsControl (w->child), nullptr);
     }
+
   w->child = child;
+
   if (w->child != nullptr)
     {
       uiControlSetParent (w->child, uiControl (w));
@@ -574,11 +619,7 @@ uiWindowSetResizeable (uiWindow *w, const int resizeable)
 }
 
 static void
-
-setClientSize (const uiWindow *w, const int width, const int height, const BOOL hasMenubar,
-               // ReSharper disable once CppDFAConstantParameter
-               const DWORD style,
-               // ReSharper disable once CppDFAConstantParameter
+setClientSize (const uiWindow *w, const int width, const int height, const BOOL hasMenubar, const DWORD style,
                const DWORD exstyle)
 {
   RECT window;

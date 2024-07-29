@@ -1,7 +1,5 @@
 #pragma once
 
-#include <winuser.h>
-
 enum
 {
   msgCOMMAND = WM_APP + 0x40, //<!

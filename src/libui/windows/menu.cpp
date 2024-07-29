@@ -166,10 +166,10 @@ newItem (uiMenu *m, const int type, const char *name)
   if (item->type == typeQuit)
     {
       item->onClicked     = onQuitClicked;
-      item->onClickedData = NULL;
+      item->onClickedData = nullptr;
     }
   else
-    uiMenuItemOnClicked (item, defaultOnClicked, NULL);
+    uiMenuItemOnClicked (item, defaultOnClicked, nullptr);
 
   return item;
 }
@@ -194,9 +194,9 @@ uiMenuAppendQuitItem (uiMenu *m)
 
   hasQuit = TRUE;
 
-  newItem (m, typeSeparator, NULL);
+  newItem (m, typeSeparator, nullptr);
 
-  return newItem (m, typeQuit, NULL);
+  return newItem (m, typeQuit, nullptr);
 }
 
 uiMenuItem *
@@ -207,9 +207,9 @@ uiMenuAppendPreferencesItem (uiMenu *m)
 
   hasPreferences = TRUE;
 
-  newItem (m, typeSeparator, NULL);
+  newItem (m, typeSeparator, nullptr);
 
-  return newItem (m, typePreferences, NULL);
+  return newItem (m, typePreferences, nullptr);
 }
 
 uiMenuItem *
@@ -220,15 +220,15 @@ uiMenuAppendAboutItem (uiMenu *m)
 
   hasAbout = TRUE;
 
-  newItem (m, typeSeparator, NULL);
+  newItem (m, typeSeparator, nullptr);
 
-  return newItem (m, typeAbout, NULL);
+  return newItem (m, typeAbout, nullptr);
 }
 
 void
 uiMenuAppendSeparator (uiMenu *m)
 {
-  newItem (m, typeSeparator, NULL);
+  newItem (m, typeSeparator, nullptr);
 }
 
 uiMenu *
@@ -288,7 +288,7 @@ makeMenu (const uiMenu *m)
 {
   const HMENU menu = CreatePopupMenu ();
 
-  if (menu == NULL)
+  if (menu == nullptr)
     (void)logLastError (L"error creating menu");
 
   for (size_t i = 0; i < m->len; i++)
@@ -304,7 +304,7 @@ makeMenubar (void)
   menusFinalized = TRUE;
 
   const HMENU menubar = CreateMenu ();
-  if (menubar == NULL)
+  if (menubar == nullptr)
     (void)logLastError (L"error creating menubar");
 
   for (size_t i = 0; i < len; i++)
@@ -364,7 +364,7 @@ freeMenu (const uiMenu *m, const HMENU submenu)
         uiprivImplBug ("submenu handle %p not found in freeMenu()", submenu);
       for (; j < item->len - 1; j++)
         item->hmenus[j] = item->hmenus[j + 1];
-      item->hmenus[j] = NULL;
+      item->hmenus[j] = nullptr;
       item->len--;
     }
 }
@@ -402,23 +402,23 @@ uninitMenus (void)
             uiprivImplBug ("menu item %p (%ws) still has uiWindows attached; did you forget to destroy some windows?",
                            item, item->name);
 
-          if (item->name != NULL)
+          if (item->name != nullptr)
             uiprivFree (item->name);
 
-          if (item->hmenus != NULL)
+          if (item->hmenus != nullptr)
             uiprivFree (item->hmenus); // NOLINT(*-multi-level-implicit-pointer-conversion)
 
           uiprivFree (item);
         }
-      if (m->items != NULL)
+      if (m->items != nullptr)
         uiprivFree (m->items); // NOLINT(*-multi-level-implicit-pointer-conversion)
       uiprivFree (m);
     }
-  if (menus != NULL)
+  if (menus != nullptr)
     uiprivFree (menus); // NOLINT(*-multi-level-implicit-pointer-conversion)
 
   /* Reset global state. */
-  menus          = NULL;
+  menus          = nullptr;
   len            = 0;
   cap            = 0;
   menusFinalized = FALSE;

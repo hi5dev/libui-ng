@@ -1,5 +1,7 @@
 #pragma once
 
+#include <windows.h>
+
 #include <ui/control.h>
 
 #define uiWindowsControl(this) ((uiWindowsControl *)(this))
@@ -203,8 +205,6 @@ extern void uiWindowsEnsureSetParentHWND (HWND hwnd, HWND parent);
 extern void uiWindowsEnsureAssignControlIDZOrder (HWND hwnd, LONG_PTR *controlID, HWND *insertAfter);
 
 extern void uiWindowsEnsureGetClientRect (HWND hwnd, RECT *r);
-
-extern void uiWindowsEnsureGetWindowRect (HWND hwnd, RECT *r);
 
 extern char *uiWindowsWindowText (HWND hwnd);
 

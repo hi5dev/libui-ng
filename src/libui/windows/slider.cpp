@@ -1,151 +1,178 @@
-// 20 may 2015
-#include "uipriv_windows.hpp"
-#include "controlsigs.h"
+#include <windows.h>
 
-struct uiSlider {
-	uiWindowsControl c;
-	HWND hwnd;
-	void (*onChanged)(uiSlider *, void *);
-	void *onChangedData;
-	void (*onReleased)(uiSlider *, void *);
-	void *onReleasedData;
-	HWND hwndToolTip;
-};
+#include <commctrl.h>
 
-static BOOL onWM_HSCROLL(uiControl *c, HWND hwnd, WORD code, LRESULT *lResult)
+#include "slider.h"
+
+#include "init.h"
+#include "winpublic.h"
+
+#include <controlsigs.h>
+
+static BOOL
+onWM_HSCROLL (uiControl *c, HWND, const WORD code, LRESULT *lResult)
 {
-	uiSlider *s = uiSlider(c);
+  const auto s = reinterpret_cast<uiSlider *> (c);
 
-	if (code == TB_ENDTRACK) {
-		(*(s->onReleased))(s, s->onReleasedData);
-	} else {
-		(*(s->onChanged))(s, s->onChangedData);
-	}
+  if (code == TB_ENDTRACK)
+    (*s->onReleased) (s, s->onReleasedData);
 
-	*lResult = 0;
-	return TRUE;
+  else
+    (*s->onChanged) (s, s->onChangedData);
+
+  *lResult = 0;
+
+  return TRUE;
 }
 
-static void uiSliderDestroy(uiControl *c)
+static void
+uiSliderDestroy (uiControl *c)
 {
-	uiSlider *s = uiSlider(c);
+  const auto s = reinterpret_cast<uiSlider *> (c);
 
-	// ensure TRACKBAR_CLASSW takes care of destroying the tooltip
-	uiSliderSetHasToolTip(s, 1);
-
-	uiWindowsUnregisterWM_HSCROLLHandler(s->hwnd);
-	uiWindowsEnsureDestroyWindow(s->hwnd);
-	uiFreeControl(uiControl(s));
+  uiSliderSetHasToolTip (s, 1);
+  uiWindowsUnregisterWM_HSCROLLHandler (s->hwnd);
+  uiWindowsEnsureDestroyWindow (s->hwnd);
+  uiFreeControl (reinterpret_cast<uiControl *> (s));
 }
 
-uiWindowsControlAllDefaultsExceptDestroy(uiSlider);
+uiWindowsControlAllDefaultsExceptDestroy (uiSlider);
 
-// from http://msdn.microsoft.com/en-us/library/windows/desktop/dn742486.aspx#sizingandspacing
-#define sliderWidth 107 /* this is actually the shorter progress bar width, but Microsoft doesn't indicate a width */
-#define sliderHeight 15
-
-static void uiSliderMinimumSize(uiWindowsControl *c, int *width, int *height)
+static void
+uiSliderMinimumSize (uiWindowsControl *c, int *width, int *height)
 {
-	uiSlider *s = uiSlider(c);
-	uiWindowsSizing sizing;
-	int x, y;
+  const auto s = reinterpret_cast<uiSlider *> (c);
 
-	x = sliderWidth;
-	y = sliderHeight;
-	uiWindowsGetSizing(s->hwnd, &sizing);
-	uiWindowsSizingDlgUnitsToPixels(&sizing, &x, &y);
-	*width = x;
-	*height = y;
+  uiWindowsSizing sizing;
+  uiWindowsGetSizing (s->hwnd, &sizing);
+
+  int x = sliderWidth;
+  int y = sliderHeight;
+  uiWindowsSizingDlgUnitsToPixels (&sizing, &x, &y);
+
+  *width  = x;
+  *height = y;
 }
 
-int uiSliderHasToolTip(uiSlider *s)
+int
+uiSliderHasToolTip (const uiSlider *s)
 {
-	return ((HWND) SendMessage(s->hwnd, TBM_GETTOOLTIPS, 0, 0) == s->hwndToolTip);
+  return reinterpret_cast<HWND> (SendMessage (s->hwnd, TBM_GETTOOLTIPS, 0, 0)) == s->hwndToolTip;
 }
 
-void uiSliderSetHasToolTip(uiSlider *s, int hasToolTip)
+void
+uiSliderSetHasToolTip (uiSlider *s, const int hasToolTip)
 {
-	if (hasToolTip)
-		SendMessage(s->hwnd, TBM_SETTOOLTIPS, (WPARAM) s->hwndToolTip, 0);
-	else
-		SendMessage(s->hwnd, TBM_SETTOOLTIPS, 0, 0);
+  if (hasToolTip)
+    SendMessage (s->hwnd, TBM_SETTOOLTIPS, reinterpret_cast<WPARAM> (s->hwndToolTip), 0);
+
+  else
+    SendMessage (s->hwnd, TBM_SETTOOLTIPS, 0, 0);
 }
 
-static void defaultOnChanged(uiSlider *s, void *data)
+static void
+defaultOnChanged (uiSlider *, void *)
 {
-	// do nothing
+  // do nothing
 }
 
-static void defaultOnReleased(uiSlider *s, void *data)
+static void
+defaultOnReleased (uiSlider *, void *)
 {
-	// do nothing
+  // do nothing
 }
 
-int uiSliderValue(uiSlider *s)
+int
+uiSliderValue (const uiSlider *s)
 {
-	return SendMessageW(s->hwnd, TBM_GETPOS, 0, 0);
+  return SendMessageW (s->hwnd, TBM_GETPOS, 0, 0);
 }
 
-void uiSliderSetValue(uiSlider *s, int value)
+void
+uiSliderSetValue (const uiSlider *s, const int value)
 {
-	// don't use TBM_SETPOSNOTIFY; that triggers an event
-	SendMessageW(s->hwnd, TBM_SETPOS, (WPARAM) TRUE, (LPARAM) value);
+  SendMessageW (s->hwnd, TBM_SETPOS, TRUE, value);
 }
 
-void uiSliderOnChanged(uiSlider *s, void (*f)(uiSlider *, void *), void *data)
+void
+uiSliderOnChanged (uiSlider *s, void (*f) (uiSlider *, void *), void *data)
 {
-	s->onChanged = f;
-	s->onChangedData = data;
+  s->onChanged     = f;
+  s->onChangedData = data;
 }
 
-void uiSliderOnReleased(uiSlider *s, void (*f)(uiSlider *, void *), void *data)
+void
+uiSliderOnReleased (uiSlider *s, void (*f) (uiSlider *, void *), void *data)
 {
-	s->onReleased = f;
-	s->onReleasedData = data;
+  s->onReleased     = f;
+  s->onReleasedData = data;
 }
 
-void uiSliderSetRange(uiSlider *s, int min, int max)
+void
+uiSliderSetRange (const uiSlider *s, int min, int max)
 {
-	int temp;
+  if (min >= max)
+    {
+      const int temp = min;
 
-	if (min >= max) {
-		temp = min;
-		min = max;
-		max = temp;
-	}
+      min = max;
+      max = temp;
+    }
 
-	SendMessageW(s->hwnd, TBM_SETRANGEMIN, (WPARAM) TRUE, (LPARAM) min);
-	SendMessageW(s->hwnd, TBM_SETRANGEMAX, (WPARAM) TRUE, (LPARAM) max);
+  SendMessageW (s->hwnd, TBM_SETRANGEMIN, TRUE, min);
+  SendMessageW (s->hwnd, TBM_SETRANGEMAX, TRUE, max);
 }
 
-uiSlider *uiNewSlider(int min, int max)
+uiSlider *
+uiNewSlider (int min, int max)
 {
-	uiSlider *s;
-	int temp;
+  if (min >= max)
+    {
+      const int temp = min;
 
-	if (min >= max) {
-		temp = min;
-		min = max;
-		max = temp;
-	}
+      min = max;
+      max = temp;
+    }
 
-	uiWindowsNewControl(uiSlider, s);
+  const auto s
+      = reinterpret_cast<uiSlider *> (uiWindowsAllocControl (sizeof (uiSlider), uiSliderSignature, "uiSlider"));
 
-	s->hwnd = uiWindowsEnsureCreateControlHWND(0,
-		TRACKBAR_CLASSW, L"",
-		TBS_HORZ | TBS_TOOLTIPS | TBS_TRANSPARENTBKGND | WS_TABSTOP,
-		hInstance, NULL,
-		TRUE);
+  auto *control      = reinterpret_cast<uiControl *> (s);
+  control->Destroy   = uiSliderDestroy;
+  control->Disable   = uiSliderDisable;
+  control->Enable    = uiSliderEnable;
+  control->Enabled   = uiSliderEnabled;
+  control->Handle    = uiSliderHandle;
+  control->Hide      = uiSliderHide;
+  control->Parent    = uiSliderParent;
+  control->SetParent = uiSliderSetParent;
+  control->Show      = uiSliderShow;
+  control->Toplevel  = uiSliderToplevel;
+  control->Visible   = uiSliderVisible;
 
-	uiWindowsRegisterWM_HSCROLLHandler(s->hwnd, onWM_HSCROLL, uiControl(s));
-	uiSliderOnChanged(s, defaultOnChanged, NULL);
-	uiSliderOnReleased(s, defaultOnReleased, NULL);
+  auto *windows_control                   = reinterpret_cast<uiWindowsControl *> (s);
+  windows_control->AssignControlIDZOrder  = uiSliderAssignControlIDZOrder;
+  windows_control->ChildVisibilityChanged = uiSliderChildVisibilityChanged;
+  windows_control->LayoutRect             = uiSliderLayoutRect;
+  windows_control->MinimumSize            = uiSliderMinimumSize;
+  windows_control->MinimumSizeChanged     = uiSliderMinimumSizeChanged;
+  windows_control->SetParentHWND          = uiSliderSetParentHWND;
+  windows_control->SyncEnableState        = uiSliderSyncEnableState;
+  windows_control->enabled                = 1;
+  windows_control->visible                = 1;
 
-	SendMessageW(s->hwnd, TBM_SETRANGEMIN, (WPARAM) TRUE, (LPARAM) min);
-	SendMessageW(s->hwnd, TBM_SETRANGEMAX, (WPARAM) TRUE, (LPARAM) max);
-	SendMessageW(s->hwnd, TBM_SETPOS, (WPARAM) TRUE, (LPARAM) min);
+  static constexpr auto style = TBS_HORZ | TBS_TOOLTIPS | TBS_TRANSPARENTBKGND | WS_TABSTOP;
+  s->hwnd = uiWindowsEnsureCreateControlHWND (0, TRACKBAR_CLASSW, L"", style, hInstance, nullptr, TRUE);
 
-	s->hwndToolTip = (HWND) SendMessage(s->hwnd, TBM_GETTOOLTIPS, 0, 0);
+  uiWindowsRegisterWM_HSCROLLHandler (s->hwnd, onWM_HSCROLL, reinterpret_cast<uiControl *> (s));
+  uiSliderOnChanged (s, defaultOnChanged, nullptr);
+  uiSliderOnReleased (s, defaultOnReleased, nullptr);
 
-	return s;
+  SendMessageW (s->hwnd, TBM_SETRANGEMIN, TRUE, min);
+  SendMessageW (s->hwnd, TBM_SETRANGEMAX, TRUE, max);
+  SendMessageW (s->hwnd, TBM_SETPOS, TRUE, min);
+
+  s->hwndToolTip = reinterpret_cast<HWND> (SendMessage (s->hwnd, TBM_GETTOOLTIPS, 0, 0));
+
+  return s;
 }

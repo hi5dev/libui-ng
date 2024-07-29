@@ -1,252 +1,288 @@
-// 17 june 2018
-#include "uipriv_windows.hpp"
-#include "table.hpp"
+#include <windows.h>
 
-// TODOs
-// - clicking on the same item restarts editing instead of cancels it
+#include <uipriv.h>
 
-// this is not how the real list view positions and sizes the edit control, but this is a) close enough b) a lot easier to follow c) something I can actually get working d) something I'm slightly more comfortable including in libui
-static HRESULT resizeEdit(uiTable *t, WCHAR *wstr, int iItem, int iSubItem)
+#include "debug.h"
+#include "init.h"
+#include "table.h"
+#include "tableediting.h"
+#include "tablemetrics.h"
+#include "text.h"
+#include "utf16.h"
+
+#include <commctrl.h>
+
+static HRESULT
+resizeEdit (uiTable *t, const WCHAR *wstr, const int iItem, const int iSubItem)
 {
-	uiprivTableMetrics *m;
-	RECT r;
-	HDC dc;
-	HFONT prevFont;
-	TEXTMETRICW tm;
-	SIZE textSize;
-	RECT editRect, clientRect;
-	HRESULT hr;
+  uiprivTableMetrics *m;
 
-	hr = uiprivTableGetMetrics(t, iItem, iSubItem, &m);
-	if (hr != S_OK)
-		return hr;
-	r = m->realTextRect;
-	uiprivFree(m);
+  TEXTMETRICW tm;
 
-	// TODO check errors for all these
-	dc = GetDC(t->hwnd);		// use the list view DC since we're using its coordinate space
-	prevFont = (HFONT) SelectObject(dc, hMessageFont);
-	GetTextMetricsW(dc, &tm);
-	GetTextExtentPoint32W(dc, wstr, wcslen(wstr), &textSize);
-	SelectObject(dc, prevFont);
-	ReleaseDC(t->hwnd, dc);
+  SIZE textSize;
 
-	SendMessageW(t->edit, EM_GETRECT, 0, (LPARAM) (&editRect));
-	r.left -= editRect.left;
-	// find the top of the text
-	r.top += ((r.bottom - r.top) - tm.tmHeight) / 2;
-	// and move THAT by the right offset
-	r.top -= editRect.top;
-	r.right = r.left + textSize.cx;
-	// the real listview does this to add some extra space at the end
-	// TODO this still isn't enough space
-	r.right += 4 * GetSystemMetrics(SM_CXEDGE) + GetSystemMetrics(SM_CYEDGE);
-	// and make the bottom equally positioned to the top
-	r.bottom = r.top + editRect.top + tm.tmHeight + editRect.top;
+  RECT editRect;
 
-	// make sure the edit box doesn't stretch outside the listview
-	// the list view just does this, which is dumb for when the list view wouldn't be visible at all, but given that it doesn't scroll the edit into view either...
-	// TODO check errors
-	GetClientRect(t->hwnd, &clientRect);
-	IntersectRect(&r, &r, &clientRect);
+  RECT clientRect;
 
-	// TODO check error or use the right function
-	SetWindowPos(t->edit, NULL,
-		r.left, r.top,
-		r.right - r.left, r.bottom - r.top,
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-	return S_OK;
+  const HRESULT hr = uiprivTableGetMetrics (t, iItem, iSubItem, &m);
+  if (hr != S_OK)
+    return hr;
+
+  RECT r = m->realTextRect;
+  uiprivFree (m);
+
+  const HDC   dc       = GetDC (t->hwnd);
+  auto *const prevFont = static_cast<HFONT> (SelectObject (dc, hMessageFont));
+
+  GetTextMetricsW (dc, &tm);
+  GetTextExtentPoint32W (dc, wstr, wcslen (wstr), &textSize); // NOLINT(*-narrowing-conversions)
+  SelectObject (dc, prevFont);
+  ReleaseDC (t->hwnd, dc);
+
+  SendMessageW (t->edit, EM_GETRECT, 0, reinterpret_cast<LPARAM> (&editRect));
+  r.left -= editRect.left;
+
+  // find the top of the text
+  r.top += (r.bottom - r.top - tm.tmHeight) / 2;
+
+  // and move THAT by the right offset
+  r.top -= editRect.top;
+  r.right = r.left + textSize.cx;
+
+  // the real listview does this to add some extra space at the end
+  r.right += 4 * GetSystemMetrics (SM_CXEDGE) + GetSystemMetrics (SM_CYEDGE);
+
+  // and make the bottom equally positioned to the top
+  r.bottom = r.top + editRect.top + tm.tmHeight + editRect.top;
+
+  // make sure the edit box doesn't stretch outside the listview
+  GetClientRect (t->hwnd, &clientRect);
+  IntersectRect (&r, &r, &clientRect);
+
+  static constexpr auto flags = SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER;
+  SetWindowPos (t->edit, nullptr, r.left, r.top, r.right - r.left, r.bottom - r.top, flags);
+
+  return S_OK;
 }
 
-// the real list view intercepts these keys to control editing
-static LRESULT CALLBACK editSubProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIDSubclass, DWORD_PTR dwRefData)
+static LRESULT CALLBACK
+editSubProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const LPARAM lParam, const UINT_PTR uIDSubclass,
+             const DWORD_PTR dwRefData)
 {
-	uiTable *t = (uiTable *) dwRefData;
-	HRESULT hr;
+  auto   *t = reinterpret_cast<uiTable *> (dwRefData);
+  HRESULT hr;
 
-	switch (uMsg) {
-	case WM_KEYDOWN:
-		switch (wParam) {
-		// TODO handle VK_TAB and VK_SHIFT+VK_TAB
-		case VK_RETURN:
-			hr = uiprivTableFinishEditingText(t);
-			if (hr != S_OK) {
-				// TODO
-			}
-			return 0;		// yes, the real list view just returns here
-		case VK_ESCAPE:
-			hr = uiprivTableAbortEditingText(t);
-			if (hr != S_OK) {
-				// TODO
-			}
-			return 0;
-		}
-		break;
-	// the real list view also forces these flags
-	case WM_GETDLGCODE:
-		return DLGC_HASSETSEL | DLGC_WANTALLKEYS;
-	case WM_NCDESTROY:
-		if (RemoveWindowSubclass(hwnd, editSubProc, uIDSubclass) == FALSE)
-			logLastError(L"RemoveWindowSubclass()");
-		// fall through
-	}
-	return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+  switch (uMsg)
+    {
+    case WM_KEYDOWN:
+      switch (wParam)
+        {
+        case VK_RETURN:
+          {
+            hr = uiprivTableFinishEditingText (t);
+            if (hr != S_OK)
+              (void)logHRESULT (L"uiprivTableFinishEditingText", hr);
+            return 0;
+          }
+
+        case VK_ESCAPE:
+          {
+            hr = uiprivTableAbortEditingText (t);
+            if (hr != S_OK)
+              (void)logHRESULT (L"uiprivTableAbortEditingText", hr);
+            return 0;
+          }
+
+        default:
+          break;
+        }
+
+      break;
+
+    case WM_GETDLGCODE:
+      return DLGC_HASSETSEL | DLGC_WANTALLKEYS;
+
+    case WM_NCDESTROY:
+      {
+        if (RemoveWindowSubclass (hwnd, editSubProc, uIDSubclass) == FALSE)
+          (void)logLastError (L"RemoveWindowSubclass()");
+      }
+
+    default:;
+      break;
+    }
+
+  return DefSubclassProc (hwnd, uMsg, wParam, lParam);
 }
 
-static HRESULT openEditControl(uiTable *t, int iItem, int iSubItem, uiprivTableColumnParams *p)
+static HRESULT
+openEditControl (uiTable *t, const int iItem, const int iSubItem, const uiprivTableColumnParams *p)
 {
-	uiTableValue *value;
-	WCHAR *wstr;
-	HRESULT hr;
+  // the real list view accepts changes to the existing item when editing a new item
+  HRESULT hr = uiprivTableFinishEditingText (t);
+  if (hr != S_OK)
+    return hr;
 
-	// the real list view accepts changes to the existing item when editing a new item
-	hr = uiprivTableFinishEditingText(t);
-	if (hr != S_OK)
-		return hr;
+  // the real list view creates the edit control with the string
+  uiTableValue *value = uiprivTableModelCellValue (t->model, iItem, p->textModelColumn);
+  WCHAR        *wstr  = toUTF16 (uiTableValueString (value));
+  uiFreeTableValue (value);
 
-	// the real list view creates the edit control with the string
-	value = uiprivTableModelCellValue(t->model, iItem, p->textModelColumn);
-	wstr = toUTF16(uiTableValueString(value));
-	uiFreeTableValue(value);
-	// TODO copy WS_EX_RTLREADING
-	t->edit = CreateWindowExW(0,
-		L"EDIT", wstr,
-		// these styles are what the normal listview edit uses
-		WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER | ES_AUTOHSCROLL,
-		// as is this size
-		0, 0, 16384, 16384,
-		// and this control ID
-		t->hwnd, (HMENU) 1, hInstance, NULL);
-	if (t->edit == NULL) {
-		logLastError(L"CreateWindowExW()");
-		uiprivFree(wstr);
-		return E_FAIL;
-	}
-	SendMessageW(t->edit, WM_SETFONT, (WPARAM) hMessageFont, (LPARAM) TRUE);
-	// TODO check errors
-	SetWindowSubclass(t->edit, editSubProc, 0, (DWORD_PTR) t);
+  static constexpr auto flags = WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER | ES_AUTOHSCROLL;
+  t->edit = CreateWindowExW (0, L"EDIT", wstr, flags, 0, 0, 16384, 16384, t->hwnd, reinterpret_cast<HMENU> (1),
+                             hInstance, nullptr);
+  if (t->edit == nullptr)
+    {
+      (void)logLastError (L"CreateWindowExW()");
+      uiprivFree (wstr);
+      return E_FAIL;
+    }
 
-	hr = resizeEdit(t, wstr, iItem, iSubItem);
-	if (hr != S_OK)
-		// TODO proper cleanup
-		return hr;
-	// TODO check errors on these two, if any
-	SetFocus(t->edit);
-	ShowWindow(t->edit, SW_SHOW);
-	SendMessageW(t->edit, EM_SETSEL, 0, (LPARAM) (-1));
+  SendMessageW (t->edit, WM_SETFONT, reinterpret_cast<WPARAM> (hMessageFont), TRUE);
+  SetWindowSubclass (t->edit, editSubProc, 0, reinterpret_cast<DWORD_PTR> (t));
 
-	uiprivFree(wstr);
-	t->editedItem = iItem;
-	t->editedSubitem = iSubItem;
-	return S_OK;
+  hr = resizeEdit (t, wstr, iItem, iSubItem);
+  if (hr != S_OK)
+    return hr;
+
+  SetFocus (t->edit);
+  ShowWindow (t->edit, SW_SHOW);
+  SendMessageW (t->edit, EM_SETSEL, 0, -1);
+
+  uiprivFree (wstr);
+  t->editedItem    = iItem;
+  t->editedSubitem = iSubItem;
+  return S_OK;
 }
 
-HRESULT uiprivTableResizeWhileEditing(uiTable *t)
+HRESULT
+uiprivTableResizeWhileEditing (uiTable *t)
 {
-	WCHAR *text;
-	HRESULT hr;
+  if (t->edit == nullptr)
+    return S_OK;
 
-	if (t->edit == NULL)
-		return S_OK;
-	text = windowText(t->edit);
-	hr = resizeEdit(t, text, t->editedItem, t->editedSubitem);
-	uiprivFree(text);
-	return hr;
+  WCHAR *text = windowText (t->edit);
+
+  const HRESULT hr = resizeEdit (t, text, t->editedItem, t->editedSubitem);
+
+  uiprivFree (text);
+
+  return hr;
 }
 
-HRESULT uiprivTableFinishEditingText(uiTable *t)
+HRESULT
+uiprivTableFinishEditingText (uiTable *t)
 {
-	uiprivTableColumnParams *p;
-	uiTableValue *value;
-	char *text;
+  if (t->edit == nullptr)
+    return S_OK;
 
-	if (t->edit == NULL)
-		return S_OK;
-	text = uiWindowsWindowText(t->edit);
-	value = uiNewTableValueString(text);
-	uiFreeText(text);
-	p = (*(t->columns))[t->editedSubitem];
-	uiprivTableModelSetCellValue(t->model, t->editedItem, p->textModelColumn, value);
-	uiFreeTableValue(value);
-	return uiprivTableAbortEditingText(t);
+  char *text = uiWindowsWindowText (t->edit);
+
+  uiTableValue *value = uiNewTableValueString (text);
+
+  uiFreeText (text);
+
+  const uiprivTableColumnParams *p = (*t->columns)[t->editedSubitem];
+
+  uiprivTableModelSetCellValue (t->model, t->editedItem, p->textModelColumn, value);
+
+  uiFreeTableValue (value);
+
+  return uiprivTableAbortEditingText (t);
 }
 
-HRESULT uiprivTableAbortEditingText(uiTable *t)
+HRESULT
+uiprivTableAbortEditingText (uiTable *t)
 {
-	HWND edit;
+  if (t->edit == nullptr)
+    return S_OK;
 
-	if (t->edit == NULL)
-		return S_OK;
-	// set t->edit to NULL now so we don't trigger commits on focus killed
-	edit = t->edit;
-	t->edit = NULL;
+  // set t->edit to NULL now so we don't trigger commits on focus killed
+  const HWND edit = t->edit;
+  t->edit         = nullptr;
 
-	if (DestroyWindow(edit) == 0) {
-		logLastError(L"DestroyWindow()");
-		return E_FAIL;
-	}
-	return S_OK;
+  if (DestroyWindow (edit) == 0)
+    {
+      (void)logLastError (L"DestroyWindow()");
+      return E_FAIL;
+    }
+
+  return S_OK;
 }
 
-HRESULT uiprivTableHandleNM_CLICK(uiTable *t, NMITEMACTIVATE *nm, LRESULT *lResult)
+HRESULT
+uiprivTableHandleNM_CLICK (uiTable *t, const NMITEMACTIVATE *nm, LRESULT *lResult)
 {
-	LVHITTESTINFO ht;
-	uiprivTableColumnParams *p;
-	int modelColumn, editableColumn;
-	bool text, checkbox;
-	uiTableValue *value;
-	int checked;
-	HRESULT hr;
+  LVHITTESTINFO ht;
 
-	ZeroMemory(&ht, sizeof (LVHITTESTINFO));
-	ht.pt = nm->ptAction;
-	if (SendMessageW(t->hwnd, LVM_SUBITEMHITTEST, 0, (LPARAM) (&ht)) == (LRESULT) (-1))
-		goto done;
+  ZeroMemory (&ht, sizeof (LVHITTESTINFO));
+  ht.pt = nm->ptAction;
+  if (SendMessageW (t->hwnd, LVM_SUBITEMHITTEST, 0, reinterpret_cast<LPARAM> (&ht)) == static_cast<LRESULT> (-1))
+    goto done;
 
-	modelColumn = -1;
-	editableColumn = -1;
-	text = false;
-	checkbox = false;
-	p = (*(t->columns))[ht.iSubItem];
-	if (p->textModelColumn != -1) {
-		modelColumn = p->textModelColumn;
-		editableColumn = p->textEditableModelColumn;
-		text = true;
-	} else if (p->checkboxModelColumn != -1) {
-		modelColumn = p->checkboxModelColumn;
-		editableColumn = p->checkboxEditableModelColumn;
-		checkbox = true;
-	} else if (p->buttonModelColumn != -1) {
-		modelColumn = p->buttonModelColumn;
-		editableColumn = p->buttonClickableModelColumn;
-	}
-	if (modelColumn == -1)
-		goto done;
+  int  modelColumn    = -1;
+  int  editableColumn = -1;
+  bool text           = false;
+  bool checkbox       = false;
 
-	if (text && t->inDoubleClickTimer)
-		// don't even ask for info if it's too soon to edit text
-		goto done;
+  const uiprivTableColumnParams *p = (*t->columns)[ht.iSubItem];
+  if (p->textModelColumn != -1)
+    {
+      modelColumn    = p->textModelColumn;
+      editableColumn = p->textEditableModelColumn;
+      text           = true;
+    }
 
-	if (!uiprivTableModelCellEditable(t->model, ht.iItem, editableColumn))
-		goto done;
+  else if (p->checkboxModelColumn != -1)
+    {
+      modelColumn    = p->checkboxModelColumn;
+      editableColumn = p->checkboxEditableModelColumn;
+      checkbox       = true;
+    }
 
-	if (text) {
-		hr = openEditControl(t, ht.iItem, ht.iSubItem, p);
-		if (hr != S_OK)
-			return hr;
-	} else if (checkbox) {
-		if ((ht.flags & LVHT_ONITEMICON) == 0)
-			goto done;
-		value = uiprivTableModelCellValue(t->model, ht.iItem, modelColumn);
-		checked = uiTableValueInt(value);
-		uiFreeTableValue(value);
-		value = uiNewTableValueInt(!checked);
-		uiprivTableModelSetCellValue(t->model, ht.iItem, modelColumn, value);
-		uiFreeTableValue(value);
-	} else
-		uiprivTableModelSetCellValue(t->model, ht.iItem, modelColumn, NULL);
+  else if (p->buttonModelColumn != -1)
+    {
+      modelColumn    = p->buttonModelColumn;
+      editableColumn = p->buttonClickableModelColumn;
+    }
+
+  if (modelColumn == -1)
+    goto done;
+
+  if (text && t->inDoubleClickTimer != 0)
+    goto done;
+
+  if (uiprivTableModelCellEditable (t->model, ht.iItem, editableColumn) == 0)
+    goto done;
+
+  if (text)
+    {
+      const HRESULT hr = openEditControl (t, ht.iItem, ht.iSubItem, p);
+      if (hr != S_OK)
+        return hr;
+    }
+
+  else if (checkbox)
+    {
+      if ((ht.flags & LVHT_ONITEMICON) == 0)
+        goto done;
+
+      uiTableValue *value   = uiprivTableModelCellValue (t->model, ht.iItem, modelColumn);
+      const int     checked = uiTableValueInt (value);
+      uiFreeTableValue (value);
+
+      value = uiNewTableValueInt (checked == 0); // NOLINT(*-implicit-bool-conversion)
+      uiprivTableModelSetCellValue (t->model, ht.iItem, modelColumn, value);
+      uiFreeTableValue (value);
+    }
+
+  else
+    {
+      uiprivTableModelSetCellValue (t->model, ht.iItem, modelColumn, nullptr);
+    }
 
 done:
-	*lResult = 0;
-	return S_OK;
+  *lResult = 0;
+  return S_OK;
 }

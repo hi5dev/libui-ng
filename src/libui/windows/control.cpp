@@ -1,121 +1,132 @@
-// 16 august 2015
-#include "uipriv_windows.hpp"
+#include "debug.h"
+#include "init.h"
+#include "utilwin.h"
 
-void uiWindowsControlSyncEnableState(uiWindowsControl *c, int enabled)
-{
-	(*(c->SyncEnableState))(c, enabled);
-}
+#include <ui_win32.h>
 
-void uiWindowsControlSetParentHWND(uiWindowsControl *c, HWND parent)
-{
-	(*(c->SetParentHWND))(c, parent);
-}
-
-void uiWindowsControlMinimumSize(uiWindowsControl *c, int *width, int *height)
-{
-	(*(c->MinimumSize))(c, width, height);
-}
-
-void uiWindowsControlMinimumSizeChanged(uiWindowsControl *c)
-{
-	(*(c->MinimumSizeChanged))(c);
-}
-
-// TODO get rid of this
-void uiWindowsControlLayoutRect(uiWindowsControl *c, RECT *r)
-{
-	(*(c->LayoutRect))(c, r);
-}
-
-void uiWindowsControlAssignControlIDZOrder(uiWindowsControl *c, LONG_PTR *controlID, HWND *insertAfter)
-{
-	(*(c->AssignControlIDZOrder))(c, controlID, insertAfter);
-}
-
-void uiWindowsControlChildVisibilityChanged(uiWindowsControl *c)
-{
-	(*(c->ChildVisibilityChanged))(c);
-}
-
-HWND uiWindowsEnsureCreateControlHWND(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, HINSTANCE hInstance, LPVOID lpParam, BOOL useStandardControlFont)
-{
-	HWND hwnd;
-
-	// don't let using the arrow keys in a uiRadioButtons leave the radio buttons
-	if ((dwStyle & WS_TABSTOP) != 0)
-		dwStyle |= WS_GROUP;
-	hwnd = CreateWindowExW(dwExStyle,
-		lpClassName, lpWindowName,
-		dwStyle | WS_CHILD | WS_VISIBLE,
-		0, 0,
-		// use a nonzero initial size just in case some control breaks with a zero initial size
-		100, 100,
-		utilWindow, NULL, hInstance, lpParam);
-	if (hwnd == NULL) {
-		logLastError(L"error creating window");
-		// TODO return a decoy window
-	}
-	if (useStandardControlFont)
-		SendMessageW(hwnd, WM_SETFONT, (WPARAM) hMessageFont, (LPARAM) TRUE);
-	return hwnd;
-}
-
-// choose a value distinct from uiWindowSignature
 #define uiWindowsControlSignature 0x4D53576E
 
-uiWindowsControl *uiWindowsAllocControl(size_t n, uint32_t typesig, const char *typenamestr)
+void
+uiWindowsControlSyncEnableState (uiWindowsControl *c, const int enabled)
 {
-	return uiWindowsControl(uiAllocControl(n, uiWindowsControlSignature, typesig, typenamestr));
+  (*c->SyncEnableState) (c, enabled);
 }
 
-BOOL uiWindowsShouldStopSyncEnableState(uiWindowsControl *c, BOOL enabled)
+void
+uiWindowsControlSetParentHWND (uiWindowsControl *c, const HWND parent)
 {
-	int ce;
-
-	ce = uiControlEnabled(uiControl(c));
-	// only stop if we're going from disabled back to enabled; don't stop under any other condition
-	// (if we stop when going from enabled to disabled then enabled children of a disabled control won't get disabled at the OS level)
-	if (!ce && enabled)
-		return TRUE;
-	return FALSE;
+  (*c->SetParentHWND) (c, parent);
 }
 
-void uiWindowsControlAssignSoleControlIDZOrder(uiWindowsControl *c)
+void
+uiWindowsControlMinimumSize (uiWindowsControl *c, int *width, int *height)
 {
-	LONG_PTR controlID;
-	HWND insertAfter;
-
-	controlID = 100;
-	insertAfter = NULL;
-	uiWindowsControlAssignControlIDZOrder(c, &controlID, &insertAfter);
+  (*c->MinimumSize) (c, width, height);
 }
 
-BOOL uiWindowsControlTooSmall(uiWindowsControl *c)
+void
+uiWindowsControlMinimumSizeChanged (uiWindowsControl *c)
 {
-	RECT r;
-	int width, height;
-
-	uiWindowsControlLayoutRect(c, &r);
-	uiWindowsControlMinimumSize(c, &width, &height);
-	if ((r.right - r.left) < width)
-		return TRUE;
-	if ((r.bottom - r.top) < height)
-		return TRUE;
-	return FALSE;
+  (*c->MinimumSizeChanged) (c);
 }
 
-void uiWindowsControlContinueMinimumSizeChanged(uiWindowsControl *c)
+void
+uiWindowsControlLayoutRect (uiWindowsControl *c, RECT *r)
 {
-	uiControl *parent;
-
-	parent = uiControlParent(uiControl(c));
-	if (parent != NULL)
-		uiWindowsControlMinimumSizeChanged(uiWindowsControl(parent));
+  (*c->LayoutRect) (c, r);
 }
 
-// TODO rename this nad the OS X this and hugging ones to NotifyChild
-void uiWindowsControlNotifyVisibilityChanged(uiWindowsControl *c)
+void
+uiWindowsControlAssignControlIDZOrder (uiWindowsControl *c, LONG_PTR *controlID, HWND *insertAfter)
 {
-	// TODO we really need to figure this out; the duplication is a mess
-	uiWindowsControlContinueMinimumSizeChanged(c);
+  (*c->AssignControlIDZOrder) (c, controlID, insertAfter);
+}
+
+void
+uiWindowsControlChildVisibilityChanged (uiWindowsControl *c)
+{
+  (*c->ChildVisibilityChanged) (c);
+}
+
+HWND
+uiWindowsEnsureCreateControlHWND (const DWORD dwExStyle, const LPCWSTR lpClassName, const LPCWSTR lpWindowName,
+                                  DWORD dwStyle, const HINSTANCE hInstance, const LPVOID lpParam,
+                                  const BOOL useStandardControlFont)
+{
+  // don't let using the arrow keys in a uiRadioButtons leave the radio buttons
+  if ((dwStyle & WS_TABSTOP) != 0)
+    dwStyle |= WS_GROUP;
+
+  const HWND hwnd = CreateWindowExW (dwExStyle, lpClassName, lpWindowName, dwStyle | WS_CHILD | WS_VISIBLE, 0, 0, 100,
+                                     100, utilWindow, nullptr, hInstance, lpParam);
+  if (hwnd == nullptr)
+    (void)logLastError (L"error creating window");
+
+  if (useStandardControlFont != 0)
+    SendMessageW (hwnd, WM_SETFONT, reinterpret_cast<WPARAM> (hMessageFont), TRUE);
+
+  return hwnd;
+}
+
+uiWindowsControl *
+uiWindowsAllocControl (const size_t n, const uint32_t typesig, const char *typenamestr)
+{
+  return uiWindowsControl (uiAllocControl (n, uiWindowsControlSignature, typesig, typenamestr));
+}
+
+BOOL
+uiWindowsShouldStopSyncEnableState (uiWindowsControl *c, const BOOL enabled)
+{
+  const int ce = uiControlEnabled (reinterpret_cast<uiControl *> (c));
+
+  // only stop if we're going from disabled back to enabled; don't stop under any other condition
+  // (if we stop when going from enabled to disabled then enabled children of a disabled control won't get disabled at
+  // the OS level)
+  if (ce == 0 && enabled != 0)
+    return TRUE;
+
+  return FALSE;
+}
+
+void
+uiWindowsControlAssignSoleControlIDZOrder (uiWindowsControl *c)
+{
+  LONG_PTR controlID   = 100;
+  HWND     insertAfter = nullptr;
+
+  uiWindowsControlAssignControlIDZOrder (c, &controlID, &insertAfter);
+}
+
+BOOL
+uiWindowsControlTooSmall (uiWindowsControl *c)
+{
+  RECT r;
+  uiWindowsControlLayoutRect (c, &r);
+
+  int width;
+  int height;
+  uiWindowsControlMinimumSize (c, &width, &height);
+
+  if (r.right - r.left < width)
+    return TRUE;
+
+  if (r.bottom - r.top < height)
+    return TRUE;
+
+  return FALSE;
+}
+
+void
+uiWindowsControlContinueMinimumSizeChanged (uiWindowsControl *c)
+{
+  uiControl *parent = uiControlParent (reinterpret_cast<uiControl *> (c));
+
+  if (parent != nullptr)
+    uiWindowsControlMinimumSizeChanged (reinterpret_cast<uiWindowsControl *> (parent));
+}
+
+void
+uiWindowsControlNotifyVisibilityChanged (uiWindowsControl *c)
+{
+  uiWindowsControlContinueMinimumSizeChanged (c);
 }

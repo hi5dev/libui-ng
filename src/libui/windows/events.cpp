@@ -1,8 +1,10 @@
 #include "events.h"
+#include "utilwin.h"
 
-#include <map>
 #include <ui/control.h>
 #include <ui/userbugs.h>
+
+#include <map>
 
 struct handler
 {
@@ -29,7 +31,7 @@ void
 uiWindowsRegisterWM_COMMANDHandler (const HWND hwnd, BOOL (*handler) (uiControl *, HWND, WORD, LRESULT *),
                                     uiControl *c)
 {
-  if (handlers[hwnd].commandHandler != NULL)
+  if (handlers[hwnd].commandHandler != nullptr)
     uiprivImplBug ("already registered a WM_COMMAND handler to window handle %p", hwnd);
 
   handlers[hwnd].commandHandler = handler;
@@ -41,7 +43,7 @@ void
 uiWindowsRegisterWM_NOTIFYHandler (const HWND hwnd, BOOL (*handler) (uiControl *, HWND, NMHDR *, LRESULT *),
                                    uiControl *c)
 {
-  if (handlers[hwnd].notifyHandler != NULL)
+  if (handlers[hwnd].notifyHandler != nullptr)
     uiprivImplBug ("already registered a WM_NOTIFY handler to window handle %p", hwnd);
 
   handlers[hwnd].notifyHandler = handler;
@@ -53,7 +55,7 @@ void
 uiWindowsRegisterWM_HSCROLLHandler (const HWND hwnd, BOOL (*handler) (uiControl *, HWND, WORD, LRESULT *),
                                     uiControl *c)
 {
-  if (handlers[hwnd].hscrollHandler != NULL)
+  if (handlers[hwnd].hscrollHandler != nullptr)
     uiprivImplBug ("already registered a WM_HSCROLL handler to window handle %p", hwnd);
 
   handlers[hwnd].hscrollHandler = handler;
@@ -64,35 +66,35 @@ uiWindowsRegisterWM_HSCROLLHandler (const HWND hwnd, BOOL (*handler) (uiControl 
 void
 uiWindowsUnregisterWM_COMMANDHandler (const HWND hwnd)
 {
-  if (handlers[hwnd].commandHandler == NULL)
+  if (handlers[hwnd].commandHandler == nullptr)
     uiprivImplBug ("window handle %p not registered to receive WM_COMMAND events", hwnd);
 
-  handlers[hwnd].commandHandler = NULL;
+  handlers[hwnd].commandHandler = nullptr;
 }
 
 void
 uiWindowsUnregisterWM_NOTIFYHandler (const HWND hwnd)
 {
-  if (handlers[hwnd].notifyHandler == NULL)
+  if (handlers[hwnd].notifyHandler == nullptr)
     uiprivImplBug ("window handle %p not registered to receive WM_NOTIFY events", hwnd);
 
-  handlers[hwnd].notifyHandler = NULL;
+  handlers[hwnd].notifyHandler = nullptr;
 }
 
 void
 uiWindowsUnregisterWM_HSCROLLHandler (const HWND hwnd)
 {
-  if (handlers[hwnd].hscrollHandler == NULL)
+  if (handlers[hwnd].hscrollHandler == nullptr)
     uiprivImplBug ("window handle %p not registered to receive WM_HSCROLL events", hwnd);
 
-  handlers[hwnd].hscrollHandler = NULL;
+  handlers[hwnd].hscrollHandler = nullptr;
 }
 
 template <typename T>
 static BOOL
 shouldRun (const HWND hwnd, T method)
 {
-  if (hwnd == NULL)
+  if (hwnd == nullptr)
     return FALSE;
 
   // don't bounce back if to the utility window, in which case act as if the message was ignored

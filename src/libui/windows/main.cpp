@@ -1,160 +1,179 @@
-// 6 april 2015
+#include <windows.h>
+
+#include "main.h"
+
+#include "areaevents.h"
+#include "debug.h"
+#include "init.h"
 #include "uipriv_windows.hpp"
+#include "utilwin.h"
+#include "winutil.h"
+
+#include <map>
+#include <uipriv.h>
 
 static HHOOK filter;
 
-static LRESULT CALLBACK filterProc(int code, WPARAM wParam, LPARAM lParam)
-{
-	MSG *msg = (MSG *) lParam;
-
-	if (code < 0)
-		goto callNext;
-
-	if (areaFilter(msg))		// don't continue to our IsDialogMessage() hack if the area handled it
-		goto discard;
-
-	// TODO IsDialogMessage() hack here
-
-	// otherwise keep going
-	goto callNext;
-
-discard:
-	// we handled it; discard the message so the dialog manager doesn't see it
-	return 1;
-
-callNext:
-	return CallNextHookEx(filter, code, wParam, lParam);
-}
-
-int registerMessageFilter(void)
-{
-	filter = SetWindowsHookExW(WH_MSGFILTER,
-		filterProc,
-		hInstance,
-		GetCurrentThreadId());
-	return filter != NULL;
-}
-
-void unregisterMessageFilter(void)
-{
-	if (UnhookWindowsHookEx(filter) == 0)
-		logLastError(L"error unregistering libui message filter");
-}
-
-// LONGTERM http://blogs.msdn.com/b/oldnewthing/archive/2005/04/08/406509.aspx when adding accelerators, TranslateAccelerators() before IsDialogMessage()
-
-static void processMessage(MSG *msg)
-{
-	HWND correctParent;
-
-	if (msg->hwnd != NULL)
-		correctParent = parentToplevel(msg->hwnd);
-	else		// just to be safe
-		correctParent = GetActiveWindow();
-	if (correctParent != NULL)
-		// this calls our mesage filter above for us
-		if (IsDialogMessage(correctParent, msg) != 0)
-			return;
-	TranslateMessage(msg);
-	DispatchMessageW(msg);
-}
-
-static int waitMessage(MSG *msg)
-{
-	int res;
-
-	res = GetMessageW(msg, NULL, 0, 0);
-	if (res < 0) {
-		logLastError(L"error calling GetMessage()");
-		return 0;		// bail out on error
-	}
-	return res != 0;		// returns false on WM_QUIT
-}
-
-void uiMain(void)
-{
-	while (uiMainStep(1))
-		;
-}
-
-void uiMainSteps(void)
-{
-	// don't need to do anything here
-}
-
-static int peekMessage(MSG *msg)
-{
-	BOOL res;
-
-	res = PeekMessageW(msg, NULL, 0, 0, PM_REMOVE);
-	if (res == 0)
-		return 2;		// no message available
-	if (msg->message != WM_QUIT)
-		return 1;		// a message
-	return 0;			// WM_QUIT
-}
-
-int uiMainStep(int wait)
-{
-	MSG msg;
-
-	if (wait) {
-		if (!waitMessage(&msg))
-			return 0;
-		processMessage(&msg);
-		return 1;
-	}
-
-	// don't wait for a message
-	switch (peekMessage(&msg)) {
-	case 0:		// quit
-		// TODO PostQuitMessage() again?
-		return 0;
-	case 1:		// process a message
-		processMessage(&msg);
-		// fall out to the case for no message
-	}
-	return 1;		// no message
-}
-
-void uiQuit(void)
-{
-	PostQuitMessage(0);
-}
-
-void uiQueueMain(void (*f)(void *data), void *data)
-{
-	if (PostMessageW(utilWindow, msgQueued, (WPARAM) f, (LPARAM) data) == 0)
-		// LONGTERM this is likely not safe to call across threads (allocates memory)
-		logLastError(L"error queueing function to run on main thread");
-}
-
 static std::map<uiprivTimer *, bool> timers;
 
-void uiTimer(int milliseconds, int (*f)(void *data), void *data)
+static LRESULT CALLBACK
+filterProc (const int code, const WPARAM wParam, const LPARAM lParam)
 {
-	uiprivTimer *timer;
+  auto *msg = reinterpret_cast<MSG *> (lParam);
 
-	timer = uiprivNew(uiprivTimer);
-	timer->f = f;
-	timer->data = data;
-	// note that timer IDs are pointer sized precisely so we can use them as timer IDs; see https://blogs.msdn.microsoft.com/oldnewthing/20150924-00/?p=91521
-	if (SetTimer(utilWindow, (UINT_PTR) timer, milliseconds, NULL) == 0)
-		logLastError(L"error calling SetTimer() in uiTimer()");
-	timers[timer] = true;
+  if (code < 0)
+    goto callNext;
+
+  if (areaFilter (msg) != 0)
+    goto discard;
+
+  // otherwise keep going
+  goto callNext;
+
+discard:
+  return 1;
+
+callNext:
+  return CallNextHookEx (filter, code, wParam, lParam);
 }
 
-void uiprivFreeTimer(uiprivTimer *t)
+int
+registerMessageFilter ()
 {
-	timers.erase(t);
-	uiprivFree(t);
+  filter = SetWindowsHookExW (WH_MSGFILTER, filterProc, hInstance, GetCurrentThreadId ());
+
+  return filter != nullptr; // NOLINT(*-implicit-bool-conversion)
 }
 
-// since timers use uiprivAlloc(), we have to clean them up in uiUninit(), or else we'll get dangling allocation errors
-void uiprivUninitTimers(void)
+void
+unregisterMessageFilter ()
 {
-	// TODO why doesn't auto t : timers work?
-	for (auto t = timers.begin(); t != timers.end(); t++)
-		uiprivFree(t->first);
-	timers.clear();
+  if (UnhookWindowsHookEx (filter) == 0)
+    (void)logLastError (L"error unregistering libui message filter");
+}
+
+static void
+processMessage (MSG *msg)
+{
+  HWND correctParent;
+
+  if (msg->hwnd != nullptr)
+    correctParent = parentToplevel (msg->hwnd);
+
+  else
+    correctParent = GetActiveWindow ();
+
+  if (correctParent != nullptr)
+    if (IsDialogMessage (correctParent, msg) != 0)
+      return;
+
+  TranslateMessage (msg);
+  DispatchMessageW (msg);
+}
+
+static int
+waitMessage (MSG *msg)
+{
+  const int res = GetMessageW (msg, nullptr, 0, 0);
+
+  if (res < 0)
+    {
+      (void)logLastError (L"error calling GetMessage()");
+      return 0;
+    }
+
+  return res != 0; // NOLINT(*-implicit-bool-conversion)
+}
+
+void
+uiMainSteps ()
+{
+}
+
+static int
+peekMessage (MSG *msg)
+{
+  const BOOL res = PeekMessageW (msg, nullptr, 0, 0, PM_REMOVE);
+
+  if (res == 0)
+    return 2;
+
+  if (msg->message != WM_QUIT)
+    return 1;
+
+  return 0;
+}
+
+int
+uiMainStep (const int wait)
+{
+  MSG msg;
+
+  if (wait != 0)
+    {
+      if (waitMessage (&msg) == 0)
+        return 0;
+
+      processMessage (&msg);
+
+      return 1;
+    }
+
+  if (peekMessage (&msg) == 1)
+    processMessage (&msg);
+
+  else
+    return 0;
+
+  return 1;
+}
+
+void
+uiMain ()
+{
+  while (uiMainStep (1) != 0)
+    ;
+}
+
+void
+uiQuit ()
+{
+  PostQuitMessage (0);
+}
+
+void
+uiQueueMain (void (*f) (void *data), void *data)
+{
+  if (PostMessageW (utilWindow, msgQueued, reinterpret_cast<WPARAM> (f), reinterpret_cast<LPARAM> (data)) == 0)
+    (void)logLastError (L"error queueing function to run on main thread");
+}
+
+void
+uiTimer (const int milliseconds, int (*f) (void *data), void *data)
+{
+
+  auto *timer = uiprivNew (uiprivTimer);
+  timer->f    = f;
+  timer->data = data;
+
+  if (SetTimer (utilWindow, reinterpret_cast<UINT_PTR> (timer), milliseconds, nullptr) == 0)
+    (void)logLastError (L"error calling SetTimer() in uiTimer()");
+
+  timers[timer] = true;
+}
+
+void
+uiprivFreeTimer (uiprivTimer *t)
+{
+  timers.erase (t);
+  uiprivFree (t);
+}
+
+void
+uiprivUninitTimers ()
+{
+  for (auto t = timers.begin (); t != timers.end (); ++t)
+    uiprivFree (t->first);
+
+  timers.clear ();
 }

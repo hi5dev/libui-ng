@@ -1,19 +1,20 @@
 #include "init.h"
-
-#include <ui/init.h>
-#include <uipriv.h>
-
 #include "alloc.h"
-#include "area.hpp"
-#include "attrstr.hpp"
+#include "area.h"
 #include "container.h"
 #include "d2dscratch.h"
 #include "debug.h"
+#include "draw.h"
+#include "fontcollection.h"
 #include "image.h"
 #include "main.h"
+#include "menu.h"
 #include "utf16.h"
 #include "utilwin.h"
 #include "window.h"
+
+#include <ui/init.h>
+#include <uipriv.h>
 
 HINSTANCE hInstance;
 int       nCmdShow;
@@ -29,7 +30,7 @@ initerr (const char *message, const WCHAR *, const DWORD value)
   static constexpr auto flags
       = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
 
-  (void)FormatMessageW (flags, NULL, value, 0, sysmsg, 0, NULL);
+  (void)FormatMessageW (flags, nullptr, value, 0, sysmsg, 0, nullptr);
 
   WCHAR *wmessage = toUTF16 (message + 1);
 
@@ -58,7 +59,7 @@ uiInitOptions uiprivOptions;
    0)
 
 const char *
-uiInit (uiInitOptions *o)
+uiInit (uiInitOptions *options)
 {
   STARTUPINFOW         si;
   const char          *ce;
@@ -68,7 +69,7 @@ uiInit (uiInitOptions *o)
   INITCOMMONCONTROLSEX icc;
   HRESULT              hr;
 
-  uiprivOptions = *o;
+  uiprivOptions = *options;
 
   initAlloc ();
 
@@ -77,17 +78,16 @@ uiInit (uiInitOptions *o)
   if ((si.dwFlags & STARTF_USESHOWWINDOW) != 0)
     nCmdShow = si.wShowWindow;
 
-  // LONGTERM set DPI awareness
-
-  hDefaultIcon = LoadIconW (NULL, IDI_APPLICATION);
-  if (hDefaultIcon == NULL)
+  hDefaultIcon = LoadIconW (nullptr, IDI_APPLICATION);
+  if (hDefaultIcon == nullptr)
     return ieLastErr ("loading default icon for window classes");
-  hDefaultCursor = LoadCursorW (NULL, IDC_ARROW);
-  if (hDefaultCursor == NULL)
+
+  hDefaultCursor = LoadCursorW (nullptr, IDC_ARROW);
+  if (hDefaultCursor == nullptr)
     return ieLastErr ("loading default cursor for window classes");
 
   ce = initUtilWindow (hDefaultIcon, hDefaultCursor);
-  if (ce != NULL)
+  if (ce != nullptr)
     return initerr (ce, L"GetLastError() ==", GetLastError ());
 
   if (registerWindowClass (hDefaultIcon, hDefaultCursor) == 0)
@@ -99,14 +99,14 @@ uiInit (uiInitOptions *o)
       == 0)
     return ieLastErr ("getting default fonts");
   hMessageFont = CreateFontIndirectW (&(ncm.lfMessageFont));
-  if (hMessageFont == NULL)
+  if (hMessageFont == nullptr)
     return ieLastErr ("loading default messagebox font; this is the default UI font");
 
   if (initContainer (hDefaultIcon, hDefaultCursor) == 0)
     return ieLastErr ("initializing uiWindowsMakeContainer() window class");
 
   hollowBrush = static_cast<HBRUSH> (GetStockObject (HOLLOW_BRUSH));
-  if (hollowBrush == NULL)
+  if (hollowBrush == nullptr)
     return ieLastErr ("getting hollow brush");
 
   ZeroMemory (&icc, sizeof (INITCOMMONCONTROLSEX));
@@ -115,11 +115,9 @@ uiInit (uiInitOptions *o)
   if (InitCommonControlsEx (&icc) == 0)
     return ieLastErr ("initializing Common Controls");
 
-  hr = CoInitialize (NULL);
+  hr = CoInitialize (nullptr);
   if (hr != S_OK && hr != S_FALSE)
     return ieHRESULT ("initializing COM", hr);
-  // LONGTERM initialize COM security
-  // LONGTERM (windows vista) turn off COM exception handling
 
   hr = initDraw ();
   if (hr != S_OK)
@@ -142,11 +140,11 @@ uiInit (uiInitOptions *o)
   if (hr != S_OK)
     return ieHRESULT ("initializing WIC", hr);
 
-  return NULL;
+  return nullptr;
 }
 
 void
-uiUninit (void)
+uiUninit ()
 {
   uiprivUninitTimers ();
 
@@ -185,13 +183,14 @@ void
 uiFreeInitError (const char *err)
 {
   if (*(err - 1) == '-')
-    uiprivFree ((void *)(err - 1));
+    uiprivFree (reinterpret_cast<void *> (*(err - 1)));
 }
 
 BOOL WINAPI
-DllMain (const HINSTANCE hinstDLL, const DWORD fdwReason, LPVOID lpvReserved)
+DllMain (const HINSTANCE hinstDLL, const DWORD fdwReason, LPVOID)
 {
   if (fdwReason == DLL_PROCESS_ATTACH)
     hInstance = hinstDLL;
+
   return TRUE;
 }

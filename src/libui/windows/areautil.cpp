@@ -9,7 +9,7 @@ loadAreaSize (const uiArea *a, ID2D1RenderTarget *rt, double *width, double *hei
 
   if (a->scrolling == 0)
     {
-      if (rt == NULL)
+      if (rt == nullptr)
         rt = a->rt;
 
       const D2D1_SIZE_F size = realGetSize (rt);

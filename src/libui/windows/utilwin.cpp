@@ -10,19 +10,6 @@
 #include <ui/main.h>
 #include <uipriv.h>
 
-/**
- * @brief The utility window is a special window that performs certain tasks internal to libui.
- *
- * It is not a message-only window, and it is always hidden and disabled.
- *
- * Its roles:
- * - It is the initial parent of all controls.
- * - When a control loses its parent, it also becomes that control's parent.
- * - It handles @p WM_QUERYENDSESSION requests.
- * - It handles @p WM_WININICHANGE and forwards the message to any child windows that request it.
- * - It handles executing functions queued to run by @p uiQueueMain
- */
-
 #define utilWindowClass L"libui_utilWindowClass"
 
 HWND utilWindow;
@@ -65,12 +52,14 @@ utilWindowWndProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const 
     case WM_TIMER:
       {
         auto *timer = reinterpret_cast<uiprivTimer *> (wParam); // NOLINT(*-no-int-to-ptr)
+
         if ((*timer->f) (timer->data) == 0)
           {
             if (KillTimer (utilWindow, reinterpret_cast<UINT_PTR> (timer)) == 0)
               (void)logLastError (L"error calling KillTimer() to end uiTimer() procedure");
             uiprivFreeTimer (timer);
           }
+
         return 0;
       }
 
@@ -82,15 +71,13 @@ utilWindowWndProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const 
 const char *
 initUtilWindow (const HICON hDefaultIcon, const HCURSOR hDefaultCursor)
 {
-  WNDCLASSW wc;
-  ZeroMemory (&wc, sizeof (WNDCLASSW));
-
+  WNDCLASSW wc     = {};
   wc.lpszClassName = utilWindowClass;
   wc.lpfnWndProc   = utilWindowWndProc;
   wc.hInstance     = hInstance;
   wc.hIcon         = hDefaultIcon;
   wc.hCursor       = hDefaultCursor;
-  wc.hbrBackground = reinterpret_cast<HBRUSH> ((COLOR_BTNFACE + 1)); // NOLINT(*-no-int-to-ptr)
+  wc.hbrBackground = reinterpret_cast<HBRUSH> (COLOR_BTNFACE + 1); // NOLINT(*-no-int-to-ptr)
 
   if (RegisterClass (&wc) == 0)
     return "=registering utility window class";
