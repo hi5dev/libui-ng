@@ -1,13 +1,21 @@
-# Win32 Guide
+# LibUI Win32 Documentation
 
 This is a quick-start guide on writing an application that uses LibUI with support for Windows 10 and 11.
 
-- [main.c](#mainc)
-- [myapp.exe.manifest](#myappexemanifest)
-- [myapp.rc](#myapprc)
-- [CMakeLists.txt](#cmakeliststxt)
+## [Index](../../README.md)
 
-## main.c
+- [doc](../README.md)
+  - [examples](../examples/README.md)
+  - [linux](../linux/README.md)
+  - [osx](../osx/README.md)
+  - [schemas](../schemas/README.md)
+  - **[win32](./README.md)**
+    - [main.c](#mainc)
+    - [myapp.exe.manifest](#myappexemanifest)
+    - [myapp.rc](#myapprc)
+    - [CMakeLists.txt](#cmakeliststxt)
+
+### main.c
 
 Without going into too much detail, here's a basic starter template that will run on Unix and Windows systems.
 
@@ -56,7 +64,7 @@ main (void)
 }
 ```
 
-## myapp.exe.manifest
+### myapp.exe.manifest
 
 Windows requires a [manifest] file to determine which versions of Windows the application is compatible with, to load
 the appropriate COM libraries, and to enable DPI awareness. Without this, it's likely that the application will
@@ -134,7 +142,7 @@ by Windows. Naming it anything else is likely to fail.
 > happens, check the Windows application events with Event Viewer. There will be an error entry with a backtrace to
 > let you know why.
 
-## myapp.rc
+### myapp.rc
 
 You can distribute the above manifest file with the application, or you can link it to the executable using a
 Windows resource file. Here's a minimal resource file to use as a template.
@@ -147,7 +155,7 @@ In this guide, this file is named `myapp.rc`. The only requirement you have in n
 1 24 "myapp.exe.manifest"
 ```
 
-## CMakeLists.txt
+### CMakeLists.txt
 
 Here's a `CMakeLists.txt` file that will build this example application.
 
@@ -183,4 +191,5 @@ endif ()
 ```
 
 [//]: # (External Links)
+
 [manifest]: https://learn.microsoft.com/en-us/windows/win32/sbscs/application-manifests

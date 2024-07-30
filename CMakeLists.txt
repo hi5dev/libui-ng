@@ -24,23 +24,18 @@ set (CMAKE_CXX_STANDARD 11)
 
 set (CMAKE_STATIC_LIBRARY_PREFIX "")
 
-option (BUILD_EXAMPLES "Build example programs" ${PROJECT_IS_TOP_LEVEL})
-option (BUILD_DOCS "Build documentation" ${PROJECT_IS_TOP_LEVEL})
-option (BUILD_TESTS "Build test programs" ${PROJECT_IS_TOP_LEVEL})
-option (INSTALL_TARGETS "Generate installation targets" ${PROJECT_IS_TOP_LEVEL})
+option (UI_BUILD_EXAMPLES "Build example programs" ${PROJECT_IS_TOP_LEVEL})
+option (UI_BUILD_DOCS "Build documentation" ${PROJECT_IS_TOP_LEVEL})
+option (UI_BUILD_TESTS "Build test programs" ${PROJECT_IS_TOP_LEVEL})
+option (UI_INSTALL "Generate installation targets" ${PROJECT_IS_TOP_LEVEL})
 
 add_subdirectory (include)
 add_subdirectory (src)
 
-if (BUILD_DOCS)
+if (UI_BUILD_DOCS)
   add_subdirectory (doc)
 endif ()
 
-if (BUILD_TESTS)
-  enable_testing ()
-  add_subdirectory (test)
-endif ()
-
-if (INSTALL_TARGETS)
-  include (GNUInstallDirs)
+if (UI_INSTALL)
+  add_subdirectory (pkg)
 endif ()
