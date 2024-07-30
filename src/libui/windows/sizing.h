@@ -1,8 +1,10 @@
 #pragma once
 
-#include <ui_win32.h>
+#include <windows.h>
 
 #include <d2d1.h>
+
+#include <ui_win32.h>
 
 extern void getSizing (HWND hwnd, uiWindowsSizing *sizing, HFONT font);
 

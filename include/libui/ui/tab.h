@@ -1,5 +1,8 @@
 #pragma once
 
+#include "api.h"
+#include "control.h"
+
 /**
  * @brief Parameter to editable model columns to signify all rows are always editable.
  */

@@ -1,3 +1,5 @@
+#include <windows.h>
+
 #include <commctrl.h>
 
 #include <controlsigs.h>

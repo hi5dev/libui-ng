@@ -11,6 +11,7 @@
 #include "debug.h"
 #include "draw.h"
 #include "init.h"
+#include "winpublic.h"
 #include "winutil.h"
 
 static void

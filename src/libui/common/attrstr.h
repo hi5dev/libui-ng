@@ -1,6 +1,7 @@
 #pragma once
 
-#include "ui.h"
+#include <ui/attributed_string.h>
+#include <ui/opentype.h>
 
 #ifdef __cplusplus
 #define API extern "C"
@@ -18,8 +19,6 @@ struct uiprivGraphemes
   size_t *graphemesToPoints;
 };
 
-API uiAttribute *uiprivAttributeRetain (uiAttribute *a);
-
 API uiprivAttrList *uiprivNewAttrList (void);
 
 API uiprivGraphemes *uiprivNewGraphemes (void *s, size_t len);
@@ -33,8 +32,6 @@ API size_t uiprivAttributedStringUTF16Len (const uiAttributedString *s);
 API size_t uiprivAttributedStringUTF8ToUTF16 (const uiAttributedString *s, size_t n);
 
 API const uint16_t *uiprivAttributedStringUTF16String (const uiAttributedString *s);
-
-API int uiprivAttributeEqual (const uiAttribute *a, const uiAttribute *b);
 
 API int uiprivGraphemesTakesUTF16 (void);
 
@@ -54,7 +51,5 @@ API void uiprivAttrListRemoveAttribute (uiprivAttrList *alist, uiAttributeType t
 API void uiprivAttrListRemoveAttributes (uiprivAttrList *alist, size_t start, size_t end);
 
 API void uiprivAttrListRemoveCharacters (uiprivAttrList *alist, size_t start, size_t end);
-
-API void uiprivAttributeRelease (uiAttribute *a);
 
 API void uiprivFreeAttrList (uiprivAttrList *alist);

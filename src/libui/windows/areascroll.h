@@ -1,7 +1,6 @@
 #pragma once
 
-#include <windef.h>
-#include <winuser.h>
+#include <windows.h>
 
 #include <ui/area.h>
 

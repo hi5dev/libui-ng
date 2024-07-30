@@ -39,5 +39,6 @@ API void uiQueueMain (uiQueueCallback *f, void *data);
  * @brief Registers a callback to invoke when the user-interface is about to shutdown
  * @param f pointer to the callback function
  * @param data to pass to the callback function
+ * @return non-zero to cancel
  */
-API void uiOnShouldQuit (uiQueueCallback *f, void *data);
+API int uiOnShouldQuit (uiQueueCancelableCallback *f, void *data);

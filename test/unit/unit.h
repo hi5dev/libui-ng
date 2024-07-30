@@ -1,14 +1,13 @@
-#ifndef __LIBUI_UNIT_H__
-#define __LIBUI_UNIT_H__
+#pragma once
 
-#include <stdarg.h>
-#include <stddef.h>
 #include <setjmp.h>
+#include <stddef.h>
 
 #include <cmocka.h>
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ui/window.h>
 
 #define assert_no_error(stmt)                                                                                         \
   do                                                                                                                  \
@@ -77,5 +76,3 @@ int unitTestSetup (void **state);
 int unitTestTeardown (void **state);
 
 #define uiControlPtrFromState(t, s) (t **)&(((struct state *)*(s))->c)
-
-#endif

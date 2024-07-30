@@ -290,7 +290,7 @@ uiAttributedStringGraphemeToByteIndex (uiAttributedString *s, size_t pos)
   return pos;
 }
 
-const uint16_t *
+const wchar_t *
 uiprivAttributedStringUTF16String (const uiAttributedString *s)
 {
   return s->u16;

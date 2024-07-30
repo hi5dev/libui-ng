@@ -1,6 +1,7 @@
 #pragma once
 
 #include "api.h"
+#include "image.h"
 
 /**
  * @brief Container to store values used in container related methods.
@@ -15,7 +16,7 @@ typedef struct uiTableValue uiTableValue;
 /**
  * @brief @p uiTableValue types
  */
-typedef enum uiTableValueType : int8_t
+typedef enum uiTableValueType
 {
   uiTableValueTypeString, //!< string
   uiTableValueTypeImage,  //!< image

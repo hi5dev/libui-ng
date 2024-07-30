@@ -6,6 +6,7 @@
 #include "debug.h"
 #include "draw.h"
 #include "init.h"
+#include "winpublic.h"
 #include "winutil.h"
 
 #include <controlsigs.h>
@@ -144,7 +145,7 @@ uiAreaSyncEnableState (uiWindowsControl *c, const int enabled)
 }
 
 static void
-uiAreaSetParentHWND (uiWindowsControl *c, HWND parent)
+uiAreaSetParentHWND (uiWindowsControl *c, const HWND parent)
 {
   uiWindowsEnsureSetParentHWND (reinterpret_cast<uiArea *> (c)->hwnd, parent);
 }
@@ -163,7 +164,7 @@ uiAreaLayoutRect (uiWindowsControl *c, RECT *r)
 }
 
 static void
-uiAreaAssignControlIDZOrder (uiWindowsControl *c, const LONG_PTR *controlID, HWND *insertAfter)
+uiAreaAssignControlIDZOrder (uiWindowsControl *c, LONG_PTR *controlID, HWND *insertAfter)
 {
   uiWindowsEnsureAssignControlIDZOrder (reinterpret_cast<uiArea *> (c)->hwnd, controlID, insertAfter);
 }
@@ -291,15 +292,36 @@ uiAreaBeginUserWindowResize (const uiArea *a, const uiWindowResizeEdge edge)
 uiArea *
 uiNewArea (uiAreaHandler *ah)
 {
-  uiArea *a;
+  auto *const a = reinterpret_cast<uiArea *> (uiWindowsAllocControl (sizeof (uiArea), uiAreaSignature, "uiArea"));
 
-  uiWindowsNewControl (uiArea, a);
+  auto *control      = reinterpret_cast<uiControl *> (a);
+  control->Destroy   = uiAreaDestroy;
+  control->Disable   = uiAreaDisable;
+  control->Enable    = uiAreaEnable;
+  control->Enabled   = uiAreaEnabled;
+  control->Handle    = uiAreaHandle;
+  control->Hide      = uiAreaHide;
+  control->Parent    = uiAreaParent;
+  control->SetParent = uiAreaSetParent;
+  control->Show      = uiAreaShow;
+  control->Toplevel  = uiAreaToplevel;
+  control->Visible   = uiAreaVisible;
+
+  auto *windows_control                   = reinterpret_cast<uiWindowsControl *> (a);
+  windows_control->AssignControlIDZOrder  = uiAreaAssignControlIDZOrder;
+  windows_control->ChildVisibilityChanged = uiAreaChildVisibilityChanged;
+  windows_control->LayoutRect             = uiAreaLayoutRect;
+  windows_control->MinimumSize            = uiAreaMinimumSize;
+  windows_control->MinimumSizeChanged     = uiAreaMinimumSizeChanged;
+  windows_control->SetParentHWND          = uiAreaSetParentHWND;
+  windows_control->SyncEnableState        = uiAreaSyncEnableState;
+  windows_control->enabled                = 1;
+  windows_control->visible                = 1;
 
   a->ah        = ah;
   a->scrolling = FALSE;
   uiprivClickCounterReset (&a->cc);
 
-  // a->hwnd is assigned in areaWndProc()
   uiWindowsEnsureCreateControlHWND (0, areaClass, L"", 0, hInstance, a, FALSE);
 
   return a;

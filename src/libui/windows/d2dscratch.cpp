@@ -97,7 +97,7 @@ d2dScratchWndProc (const HWND hwnd, const UINT uMsg, const WPARAM wParam, const 
           case static_cast<HRESULT> (D2DERR_RECREATE_TARGET):
             {
               rt->Release ();
-              SetWindowLongPtrW (hwnd, GWLP_USERDATA, NULL);
+              SetWindowLongPtrW (hwnd, GWLP_USERDATA, 0);
               break;
             }
 

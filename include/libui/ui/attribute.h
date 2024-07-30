@@ -1,6 +1,7 @@
 #pragma once
 
 #include "api.h"
+#include "opentype.h"
 
 #include <stddef.h>
 
@@ -21,16 +22,16 @@ typedef struct uiAttribute uiAttribute;
  */
 typedef enum uiAttributeType
 {
- uiAttributeTypeFamily,         //!< font-family
- uiAttributeTypeSize,           //!< font-size
- uiAttributeTypeWeight,         //!< font-weight
- uiAttributeTypeItalic,         //!< font-italics
- uiAttributeTypeStretch,        //!< font-stretch-to-fit
- uiAttributeTypeColor,          //!< text foreground color
- uiAttributeTypeBackground,     //!< text background color
- uiAttributeTypeUnderline,      //!< text underlining
- uiAttributeTypeUnderlineColor, //!< text underlining color
- uiAttributeTypeFeatures,       //!< OpenFont features
+  uiAttributeTypeFamily,         //!< font-family
+  uiAttributeTypeSize,           //!< font-size
+  uiAttributeTypeWeight,         //!< font-weight
+  uiAttributeTypeItalic,         //!< font-italics
+  uiAttributeTypeStretch,        //!< font-stretch-to-fit
+  uiAttributeTypeColor,          //!< text foreground color
+  uiAttributeTypeBackground,     //!< text background color
+  uiAttributeTypeUnderline,      //!< text underlining
+  uiAttributeTypeUnderlineColor, //!< text underlining color
+  uiAttributeTypeFeatures,       //!< OpenFont features
 } uiAttributeType;
 
 /**
@@ -80,19 +81,19 @@ typedef enum uiTextStretch
  */
 typedef enum uiTextWeight
 {
- uiTextWeightMinimum    = 0,
- uiTextWeightThin       = 100,
- uiTextWeightUltraLight = 200,
- uiTextWeightLight      = 300,
- uiTextWeightBook       = 350,
- uiTextWeightNormal     = 400,
- uiTextWeightMedium     = 500,
- uiTextWeightSemiBold   = 600,
- uiTextWeightBold       = 700,
- uiTextWeightUltraBold  = 800,
- uiTextWeightHeavy      = 900,
- uiTextWeightUltraHeavy = 950,
- uiTextWeightMaximum    = 1000,
+  uiTextWeightMinimum    = 0,
+  uiTextWeightThin       = 100,
+  uiTextWeightUltraLight = 200,
+  uiTextWeightLight      = 300,
+  uiTextWeightBook       = 350,
+  uiTextWeightNormal     = 400,
+  uiTextWeightMedium     = 500,
+  uiTextWeightSemiBold   = 600,
+  uiTextWeightBold       = 700,
+  uiTextWeightUltraBold  = 800,
+  uiTextWeightHeavy      = 900,
+  uiTextWeightUltraHeavy = 950,
+  uiTextWeightMaximum    = 1000,
 } uiTextWeight;
 
 /**
@@ -100,10 +101,10 @@ typedef enum uiTextWeight
  */
 typedef enum uiUnderline
 {
- uiUnderlineNone,       //!< no underlining
- uiUnderlineSingle,     //!< single-line
- uiUnderlineDouble,     //!< double-line
- uiUnderlineSuggestion, //!< wavy or dotted underlines used for spelling/grammar checkers
+  uiUnderlineNone,       //!< no underlining
+  uiUnderlineSingle,     //!< single-line
+  uiUnderlineDouble,     //!< double-line
+  uiUnderlineSuggestion, //!< wavy or dotted underlines used for spelling/grammar checkers
 } uiUnderline;
 
 /**

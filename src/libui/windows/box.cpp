@@ -2,6 +2,8 @@
 
 #include "box.h"
 
+#include "winpublic.h"
+
 #include <controlsigs.h>
 
 #include <ui/box.h>
@@ -35,8 +37,6 @@ boxRelayout (const uiBox *b)
     return;
 
   uiWindowsEnsureGetClientRect (b->hwnd, &r);
-  int x      = r.left;
-  int y      = r.top;
   int width  = r.right - r.left;
   int height = r.bottom - r.top;
 
@@ -51,7 +51,7 @@ boxRelayout (const uiBox *b)
   int nVisible    = 0;
   for (boxChild &bc : *b->controls)
     {
-      if (!uiControlVisible (bc.c))
+      if (uiControlVisible (bc.c) == 0)
         continue;
 
       nVisible++;
@@ -85,16 +85,10 @@ boxRelayout (const uiBox *b)
 
   // 2) now inset the available rect by the needed padding
   if (b->vertical != 0)
-    {
-      height -= (nVisible - 1) * ypadding;
-      stretchyht -= (nVisible - 1) * ypadding;
-    }
+    stretchyht -= (nVisible - 1) * ypadding;
 
   else
-    {
-      width -= (nVisible - 1) * xpadding;
-      stretchywid -= (nVisible - 1) * xpadding;
-    }
+    stretchywid -= (nVisible - 1) * xpadding;
 
   // 3) now get the size of stretchy controls
   if (nStretchy != 0)
@@ -105,7 +99,7 @@ boxRelayout (const uiBox *b)
         stretchywid /= nStretchy;
       for (boxChild &bc : *b->controls)
         {
-          if (!uiControlVisible (bc.c))
+          if (uiControlVisible (bc.c) == 0)
             continue;
 
           if (bc.stretchy != 0)
@@ -118,11 +112,11 @@ boxRelayout (const uiBox *b)
 
   // 4) now we can position controls
   // first, make relative to the top-left corner of the container
-  x = 0;
-  y = 0;
+  int x = 0;
+  int y = 0;
   for (const boxChild &bc : *b->controls)
     {
-      if (!uiControlVisible (bc.c))
+      if (uiControlVisible (bc.c) == 0)
         continue;
 
       uiWindowsEnsureMoveWindowDuringResize (reinterpret_cast<HWND> (uiControlHandle (bc.c)), x, y, bc.width,
@@ -280,7 +274,7 @@ uiBoxMinimumSize (uiWindowsControl *c, int *width, int *height)
   int nVisible          = 0;
   for (const boxChild &bc : *b->controls)
     {
-      if (!uiControlVisible (bc.c))
+      if (uiControlVisible (bc.c) == 0)
         continue;
 
       nVisible++;

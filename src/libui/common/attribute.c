@@ -1,8 +1,8 @@
 #include "attribute_priv.h"
-
 #include "attrstr.h"
 #include "uipriv.h"
-#include "userbugs.h"
+
+#include <ui/userbugs.h>
 
 #include <string.h>
 

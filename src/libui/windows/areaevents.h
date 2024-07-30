@@ -1,6 +1,6 @@
 #pragma once
 
-#include <winuser.h>
+#include <windows.h>
 
 #include <ui/area.h>
 #include <ui/areaevents.h>

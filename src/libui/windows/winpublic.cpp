@@ -1,4 +1,4 @@
-#include <winuser.h>
+#include <windows.h>
 
 #include "debug.h"
 #include "utilwin.h"

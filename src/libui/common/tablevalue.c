@@ -1,5 +1,6 @@
-#include "ui.h"
 #include "uipriv.h"
+
+#include <string.h>
 
 struct uiTableValue
 {

@@ -1,64 +1,66 @@
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
-#include <ui.h>
+#include <ui/box.h>
+#include <ui/button.h>
+#include <ui/init.h>
+#include <ui/main.h>
+#include <ui/multiline_entry.h>
+#include <ui/window.h>
 
 uiMultilineEntry *e;
 
-int sayTime(void *data)
+int
+sayTime (void *)
 {
-	time_t t;
-	char *s;
+  const time_t t = time (NULL);
+  const char  *s = ctime (&t);
 
-	t = time(NULL);
-	s = ctime(&t);
-
-	uiMultilineEntryAppend(e, s);
-	return 1;
+  uiMultilineEntryAppend (e, s);
+  return 1;
 }
 
-int onClosing(uiWindow *w, void *data)
+int
+onClosing (uiWindow *, void *)
 {
-	uiQuit();
-	return 1;
+  uiQuit ();
+  return 1;
 }
 
-void saySomething(uiButton *b, void *data)
+void
+saySomething (uiButton *, void *)
 {
-	uiMultilineEntryAppend(e, "Saying something\n");
+  uiMultilineEntryAppend (e, "Saying something\n");
 }
 
-int main(void)
+int
+main (void)
 {
-	uiInitOptions o;
-	uiWindow *w;
-	uiBox *b;
-	uiButton *btn;
+  uiInitOptions o = { 0 };
 
-	memset(&o, 0, sizeof (uiInitOptions));
-	if (uiInit(&o) != NULL)
-		abort();
+  if (uiInit (&o) != NULL)
+    abort ();
 
-	w = uiNewWindow("Hello", 320, 240, 0);
-	uiWindowSetMargined(w, 1);
+  uiWindow *w = uiNewWindow ("Hello", 320, 240, 0);
+  uiWindowSetMargined (w, 1);
 
-	b = uiNewVerticalBox();
-	uiBoxSetPadded(b, 1);
-	uiWindowSetChild(w, uiControl(b));
+  uiBox *b = uiNewVerticalBox ();
+  uiBoxSetPadded (b, 1);
+  uiWindowSetChild (w, uiControl (b));
 
-	e = uiNewMultilineEntry();
-	uiMultilineEntrySetReadOnly(e, 1);
+  e = uiNewMultilineEntry ();
+  uiMultilineEntrySetReadOnly (e, 1);
 
-	btn = uiNewButton("Say Something");
-	uiButtonOnClicked(btn, saySomething, NULL);
-	uiBoxAppend(b, uiControl(btn), 0);
+  uiButton *btn = uiNewButton ("Say Something");
+  uiButtonOnClicked (btn, saySomething, NULL);
+  uiBoxAppend (b, uiControl (btn), 0);
 
-	uiBoxAppend(b, uiControl(e), 1);
+  uiBoxAppend (b, uiControl (e), 1);
 
-	uiTimer(1000, sayTime, NULL);
+  uiTimer (1000, sayTime, NULL);
 
-	uiWindowOnClosing(w, onClosing, NULL);
-	uiControlShow(uiControl(w));
-	uiMain();
-	return 0;
+  uiWindowOnClosing (w, onClosing, NULL);
+  uiControlShow (uiControl (w));
+  uiMain ();
+  return 0;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "api.h"
+#include "attribute.h"
 
 /**
  * @brief Provides a complete description of a font where one is needed.

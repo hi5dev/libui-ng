@@ -1,20 +1,19 @@
 // ReSharper disable CppDFAConstantParameter
 
 #include "window.h"
-
 #include "debug.h"
 #include "init.h"
 #include "menu.h"
 #include "parent.h"
-
 #include "utf16.h"
+#include "winpublic.h"
 #include "winutil.h"
 
 #include <controlsigs.h>
-#include <map>
-
 #include <ui/userbugs.h>
 #include <uipriv.h>
+
+#include <map>
 
 static std::map<uiWindow *, bool> windows;
 
@@ -56,7 +55,7 @@ windowRelayout (const uiWindow *w)
   width -= 2 * mx;
   height -= 2 * my;
 
-  const auto child = reinterpret_cast<HWND> (uiControlHandle (w->child));
+  auto *const child = reinterpret_cast<HWND> (uiControlHandle (w->child));
   uiWindowsEnsureMoveWindowDuringResize (child, mx, my, width, height);
 }
 
@@ -730,7 +729,7 @@ enableAllWindowsExcept (const uiWindow *which)
       if (w.first == which)
         continue;
 
-      if (!uiControlEnabled (uiControl (w.first)))
+      if (uiControlEnabled (uiControl (w.first)) == 0)
         continue;
 
       EnableWindow (w.first->hwnd, TRUE);

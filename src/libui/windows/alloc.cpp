@@ -36,7 +36,7 @@ uninitAlloc ()
       ossstr.c_str ());
 }
 
-void *
+API void *
 uiprivAlloc (const size_t size, const char *type)
 {
   auto *const out    = new byteArray (size, 0);
@@ -68,7 +68,7 @@ uiprivRealloc (void *_p, const size_t size, const char *type)
   return arr->data ();
 }
 
-void
+API void
 uiprivFree (void *_p)
 {
   auto *const p = static_cast<uint8_t *> (_p);

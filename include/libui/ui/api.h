@@ -28,12 +28,19 @@ typedef enum uiForEach
 typedef void (uiQueueCallback) (void *data);
 
 /**
+ * @brief Callback for functions queued to run on the UI thread that can be canceled.
+ * @param data user-defined
+ * @return non-zero to cancel
+ */
+typedef int (uiQueueCancelableCallback) (void *data);
+
+/**
  * @brief Queues a function to run at a given interval on the UI thread
  * @param milliseconds interval
  * @param f pointer to the callback function
  * @param data to pass to the callback function
  */
-API void uiTimer (int milliseconds, uiQueueCallback *f, void *data);
+API void uiTimer (int milliseconds, uiQueueCancelableCallback *f, void *data);
 
 /**
  * @brief Free the memory of a returned string.

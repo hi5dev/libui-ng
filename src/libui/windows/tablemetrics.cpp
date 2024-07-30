@@ -30,10 +30,16 @@ itemRect (const HRESULT hr, const uiTable *t, const UINT uMsg, const WPARAM wPar
 }
 
 HRESULT
-uiprivTableGetMetrics (uiTable *t, const int iItem, const int iSubItem, uiprivTableMetrics **mout)
+uiprivTableGetMetrics (const uiTable *t, const int iItem, const int iSubItem, uiprivTableMetrics **mout)
 {
   if (mout == nullptr)
     return E_POINTER;
+
+  // ReSharper disable once CppJoinDeclarationAndAssignment
+  RECT r;
+
+  // ReSharper disable once CppJoinDeclarationAndAssignment
+  HWND header;
 
   auto *const m = uiprivNew (uiprivTableMetrics);
 
@@ -63,7 +69,7 @@ uiprivTableGetMetrics (uiTable *t, const int iItem, const int iSubItem, uiprivTa
       m->subitemLabel.right  = m->itemLabel.right;
     }
 
-  auto *const header = reinterpret_cast<HWND> (SendMessageW (t->hwnd, LVM_GETHEADER, 0, 0));
+  header = reinterpret_cast<HWND> (SendMessageW (t->hwnd, LVM_GETHEADER, 0, 0));
 
   m->bitmapMargin = SendMessageW (header, HDM_GETBITMAPMARGIN, 0, 0);
   if (ImageList_GetIconSize (t->imagelist, &(m->cxIcon), &(m->cyIcon)) == 0)
@@ -73,7 +79,7 @@ uiprivTableGetMetrics (uiTable *t, const int iItem, const int iSubItem, uiprivTa
       goto fail;
     }
 
-  RECT r = m->subitemLabel;
+  r = m->subitemLabel;
   if (m->hasText == 0 && m->hasImage == 0)
     r = m->subitemBounds;
 

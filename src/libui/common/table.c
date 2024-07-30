@@ -1,5 +1,6 @@
-#include "ui.h"
 #include "uipriv.h"
+
+#include <ui/table.h>
 
 void
 uiFreeTableSelection (uiTableSelection *s)

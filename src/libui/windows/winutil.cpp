@@ -131,7 +131,7 @@ setWindowInsertAfter (const HWND hwnd, const HWND insertAfter)
     (void)logLastError (L"error reordering window");
 }
 
-template <typename Klass, typename... Ts, typename std::enable_if<std::is_integral<Klass>::value>::type * = nullptr>
+template <typename Klass, typename... Ts, typename std::enable_if<std::is_integral<Klass>::value>::type *>
 int
 windowClassOf (const HWND hwnd, Klass *klass1, Ts... klasses)
 {

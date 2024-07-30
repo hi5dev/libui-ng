@@ -17,7 +17,8 @@ static struct handler handler;
 #define circleRadius    ((areaSize - padding) / 2)
 
 static void
-handlerDraw (uiAreaHandler *, uiArea *, const uiAreaDrawParams *dp)
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+handlerDraw (uiAreaHandler *, uiArea *, uiAreaDrawParams *dp)
 {
   uiDrawBrush             brush;
   uiDrawStrokeParams      sp;
@@ -84,7 +85,7 @@ handlerDraw (uiAreaHandler *, uiArea *, const uiAreaDrawParams *dp)
 }
 
 static void
-handlerMouseEvent (uiAreaHandler *a, uiArea *area, const uiAreaMouseEvent *e)
+handlerMouseEvent (uiAreaHandler *, uiArea *, uiAreaMouseEvent *)
 {
   // do nothing
 }
@@ -102,7 +103,8 @@ handlerDragBroken (uiAreaHandler *, uiArea *)
 }
 
 static int
-handlerKeyEvent (uiAreaHandler *, uiArea *, const uiAreaKeyEvent *e)
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+handlerKeyEvent (uiAreaHandler *, uiArea *, uiAreaKeyEvent *e)
 {
   if (e->Key == 'h' && !e->Up)
     return 1;

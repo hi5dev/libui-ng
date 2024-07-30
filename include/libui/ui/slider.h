@@ -2,8 +2,6 @@
 
 #include "api.h"
 
-#include <slider.h>
-
 /**
  * Type-casts a pointer to a @p uiSlider
  * @param this pointer to cast

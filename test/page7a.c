@@ -20,7 +20,8 @@ struct handler
 static struct handler handler;
 
 static void
-handlerDraw (uiAreaHandler *, uiArea *, const uiAreaDrawParams *p)
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+handlerDraw (uiAreaHandler *, uiArea *, uiAreaDrawParams *p)
 {
   const double       xc     = 128.0;
   const double       yc     = 128.0;
@@ -61,13 +62,13 @@ handlerDraw (uiAreaHandler *, uiArea *, const uiAreaDrawParams *p)
 }
 
 static void
-handlerMouseEvent (uiAreaHandler *, uiArea *, const uiAreaMouseEvent *)
+handlerMouseEvent (uiAreaHandler *, uiArea *, uiAreaMouseEvent *)
 {
   // no-op
 }
 
 static void
-handlerMouseCrossed (uiAreaHandler *, uiArea *, int )
+handlerMouseCrossed (uiAreaHandler *, uiArea *, int)
 {
   // no-op
 }
@@ -79,7 +80,7 @@ handlerDragBroken (uiAreaHandler *, uiArea *)
 }
 
 static int
-handlerKeyEvent (uiAreaHandler *, uiArea *, const uiAreaKeyEvent *)
+handlerKeyEvent (uiAreaHandler *, uiArea *, uiAreaKeyEvent *)
 {
   return 0;
 }

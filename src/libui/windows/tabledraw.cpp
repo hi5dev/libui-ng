@@ -316,8 +316,12 @@ drawProgressBarPart (HRESULT hr, const drawState *s)
   RECT rBorder;
   RECT rFill[2];
 
+  // ReSharper disable once CppJoinDeclarationAndAssignment
+  RECT r;
+
   TEXTMETRICW tm;
 
+  int nFill    = 0;
   int sysColor = 0;
 
   if (hr != S_OK)
@@ -338,7 +342,7 @@ drawProgressBarPart (HRESULT hr, const drawState *s)
       goto fail;
     }
 
-  RECT r = s->m->subitemBounds;
+  r = s->m->subitemBounds;
 
   // this sets the height of the progressbar and vertically centers it in one fell swoop
   r.top += (r.bottom - tm.tmHeight - r.top) / 2;
@@ -380,8 +384,8 @@ drawProgressBarPart (HRESULT hr, const drawState *s)
       DeleteObject (pen);
     }
 
-  int nFill = 1;
-  rFill[0]  = r;
+  nFill    = 1;
+  rFill[0] = r;
 
   InflateRect (&rFill[0], -1, -1);
 

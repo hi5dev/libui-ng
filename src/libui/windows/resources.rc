@@ -2,7 +2,7 @@
 
 #include <windows.h>
 
-#include "winapi.hpp"
+#include "winapi.h"
 #include "resources.hpp"
 
 // this is the dialog template used by tab pages; see windows/tabpage.c for details

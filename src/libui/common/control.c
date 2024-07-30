@@ -1,6 +1,7 @@
-#include "control.h"
 #include "uipriv.h"
-#include "userbugs.h"
+
+#include <ui/control.h>
+#include <ui/userbugs.h>
 
 #define uiprivControlSignature 0x7569436F
 

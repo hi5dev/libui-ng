@@ -1,13 +1,13 @@
 #include "draw.h"
-#include "draw.hpp"
-
 #include "debug.h"
+#include "drawpath.h"
 
-#include <cfloat>
 #include <ui/draw.h>
 #include <ui/userbugs.h>
 #include <ui_win32.h>
 #include <uipriv.h>
+
+#include <cfloat>
 #include <vector>
 
 ID2D1Factory *d2dfactory = nullptr;
@@ -128,7 +128,7 @@ freeContext (uiDrawContext *c)
   if (c->currentClip != nullptr)
     c->currentClip->Release ();
 
-  if (c->states->size () != 0)
+  if (!c->states->empty ())
     uiprivUserBug ("You did not balance uiDrawSave() and uiDrawRestore() calls.");
 
   delete c->states;
@@ -469,7 +469,7 @@ struct drawState
 };
 
 void
-uiDrawSave (uiDrawContext *c)
+uiDrawSave (const uiDrawContext *c)
 {
   drawState state;
 
@@ -493,7 +493,7 @@ void
 uiDrawRestore (uiDrawContext *c)
 {
 
-  struct drawState state = (*c->states)[c->states->size () - 1];
+  const auto state = (*c->states)[c->states->size () - 1];
   c->states->pop_back ();
 
   c->rt->RestoreDrawingState (state.dsb);
@@ -502,6 +502,7 @@ uiDrawRestore (uiDrawContext *c)
   // if we have a current clip, we need to drop it
   if (c->currentClip != nullptr)
     c->currentClip->Release ();
+
   // no need to explicitly addref or release; just transfer the ref
   c->currentClip = state.clip;
 }

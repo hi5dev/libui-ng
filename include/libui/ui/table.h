@@ -78,7 +78,7 @@ typedef struct uiTableTextColumnOptionalParams uiTableTextColumnOptionalParams;
  * @remarks @p uiTableSelectionModeNone mode disables all editing of text columns. Buttons and checkboxes keep working
  * though.
  */
-typedef enum uiTableSelectionMode : int8_t
+typedef enum uiTableSelectionMode
 {
   uiTableSelectionModeNone,       //!< Allow no row selection.
   uiTableSelectionModeZeroOrOne,  //!< Allow zero or one row to be selected.
@@ -89,7 +89,7 @@ typedef enum uiTableSelectionMode : int8_t
 /**
  * @brief Generic sort indicators to display sorting direction.
  */
-typedef enum uiSortIndicator : int8_t
+typedef enum uiSortIndicator
 {
   uiSortIndicatorNone,      //!< No sorting.
   uiSortIndicatorAscending, //!< Sort lexigraphically in ascending order.

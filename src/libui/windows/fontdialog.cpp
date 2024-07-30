@@ -1,8 +1,16 @@
 // ReSharper disable CppDFAConstantParameter
-#include "fontdialog.h"
+
+#include <windows.h>
+
+#include <d2d1.h>
+
+#include <commctrl.h>
+
+#include <uipriv.h>
 
 #include "d2dscratch.h"
 #include "debug.h"
+#include "fontdialog.h"
 #include "init.h"
 #include "resources.hpp"
 #include "sizing.h"
@@ -11,9 +19,6 @@
 #include "winpublic.h"
 #include "winutil.h"
 
-#include <commctrl.h>
-#include <d2d1.h>
-#include <uipriv.h>
 #include <wchar.h>
 
 static LRESULT

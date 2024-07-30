@@ -3,6 +3,8 @@
 
 #include "uipriv.h"
 
+#include <ui/tab.h>
+
 int
 uiprivTableModelNumColumns (uiTableModel *m)
 {

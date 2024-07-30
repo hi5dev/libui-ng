@@ -2,6 +2,7 @@
 
 #include <ui/api.h>
 #include <ui/draw.h>
+#include <ui/table_model.h>
 
 #define uiprivNew(T) ((T *)uiprivAlloc (sizeof (T), #T))
 
@@ -55,7 +56,6 @@ API void uiprivFallbackTransformSize (const uiDrawMatrix *m, double *x, double *
  */
 API int uiprivStricmp (const char *a, const char *b);
 
-#include "tablemodel.h"
 API uiTableModelHandler *uiprivTableModelHandler (const uiTableModel *m);
 
 API uiTableValue *uiprivTableModelCellValue (uiTableModel *m, int row, int column);

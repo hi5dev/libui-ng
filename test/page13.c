@@ -22,7 +22,8 @@ winClose (uiWindow *, void *)
   return 1;
 }
 
-static void openTestWindow(uiBox *(*mkf)(void))
+static void
+openTestWindow (uiBox *(*mkf) (void))
 {
   uiWindow *w = uiNewWindow ("Test", 100, 100, 0);
   uiWindowOnClosing (w, winClose, NULL);
@@ -31,7 +32,7 @@ static void openTestWindow(uiBox *(*mkf)(void))
   uiBox *b = (*mkf) ();
   uiWindowSetChild (w, uiControl (b));
 
-#define BA(x) uiBoxAppend(b, uiControl(x), 0)
+#define BA(x) uiBoxAppend (b, uiControl (x), 0)
   BA (uiNewButton (""));
   BA (uiNewCheckbox (""));
   BA (uiNewEntry ());
@@ -81,9 +82,9 @@ vButtonClicked (uiButton *, void *)
 }
 
 static void
-entryChanged (uiEntry *e, const void *data)
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+entryChanged (uiEntry *e, void *data)
 {
-
   char *text = uiEntryText (e);
   (void)printf ("%s entry changed: %s\n", (const char *)data, text);
   uiFreeText (text);

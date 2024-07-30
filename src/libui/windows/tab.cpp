@@ -8,6 +8,7 @@
 #include "init.h"
 #include "tabpage.h"
 #include "utf16.h"
+#include "winpublic.h"
 
 #include <controlsigs.h>
 #include <uipriv.h>
@@ -285,24 +286,24 @@ tabArrangePages (const uiTab *t)
 }
 
 void
-uiTabAppend (uiTab *t, const char *name, uiControl *child)
+uiTabAppend (uiTab *t, const char *name, uiControl *c)
 {
-  uiTabInsertAt (t, name, t->pages->size (), child);
+  uiTabInsertAt (t, name, t->pages->size (), c);
 }
 
 void
-uiTabInsertAt (uiTab *t, const char *name, const int n, uiControl *child)
+uiTabInsertAt (uiTab *t, const char *name, const int index, uiControl *c)
 {
   TCITEMW item;
 
   const LRESULT hide = curpage (t);
 
-  if (child != nullptr)
-    uiControlSetParent (child, uiControl (t));
+  if (c != nullptr)
+    uiControlSetParent (c, uiControl (t));
 
-  struct tabPage *page = newTabPage (child);
+  struct tabPage *page = newTabPage (c);
   uiWindowsEnsureSetParentHWND (page->hwnd, t->hwnd);
-  t->pages->insert (t->pages->begin () + n, page);
+  t->pages->insert (t->pages->begin () + index, page);
   tabArrangePages (t);
 
   ZeroMemory (&item, sizeof (TCITEMW));
@@ -310,7 +311,7 @@ uiTabInsertAt (uiTab *t, const char *name, const int n, uiControl *child)
   WCHAR *wname = toUTF16 (name);
   item.pszText = wname;
 
-  if (SendMessageW (t->tabHWND, TCM_INSERTITEM, static_cast<WPARAM> (n), reinterpret_cast<LPARAM> (&item))
+  if (SendMessageW (t->tabHWND, TCM_INSERTITEM, static_cast<WPARAM> (index), reinterpret_cast<LPARAM> (&item))
       == static_cast<LRESULT> (-1))
     (void)logLastError (L"error adding tab to uiTab");
   uiprivFree (wname);

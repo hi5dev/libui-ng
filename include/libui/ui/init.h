@@ -2,12 +2,14 @@
 
 #include "api.h"
 
+#include <stdint.h>
+
 /**
  * @brief LibUI initialization options.
  */
 typedef struct uiInitOptions
 {
-  size_t Size; //!< struct size
+  size_t Size;
 } uiInitOptions;
 
 /**

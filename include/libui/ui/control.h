@@ -1,5 +1,7 @@
 #pragma once
 
+#include "api.h"
+
 #include <stdint.h>
 
 /**

@@ -1,11 +1,16 @@
 #pragma once
 
+#include <windows.h>
+
+#include <commctrl.h>
+
 #include <ui/table.h>
 #include <ui/table_model.h>
 
 #include <ui_win32.h>
 
 #include <map>
+#include <vector>
 
 /**
  * @brief in line with other controls

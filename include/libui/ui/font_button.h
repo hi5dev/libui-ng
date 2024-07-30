@@ -1,6 +1,7 @@
 #pragma once
 
 #include "api.h"
+#include "font_descriptor.h"
 
 /**
  * @brief Type-casts a pointer to a @p uiFontButton

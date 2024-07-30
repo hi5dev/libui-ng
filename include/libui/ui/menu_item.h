@@ -10,17 +10,17 @@
 #define uiMenuItem(this) ((uiMenuItem *)(this))
 
 /**
+ * @brief An item for a @p uiMenu
+ */
+typedef struct uiMenuItem uiMenuItem;
+
+/**
  * @brief Callback for @p uiMenuItem events
  * @param sender the @p uiMenuItem that triggered the callback.
  * @param window the @p uiWindow from which the callback was triggered
  * @param senderData user-data registered with @p sender
  */
 typedef void (uiMenuItemCallback) (uiMenuItem *sender, uiWindow *window, void *senderData);
-
-/**
- * @brief An item for a @p uiMenu
- */
-typedef struct uiMenuItem uiMenuItem;
 
 /**
  * @brief Enables a @p uiMenuItem

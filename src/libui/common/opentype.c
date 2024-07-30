@@ -1,8 +1,8 @@
 #include "attrstr.h"
-#include "ui.h"
 #include "uipriv.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 struct feature
 {
@@ -74,12 +74,13 @@ featurecmp (const void *a, const void *b)
 static struct feature
 mkkey (const char a, const char b, const char c, const char d)
 {
-  struct feature f;
+  struct feature f = { 0 };
 
   f.a = a;
   f.b = b;
   f.c = c;
   f.d = d;
+
   return f;
 }
 

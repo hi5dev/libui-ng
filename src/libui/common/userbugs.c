@@ -1,4 +1,4 @@
-#include "userbugs.h"
+#include <ui/userbugs.h>
 
 void
 uiUserBugCannotSetParentOnToplevel (const char *type)

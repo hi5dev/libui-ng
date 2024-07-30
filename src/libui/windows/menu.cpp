@@ -1,8 +1,8 @@
+#include <windows.h>
+
 #include "menu.h"
 #include "debug.h"
 #include "utf16.h"
-
-#include <winuser.h>
 
 #include <uipriv.h>
 

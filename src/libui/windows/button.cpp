@@ -1,11 +1,13 @@
 #include <windows.h>
 
+#include <commctrl.h>
+
 #include "button.h"
 
 #include "init.h"
 #include "utf16.h"
+#include "winpublic.h"
 
-#include <commctrl.h>
 #include <controlsigs.h>
 #include <ui/button.h>
 #include <uipriv.h>
@@ -143,7 +145,7 @@ uiButtonChildVisibilityChanged (uiWindowsControl *)
 static void
 uiButtonMinimumSize (uiWindowsControl *c, int *width, int *height)
 {
-  auto            b = uiButton (c);
+  const auto     *b = reinterpret_cast<uiButton *> (c);
   SIZE            size;
   uiWindowsSizing sizing;
   int             y;
@@ -151,7 +153,7 @@ uiButtonMinimumSize (uiWindowsControl *c, int *width, int *height)
   // try the comctl32 version 6 way
   size.cx = 0; // explicitly ask for ideal size
   size.cy = 0;
-  if (SendMessageW (b->hwnd, BCM_GETIDEALSIZE, 0, (LPARAM)(&size)) != FALSE)
+  if (SendMessageW (b->hwnd, BCM_GETIDEALSIZE, 0, reinterpret_cast<LPARAM> (&size)) != FALSE)
     {
       *width  = size.cx;
       *height = size.cy;
@@ -175,7 +177,7 @@ defaultOnClicked (uiButton *b, void *data)
 }
 
 char *
-uiButtonText (uiButton *b)
+uiButtonText (const uiButton *b)
 {
   return uiWindowsWindowText (b->hwnd);
 }
@@ -184,8 +186,7 @@ void
 uiButtonSetText (uiButton *b, const char *text)
 {
   uiWindowsSetWindowText (b->hwnd, text);
-  // changing the text might necessitate a change in the button's size
-  uiWindowsControlMinimumSizeChanged (uiWindowsControl (b));
+  uiWindowsControlMinimumSizeChanged (reinterpret_cast<uiWindowsControl *> (b));
 }
 
 void

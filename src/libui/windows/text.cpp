@@ -1,3 +1,4 @@
+// ReSharper disable CppJoinDeclarationAndAssignment
 #include "text.h"
 #include "debug.h"
 #include "init.h"
@@ -68,8 +69,13 @@ int
 uiWindowsWindowTextWidth (const HWND hwnd)
 {
   LRESULT len;
-  WCHAR  *end;
   SIZE    size;
+
+  WCHAR *start;
+  WCHAR *end;
+
+  HDC   dc;
+  HFONT prevfont;
 
   int maxWidth = 0;
 
@@ -77,14 +83,14 @@ uiWindowsWindowTextWidth (const HWND hwnd)
   if (len == 0)
     goto noTextOrError;
 
-  const HDC dc = GetDC (hwnd);
+  dc = GetDC (hwnd);
   if (dc == nullptr)
     {
       (void)logLastError (L"error getting DC");
       goto noTextOrError;
     }
 
-  auto *const prevfont = static_cast<HFONT> (SelectObject (dc, hMessageFont));
+  prevfont = static_cast<HFONT> (SelectObject (dc, hMessageFont));
 
   if (prevfont == nullptr)
     {
@@ -94,7 +100,7 @@ uiWindowsWindowTextWidth (const HWND hwnd)
     }
 
   // calculate width of each line
-  WCHAR *start = end = text;
+  start = end = text;
   while (start != text + len)
     {
       while (*start == L'\n' && start != text + len)

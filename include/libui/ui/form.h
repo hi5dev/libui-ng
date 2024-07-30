@@ -1,6 +1,7 @@
 #pragma once
 
 #include "api.h"
+#include "control.h"
 
 /**
  * @brief Type-casts a pointer to a @p uiForm

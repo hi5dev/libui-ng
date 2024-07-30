@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ui/control.h>
+
 #define uiWindow(this) ((uiWindow *)(this))
 
 /**

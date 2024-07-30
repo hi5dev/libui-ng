@@ -48,7 +48,8 @@ toggleSpaced (uiCheckbox *, void *)
 }
 
 static void
-forceSpaced (uiButton *, const void *data)
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+forceSpaced (uiButton *, void *data)
 {
   uiCheckboxSetChecked (spaced, data != NULL);
 }

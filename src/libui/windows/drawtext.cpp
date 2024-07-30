@@ -52,9 +52,9 @@ uiDrawNewTextLayout (uiDrawTextLayoutParams *params)
   if (hr != S_OK)
     (void)logHRESULT (L"error applying text layout alignment", hr);
 
-  hr = dwfactory->CreateTextLayout (static_cast<const WCHAR *> (uiprivAttributedStringUTF16String (params->String)),
-                                    uiprivAttributedStringUTF16Len (params->String), tl->format, FLT_MAX, FLT_MAX,
-                                    &tl->layout);
+  hr = dwfactory->CreateTextLayout (
+      reinterpret_cast<const WCHAR *> (uiprivAttributedStringUTF16String (params->String)),
+      uiprivAttributedStringUTF16Len (params->String), tl->format, FLT_MAX, FLT_MAX, &tl->layout);
   if (hr != S_OK)
     (void)logHRESULT (L"error creating IDWriteTextLayout", hr);
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "attribute.h"
+#include <ui/attribute.h>
 
 /**
  * @param a @p uiAttribute

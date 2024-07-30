@@ -1,8 +1,10 @@
 #pragma once
 
-#include "area.h"
+#include <windows.h>
 
 #include <d2d1.h>
+
+#include "area.h"
 
 extern void loadAreaSize (const uiArea *a, ID2D1RenderTarget *rt, double *width, double *height);
 

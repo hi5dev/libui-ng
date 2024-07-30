@@ -1,5 +1,11 @@
-#include "colordialog.h"
+#include <windows.h>
 
+#include <d2d1.h>
+
+#include <ui_win32.h>
+#include <uipriv.h>
+
+#include "colordialog.h"
 #include "d2dscratch.h"
 #include "debug.h"
 #include "init.h"
@@ -15,10 +21,7 @@
 #include <cmath>
 #include <commctrl.h>
 #include <cstdint>
-#include <d2d1.h>
 #include <map>
-#include <ui_win32.h>
-#include <uipriv.h>
 
 static void
 rgb2HSV (const double r, const double g, const double b, double *h, double *s, double *v)

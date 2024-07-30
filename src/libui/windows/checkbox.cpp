@@ -4,6 +4,7 @@
 #include "controlsigs.h"
 #include "init.h"
 #include "utf16.h"
+#include "winpublic.h"
 
 #include <ui/checkbox.h>
 #include <uipriv.h>

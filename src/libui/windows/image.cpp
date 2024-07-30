@@ -1,3 +1,4 @@
+// ReSharper disable CppJoinDeclarationAndAssignment
 #include "image.h"
 
 #include "debug.h"
@@ -128,12 +129,17 @@ match (IWICBitmap *b, matcher *m)
   UINT ux;
   UINT uy;
 
+  int x;
+  int y;
+  int x2;
+  int y2;
+
   const HRESULT hr = b->GetSize (&ux, &uy);
   if (hr != S_OK)
     (void)logHRESULT (L"error calling GetSize() in match()", hr);
 
-  const int x = ux; // NOLINT(*-narrowing-conversions)
-  const int y = uy; // NOLINT(*-narrowing-conversions)
+  x = ux; // NOLINT(*-narrowing-conversions)
+  y = uy; // NOLINT(*-narrowing-conversions)
   if (m->best == nullptr)
     goto writeMatch;
 
@@ -144,14 +150,14 @@ match (IWICBitmap *b, matcher *m)
   if (x >= m->targetX && y >= m->targetY && !m->foundLarger)
     goto writeMatch;
 
-  const int x2 = abs (m->targetX - x);
-  const int y2 = abs (m->targetY - y);
+  x2 = abs (m->targetX - x);
+  y2 = abs (m->targetY - y);
   if (x2 < m->distX && y2 < m->distY)
     goto writeMatch;
 
   return;
 
-writeMatch:
+writeMatch:;
   if (x >= m->targetX && y >= m->targetY && !m->foundLarger)
     m->foundLarger = true;
 

@@ -15,13 +15,14 @@ struct handler
 static struct handler handler;
 
 static void
-handlerDraw (uiAreaHandler *, uiArea *, const uiAreaDrawParams *)
+handlerDraw (uiAreaHandler *, uiArea *, uiAreaDrawParams *)
 {
   // do nothing
 }
 
 static void
-handlerMouseEvent (uiAreaHandler *, uiArea *, const uiAreaMouseEvent *e)
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+handlerMouseEvent (uiAreaHandler *, uiArea *, uiAreaMouseEvent *e)
 {
   char pos[128];
 
@@ -43,7 +44,8 @@ handlerDragBroken (uiAreaHandler *, uiArea *)
 }
 
 static int
-handlerKeyEvent (uiAreaHandler *, uiArea *, const uiAreaKeyEvent *e)
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+handlerKeyEvent (uiAreaHandler *, uiArea *, uiAreaKeyEvent *e)
 {
   if (e->Key == 'h' && !e->Up)
     return 1;

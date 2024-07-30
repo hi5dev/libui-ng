@@ -214,19 +214,20 @@ uiprivTableAbortEditingText (uiTable *t)
 HRESULT
 uiprivTableHandleNM_CLICK (uiTable *t, const NMITEMACTIVATE *nm, LRESULT *lResult)
 {
-  LVHITTESTINFO ht;
-
-  ZeroMemory (&ht, sizeof (LVHITTESTINFO));
-  ht.pt = nm->ptAction;
-  if (SendMessageW (t->hwnd, LVM_SUBITEMHITTEST, 0, reinterpret_cast<LPARAM> (&ht)) == static_cast<LRESULT> (-1))
-    goto done;
+  LVHITTESTINFO            ht;
+  uiprivTableColumnParams *p;
 
   int  modelColumn    = -1;
   int  editableColumn = -1;
   bool text           = false;
   bool checkbox       = false;
 
-  const uiprivTableColumnParams *p = (*t->columns)[ht.iSubItem];
+  ZeroMemory (&ht, sizeof (LVHITTESTINFO));
+  ht.pt = nm->ptAction;
+  if (SendMessageW (t->hwnd, LVM_SUBITEMHITTEST, 0, reinterpret_cast<LPARAM> (&ht)) == static_cast<LRESULT> (-1))
+    goto done;
+
+  p = (*t->columns)[ht.iSubItem];
   if (p->textModelColumn != -1)
     {
       modelColumn    = p->textModelColumn;

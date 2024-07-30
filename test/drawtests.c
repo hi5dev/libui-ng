@@ -1,11 +1,11 @@
 // ReSharper disable CppDFAConstantParameter
-
 #include "test.h"
 
 struct drawtest
 {
   const char *name;
-  void        (*draw) (uiAreaDrawParams *p);
+
+  void (*draw) (const uiAreaDrawParams *p);
 };
 
 static void
@@ -698,7 +698,6 @@ drawD2DRotate (const uiAreaDrawParams *p)
   uiDrawFreePath (path);
 }
 
-// from https://msdn.microsoft.com/en-us/library/windows/desktop/dd756688%28v=vs.85%29.aspx
 static void
 drawD2DScale (const uiAreaDrawParams *p)
 {
@@ -829,7 +828,6 @@ drawD2DSkew (const uiAreaDrawParams *p)
   uiDrawFreePath (path);
 }
 
-// from https://msdn.microsoft.com/en-us/library/windows/desktop/dd756691%28v=vs.85%29.aspx
 static void
 drawD2DTranslate (const uiAreaDrawParams *p)
 {
@@ -1017,7 +1015,6 @@ crsourcergba (uiDrawBrush *brush, const double r, const double g, const double b
   brush->A    = a;
 }
 
-// arc
 static void
 drawCSArc (const uiAreaDrawParams *p)
 {
@@ -1063,7 +1060,6 @@ drawCSArc (const uiAreaDrawParams *p)
   uiDrawFreePath (path);
 }
 
-// arc negative
 static void
 drawCSArcNegative (const uiAreaDrawParams *p)
 {
@@ -1109,7 +1105,6 @@ drawCSArcNegative (const uiAreaDrawParams *p)
   uiDrawFreePath (path);
 }
 
-// clip
 static void
 drawCSClip (const uiAreaDrawParams *p)
 {
@@ -1248,7 +1243,7 @@ drawCSDash (const uiAreaDrawParams *p)
     10.0, /* ink */
     10.0  /* skip*/
   };
-  int          ndash  = sizeof (dashes) / sizeof (dashes[0]);
+  const int    ndash  = sizeof (dashes) / sizeof (dashes[0]);
   const double offset = -50.0;
 
   uiDrawBrush        source;
@@ -1594,7 +1589,7 @@ static const struct drawtest tests[] = {
 };
 
 void
-runDrawTest (const int n, uiAreaDrawParams *p)
+runDrawTest (const int n, const uiAreaDrawParams *p)
 {
   (*tests[n].draw) (p);
 }

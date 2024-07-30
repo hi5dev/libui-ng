@@ -51,7 +51,8 @@ movePage1 (uiButton *b, void *)
 }
 
 static void
-openAnotherWindow (uiButton *, const void *data)
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+openAnotherWindow (uiButton *, void *data)
 {
 
   uiWindow *w = uiNewWindow ("Another Window", 100, 100, data != NULL);
@@ -70,7 +71,8 @@ openAnotherWindow (uiButton *, const void *data)
 }
 
 static void
-openAnotherDisabledWindow (uiButton *, const void *data)
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+openAnotherDisabledWindow (uiButton *, void *data)
 {
 
   uiWindow *w = uiNewWindow ("Another Window", 100, 100, data != NULL);

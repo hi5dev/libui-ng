@@ -1,5 +1,4 @@
-#include "ui.h"
-#include "uipriv.h"
+#include <ui/userbugs.h>
 
 void
 uiprivDoImplBug (const char *file, const char *line, const char *func, const char *format, ...)

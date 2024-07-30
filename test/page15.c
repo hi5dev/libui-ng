@@ -76,9 +76,7 @@ filltareas (const double awid, const double aht, struct tareas *ta)
 static void
 drawtrect (uiDrawContext *c, const struct trect tr, const double r, const double g, const double bl)
 {
-  uiDrawBrush b;
-
-  memset (&b, 0, sizeof (uiDrawBrush));
+  uiDrawBrush b = { 0 };
 
   b.Type = uiDrawBrushTypeSolid;
   b.R    = r;
@@ -102,7 +100,8 @@ drawtrect (uiDrawContext *c, const struct trect tr, const double r, const double
 }
 
 static void
-handlerDraw (uiAreaHandler *, uiArea *, const uiAreaDrawParams *p)
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+handlerDraw (uiAreaHandler *, uiArea *, uiAreaDrawParams *p)
 {
   struct tareas ta;
 
@@ -122,7 +121,8 @@ handlerDraw (uiAreaHandler *, uiArea *, const uiAreaDrawParams *p)
 }
 
 static void
-handlerMouseEvent (uiAreaHandler *, uiArea *area, const uiAreaMouseEvent *e)
+// ReSharper disable CppParameterMayBeConstPtrOrRef
+handlerMouseEvent (uiAreaHandler *, uiArea *area, uiAreaMouseEvent *e)
 {
   struct tareas ta;
 
@@ -178,7 +178,7 @@ handlerDragBroken (uiAreaHandler *, uiArea *)
 }
 
 static int
-handlerKeyEvent (uiAreaHandler *, uiArea *, const uiAreaKeyEvent *)
+handlerKeyEvent (uiAreaHandler *, uiArea *, uiAreaKeyEvent *)
 {
   return 0;
 }
