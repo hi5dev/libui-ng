@@ -16,4 +16,5 @@ target_sources (
 
   PRIVATE
   ui_test.c
+  ui_test_report.c
 )

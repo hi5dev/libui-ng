@@ -21,3 +21,7 @@ target_sources (
   ui_win32.c
   ui_win32_main.c
 )
+
+if (UI_INSTALL)
+  install(TARGETS ui_win32)
+endif ()

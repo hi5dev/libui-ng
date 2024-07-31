@@ -14,9 +14,13 @@ set_target_properties (
 target_sources (
   ui_interface
 
-  PUBLIC FILE_SET HEADERS
+  INTERFACE FILE_SET HEADERS
 
   FILES
   ui_event.h
   ui_main.h
 )
+
+if (UI_INSTALL)
+  install(TARGETS ui_interface FILE_SET HEADERS)
+endif ()

@@ -27,3 +27,7 @@ target_sources (
   ui_linux.h
   ui_linux_main.h
 )
+
+if (UI_INSTALL)
+  install(TARGETS ui_linux_interface FILE_SET HEADERS)
+endif ()

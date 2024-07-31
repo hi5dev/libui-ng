@@ -27,3 +27,7 @@ target_sources (
   ui_osx.h
   ui_osx_main.h
 )
+
+if (UI_INSTALL)
+  install(TARGETS ui_osx_interface FILE_SET HEADERS)
+endif ()

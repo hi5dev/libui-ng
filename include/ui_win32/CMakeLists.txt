@@ -35,3 +35,7 @@ target_sources (
   ui_win32.h
   ui_win32_main.h
 )
+
+if (UI_INSTALL)
+  install(TARGETS ui_win32_interface FILE_SET HEADERS)
+endif ()

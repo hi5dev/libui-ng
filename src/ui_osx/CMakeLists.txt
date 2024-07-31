@@ -17,3 +17,7 @@ target_sources (
   PRIVATE
   ui_osx.c
 )
+
+if (UI_INSTALL)
+  install(TARGETS ui_osx)
+endif ()

@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.25)
 
-if (LIBUI_BUILD_TESTS)
+if (UI_BUILD_TESTS)
   add_subdirectory (ui_dummy)
   add_subdirectory (ui_test)
   add_subdirectory (ui_test_expect)

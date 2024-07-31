@@ -16,4 +16,5 @@ target_sources (
 
   PRIVATE
   ui_dummy.c
+  ui_dummy_main.c
 )

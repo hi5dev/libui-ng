@@ -17,3 +17,7 @@ target_sources (
   PRIVATE
   ui_linux.c
 )
+
+if (UI_INSTALL)
+  install(TARGETS ui_linux)
+endif ()

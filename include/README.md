@@ -5,7 +5,7 @@ Header-only interfaces.
 ## [Index](../README.md)
 
 - **[include](./README.md)**
-  - [ui](./ui/README.md)
+  - [Test Framework](./ui/README.md)
   - [ui_dummy](./ui_dummy/README.md)
   - [ui_linux](./ui_linux/README.md)
   - [ui_osx](./ui_osx/README.md)

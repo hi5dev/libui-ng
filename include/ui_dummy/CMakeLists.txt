@@ -25,4 +25,5 @@ target_sources (
 
   FILES
   ui_dummy.h
+  ui_dummy_main.h
 )

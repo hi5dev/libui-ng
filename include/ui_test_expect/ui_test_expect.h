@@ -1,7 +1,5 @@
 #pragma once
 
-#include <ui_test.h>
-
 /**
  * @brief Expects the given condition to evaluate to true.
  * @param condition to evaluate.

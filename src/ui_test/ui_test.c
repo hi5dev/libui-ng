@@ -1,86 +1,68 @@
 #include <ui_test.h>
+#include <ui_test_report.h>
 
-#include <assert.h>
-#include <errno.h>
-#include <getopt.h>
-#include <libgen.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 
-/**
- * @brief Array of unit tests.
- */
-static struct ui_test_t ui_test_registry[UI_TEST_REGISTRY_CAPACITY];
+struct ui_test_t *ui_test_registry = NULL;
 
-struct ui_test_reporter_t *ui_test_get_reporter (void);
-
-/**
- * @brief Total number of unit tests registered.
- */
-static int test_count = 0;
-
-
-void
-register_test (const struct test_register_params params)
+static struct ui_test_t *
+ui_test_first (void)
 {
-  assert (test_count < MAX_TESTS);
+  struct ui_test_t *test = ui_test_registry;
 
-  assert (params.name != NULL);
-  assert (params.name[0] != '\0');
-  assert (params.f != NULL);
+  while (test != NULL && test->previous != NULL)
+    test = test->previous;
 
-  test_registry[test_count].name     = params.name;
-  test_registry[test_count].f        = params.f;
-  test_registry[test_count].filename = params.filename;
-  test_registry[test_count].line     = params.line;
-
-  test_count++;
+  return test;
 }
 
 void
-run_all_tests (void)
+ui_test_run_all (void)
 {
-  for (int i = 0; i < test_count; i++)
-    run_test (&test_registry[i]);
+  for (struct ui_test_t *test = ui_test_first (); test != NULL; test = test->next)
+    ui_test_run_one (test);
 }
 
 void
-run_test (struct test_t *test)
+ui_test_run_by_name (const char *name)
 {
-  assert (test != NULL);
-
-  (void)fprintf (stdout, TEST_RUN_FMT, test->name);
-
-  test->failure = NULL;
-
-  test->f (test);
-
-  if (test->failure == NULL)
-    {
-      (void)fprintf (stdout, " %s\n", TEST_PASS);
-      return;
-    }
-
-  (void)fprintf (stdout, " %s\n", TEST_FAIL);
-  (void)fprintf (stderr, "  %s\n\n", test->failure);
+  for (struct ui_test_t *test = ui_test_first (); test != NULL; test = test->next)
+    if (strcmp (name, test->name) == 0)
+      ui_test_run_one (test);
 }
 
 void
-run_tests_by_name (const char *name)
+ui_test_run_one (struct ui_test_t *test)
 {
-  for (int i = 0; i < test_count; i++)
-    if (strcmp (name, test_registry[i].name) == 0)
-      run_test (&test_registry[i]);
+  if (test == NULL || test->run == NULL)
+    return;
+
+  test->backtrace.message = NULL;
+  test->status            = UI_TEST_STATUS_RUNNING;
+
+  ui_test_report_dispatch (UI_TEST_REPORT_EVENT_RUN, test);
+
+  test->run (test);
+
+  test->status = test->backtrace.message == NULL ? UI_TEST_STATUS_PASSED : UI_TEST_STATUS_FAILED;
+
+  ui_test_report_dispatch (UI_TEST_REPORT_EVENT_STOP, test);
 }
 
 void
-usage (char *progname)
+ui_test_register (struct ui_test_t *test)
 {
-  fprintf (stderr, USAGE_FMT, progname ? progname : DEFAULT_PROGNAME);
+  struct ui_test_t *last = ui_test_registry;
 
-  exit (EXIT_FAILURE);
+  while (last != NULL && last->next != NULL)
+    last = last->next;
+
+  if (last == NULL)
+    ui_test_registry = test;
+
+  else
+    last->next = test;
+
+  ui_test_report_dispatch (UI_TEST_REPORT_EVENT_REGISTER, test);
 }
-
-void ui_test_set_reporter (struct ui_test_reporter_t *reporter);

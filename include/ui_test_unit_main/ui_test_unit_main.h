@@ -70,3 +70,11 @@ extern int optind;
  * @param progname name of the executable.
  */
 void ui_test_unit_main_print_usage (char *progname);
+
+/**
+ * @brief The unit test runner's main-entrypoint.
+ * @param argc Command-line argument count.
+ * @param argv Command-line argument vector.
+ * @return non-zero on failure.
+ */
+int ui_test_unit_main (int argc, char **argv);

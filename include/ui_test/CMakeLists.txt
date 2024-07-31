@@ -18,5 +18,5 @@ target_sources (
 
   FILES
   ui_test.h
-  ui_test_reporter.h
+  ui_test_report.h
 )
