@@ -1,9 +1,7 @@
-# LibUI Test Framework
+# Implementation: Test Framework
 
-Implementation of a [generic test-framework](../../include/ui_test/README.md).
+Implementation of a the testing framework, and the test runner.
 
 ## [Index](../../README.md)
-
-- [include](../../include/README.md)
-- [src](../README.md)
+- [Implementation](../README.md)
   - **[ui_test](../ui_test/README.md)**

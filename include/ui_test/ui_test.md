@@ -1,28 +1,8 @@
-# LibUI Test Framework
+# Test Framework API: ui_test
 
-API for a generic testing framework.
+Test data.
 
-## [Index](../README.md)
-
-- [include](../README.md)
-  - [Test Framework](./README.md)
+## [Index](../../README.md)
+- [APIs](../README.md)
+  - [Test Framework API](./README.md)
     - **[ui_test](./ui_test.md)**
-      - [Synopsis](#synopsis)
-      - [Types](#types)
-      - [Functions](#functions)
-      - [Example](#example)
-      - [Implementation](../../src/ui_test/ui_test.c)
-
-### Synopsis
-
-### Types
-
-| Type | Name | Description |
-|:-----|:-----|:------------|
-
-### Functions
-
-| Return Type | Name | Description |
-|:------------|:-----|:------------|
-
-### Example

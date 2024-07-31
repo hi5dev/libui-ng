@@ -1,10 +1,7 @@
-# LibUI Linux Implementation
+# Implementation: Linux Platform
 
-Linux-specific implementation.
+Linux platform-dependent implementation
 
 ## [Index](../../README.md)
-
-- [include](../../include/README.md)
-- [src](../README.md)
-  - [ui](../ui/README.md)
-  - **[ui_linux](../ui_linux/README.md)**
+- [Implementation](../README.md)
+  - **[ui_linux](./README.md)**

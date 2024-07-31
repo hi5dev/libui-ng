@@ -1,9 +1,8 @@
-# LibUI OSX Interface
+# OSX API
 
 API with OSX-specific features.
 
-## [Index](../README.md)
-
-- [include](../README.md)
-  - **[ui_osx](./README.md)**
-- [src](../../src/README.md)
+## [Index](../../README.md)
+- [APIs](../README.md)
+  - **[OSX API](./README.md)**
+    - [ui_osx_main](./ui_osx_main.md)

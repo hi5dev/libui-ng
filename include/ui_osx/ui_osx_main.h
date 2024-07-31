@@ -1,9 +1,10 @@
 #pragma once
 
+#include "ui_osx.h"
+
 /**
- * @brief Main entry-point for OSX.
- * @param argc Command-line argument vector count.
- * @param argv Command-line argument vector.
- * @return non-zero on error.
+ * @brief OSX application runner.
+ * @param ui_osx platform-specific application data.
+ * @return non-zero when exiting with an error.
  */
-int main (int *argc, char ***argv);
+int ui_osx_main (struct ui_osx_t *ui_osx);

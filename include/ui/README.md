@@ -1,9 +1,9 @@
-# LibUI Interface
+# Platform-Independent API
 
-This is the library's main interface containing a platform-independent API.
+A header-only/interface library for the application's platform-independent API.
 
-## [Index](../README.md)
-
-- [include](../README.md)
-  - **[ui](../ui/README.md)**
-- [src](../../src/README.md)
+## [Index](../../README.md)
+- [APIs](../README.md)
+  - **[Platform-Independent API](./README.md)**
+    - [ui_event](./ui_event.md)
+    - [ui_main](./ui_main.md)

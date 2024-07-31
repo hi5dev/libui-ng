@@ -67,5 +67,5 @@ ui_test_report_dispatch (const enum ui_test_report_event_t event, struct ui_test
   ui_test_report_cb_t *callback = NULL;
   ui_test_report_cb (&callback);
   if (callback != NULL)
-    callback ({ .event = event, .report = report, .test = test });
+    callback ((struct ui_test_report_message_t){ .event = event, .report = report, .test = test });
 }

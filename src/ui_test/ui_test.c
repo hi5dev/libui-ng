@@ -4,6 +4,10 @@
 #include <stddef.h>
 #include <string.h>
 
+#ifdef ui_test_register
+#undef ui_test_register
+#endif
+
 struct ui_test_t *ui_test_registry = NULL;
 
 static struct ui_test_t *
@@ -15,6 +19,19 @@ ui_test_first (void)
     test = test->previous;
 
   return test;
+}
+
+struct ui_test_t
+ui_test_init (const char *name, ui_test_cb_t *run, const char *filename, const int line)
+{
+  return {
+    .status    = UI_TEST_STATUS_REGISTER,
+    .backtrace = { .message = NULL, .filename = filename, .line = line },
+    .name      = name,
+    .run       = run,
+    .previous  = NULL,
+    .next      = NULL,
+  };
 }
 
 void
@@ -50,9 +67,12 @@ ui_test_run_one (struct ui_test_t *test)
   ui_test_report_dispatch (UI_TEST_REPORT_EVENT_STOP, test);
 }
 
-void
+int
 ui_test_register (struct ui_test_t *test)
 {
+  if (test->status != UI_TEST_STATUS_REGISTER)
+    return 0;
+
   struct ui_test_t *last = ui_test_registry;
 
   while (last != NULL && last->next != NULL)
@@ -64,5 +84,9 @@ ui_test_register (struct ui_test_t *test)
   else
     last->next = test;
 
+  test->status = UI_TEST_STATUS_PENDING;
+
   ui_test_report_dispatch (UI_TEST_REPORT_EVENT_REGISTER, test);
+
+  return 1;
 }

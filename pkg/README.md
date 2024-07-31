@@ -1,10 +1,9 @@
-# LibUI Packaging
+# Packaging
 
 Redistribution packages.
 
 ## [Index](../README.md)
-
-- **[pkg](./README.md)**
-  - [linux](./linux/README.md)
-  - [osx](./osx/README.md)
-  - [win32](./win32/README.md)
+- **[Packaging](./README.md)**
+  - [Linux Redistribution](./linux/README.md)
+  - [OSX Redistribution](./osx/README.md)
+  - [Win32 Redistribution](./win32/README.md)

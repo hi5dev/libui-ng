@@ -17,6 +17,7 @@ target_compile_definitions (
   INTERFACE
   -D UNICODE
   -D _UNICODE
+  -D WIN32_LEAN_AND_MEAN
 )
 
 set_target_properties (
@@ -35,6 +36,10 @@ target_sources (
   ui_win32.h
   ui_win32_main.h
 )
+
+if (TARGET ui_test_interface)
+  target_link_libraries (ui_test_interface INTERFACE ui::win32::interface)
+endif ()
 
 if (UI_INSTALL)
   install(TARGETS ui_win32_interface FILE_SET HEADERS)

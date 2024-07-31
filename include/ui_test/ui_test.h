@@ -1,14 +1,32 @@
 #pragma once
 
+#if defined(__GNUC__)
+#define ui_test_constructor __attribute__ ((constructor))
+#elif defined(_MSC_VER)
+#define ui_test_constructor __pragma (section (".CRT$XCU", read)) __declspec (allocate (".CRT$XCU"))
+#endif
+
+/**
+ * @brief Initializes a @p ui_test_t that is prepared for registration.
+ * @param n the test function.
+ */
+#define ui_test(n) ui_test_init (#n, n, __FILE__, __LINE__)
+
+/**
+ * @brife Information about a test.
+ */
+struct ui_test_t;
+
 /**
  * @brief Test statuses.
  */
 enum ui_test_status_t
 {
-  UI_TEST_STATUS_PENDING = 0, //<! Still waiting to run.
-  UI_TEST_STATUS_RUNNING = 1, //<! Currently in progress.
-  UI_TEST_STATUS_PASSED  = 2, //<! Completed successfully.
-  UI_TEST_STATUS_FAILED  = 3, //<! Was interrupted due to a failed expectation.
+  UI_TEST_STATUS_REGISTER = 0, //<! The test is being registered.
+  UI_TEST_STATUS_PENDING  = 1, //<! Still waiting to run.
+  UI_TEST_STATUS_RUNNING  = 2, //<! Currently in progress.
+  UI_TEST_STATUS_PASSED   = 3, //<! Completed successfully.
+  UI_TEST_STATUS_FAILED   = 4, //<! Was interrupted due to a failed expectation.
 };
 
 /**
@@ -75,6 +93,16 @@ struct ui_test_t
 };
 
 /**
+ * @brief Initializes a @p ui_test_t on the stack.
+ * @param name of the test.
+ * @param run callback.
+ * @param filename of the source file where the test is defined.
+ * @param line number of the test's definition in @p filename.
+ * @return @p ui_test_t
+ */
+struct ui_test_t ui_test_init (const char *name, ui_test_cb_t *run, const char *filename, int line);
+
+/**
  * @brief Runs all the registered tests.
  */
 void ui_test_run_all (void);
@@ -94,32 +122,8 @@ void ui_test_run_one (struct ui_test_t *test);
 /**
  * @brief Registers a test.
  * @param test to register.
+ * @return non-zero if the test was registered, zero if it was already registered before calling this function.
  */
-void ui_test_register (struct ui_test_t *test);
+int ui_test_register (struct ui_test_t *test);
 
-#ifndef ui_test
-#if defined(__GNUC__)
-#define ui_test(n)                                                                                                    \
-  static void n (__attribute__ ((maybe_unused)) struct ui_test_t *test);                                              \
-  static void __attribute__ ((constructor)) n##_register (void)                                                       \
-  {                                                                                                                   \
-    ui_test_register ({ .name = #n, .run = n, .filename = __FILE_NAME__, .line = __LINE__ });                         \
-  }                                                                                                                   \
-  void n (__attribute__ ((maybe_unused)) struct ui_test_t *test)
-
-#elif defined(_MSC_VER)
-#define ui_test(n)                                                                                                    \
-  static void n (__attribute__ ((maybe_unused)) struct ui_test_t *test);                                              \
-  static void n##_register (void)                                                                                     \
-  {                                                                                                                   \
-    ui_test_register ({ .name = #n, .run = n, .filename = __FILE_NAME__, .line = __LINE__ });                         \
-  }                                                                                                                   \
-  __pragma (section (".CRT$XCU", read)) __declspec (allocate (".CRT$XCU")) void (*n##__register) () = n##_register;
-\ void
-n (__attribute__ ((maybe_unused)) struct ui_test_t *test)
-
-#else
-#error "unsupported compiler"
-
-#endif
-#endif
+#define ui_test_register(t) if (ui_test_register (&test)) return;

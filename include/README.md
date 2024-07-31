@@ -1,16 +1,12 @@
-# LibUI Interfaces
+# APIs
 
-Header-only interfaces.
+API/header only interfaces.
 
 ## [Index](../README.md)
-
-- **[include](./README.md)**
-  - [Test Framework](./ui/README.md)
-  - [ui_dummy](./ui_dummy/README.md)
-  - [ui_linux](./ui_linux/README.md)
-  - [ui_osx](./ui_osx/README.md)
-  - [ui_test](./ui_test/README.md)
-  - [ui_test_expect](./ui_test_expect/README.md)
-  - [ui_test_unit](./ui_test_unit/README.md)
-  - [ui_test_unit_main](./ui_test_unit_main/README.md)
-  - [ui_win32](./ui_win32/README.md)
+- **[APIs](./README.md)**
+  - [Platform-Independent API](./ui/README.md)
+  - [Headless API](./ui_headless/README.md)
+  - [Linux API](./ui_linux/README.md)
+  - [OSX API](./ui_osx/README.md)
+  - [Test Framework API](./ui_test/README.md)
+  - [Win32 API](./ui_win32/README.md)

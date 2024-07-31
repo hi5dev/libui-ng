@@ -1,24 +1,61 @@
 #pragma once
 
-/**
- * @brief The user-interface's main entry-point.
- * @remark This is a thread-blocking call.
- */
-void ui_main (void);
+struct ui_main_t;
 
 /**
- * @brief Breaks the main loop.
+ * @brief @p ui_main_t callback function type.
+ * @param ui_main @p ui_main_t
  */
-void ui_main_quit (void);
+typedef void (ui_main_cb_t) (struct ui_main_t *ui_main);
 
 /**
- * @brief Dispatches one user-interface message.
- * @param wait non-zero to block the calling thread until at least one message is received.
+ * @brief Platform-dependent application data.
  */
-void ui_main_step (int wait);
+struct ui_main_t
+{
+  /**
+   * @brief Exit code to use when terminating the application.
+   */
+  int exit_code;
+
+  /**
+   * @brief Non-zero while the application is running.
+   */
+  int running;
+
+  /**
+   * @brief Platform-dependent application data.
+   */
+  void *data;
+
+  /**
+   * @brief Dispatches one user-interface message.
+   */
+  ui_main_cb_t *dispatch;
+
+  /**
+   * @brief Blocks the calling thread until a user-interface message is ready to dispatch.
+   * @remark Also determines when its time to quit running.
+   */
+  ui_main_cb_t *update;
+};
 
 /**
- * @brief The user-interface's main loop.
- * @remark This is a thread-blocking call.
+ * @brief Runs the application.
  */
-void ui_main_steps (void);
+void ui_main_run (struct ui_main_t *ui_main);
+
+/**
+ * @brief Breaks the main application loop started by a call to @p run.
+ */
+void ui_main_quit (struct ui_main_t *ui_main);
+
+/**
+ * @see ui_main_t#dispatch
+ */
+void ui_main_dispatch (struct ui_main_t *ui_main);
+
+/**
+ * @see ui_main_t#update
+ */
+void ui_main_update (struct ui_main_t *ui_main);

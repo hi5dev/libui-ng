@@ -1,9 +1,10 @@
 #pragma once
 
+#include "ui_linux.h"
+
 /**
- * @brief Main entry-point for Linux.
- * @param argc Command-line argument vector count.
- * @param argv Command-line argument vector.
- * @return non-zero on error.
+ * @brief Linux application runner.
+ * @param ui_linux platform-specific application data.
+ * @return non-zero when exiting an error.
  */
-int main (int *argc, char ***argv);
+int ui_linux_main (struct ui_linux_t *ui_linux);

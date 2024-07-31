@@ -1,11 +1,10 @@
-# LibUI Test Framework
+# Test Framework API: ui_test_report
 
-API for a generic testing framework.
+Test reporting API.
 
-## [Index](../README.md)
-
-- [include](../README.md)
-  - [Test Framework](./README.md)
+## [Index](../../README.md)
+- [APIs](../README.md)
+  - [Test Framework API](./README.md)
     - **[ui_test_report](./ui_test_report.md)**
       - [Synopsis](#synopsis)
       - [Example](#example)

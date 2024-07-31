@@ -1,6 +1,16 @@
 #pragma once
 
 /**
+ * @brief Test report notification events.
+ */
+enum ui_test_report_event_t
+{
+ UI_TEST_REPORT_EVENT_REGISTER = 0, //!< A test was just registered.
+ UI_TEST_REPORT_EVENT_RUN      = 1, //!< A test is about to run.
+ UI_TEST_REPORT_EVENT_STOP     = 2, //!< A test just stopped running.
+};
+
+/**
  * @brief Test report data.
  */
 struct ui_test_report_t
@@ -41,16 +51,6 @@ struct ui_test_report_message_t
    * @brief The test that triggered the event.
    */
   struct ui_test_t *test;
-};
-
-/**
- * @brief Test report notification events.
- */
-enum ui_test_report_event_t
-{
-  UI_TEST_REPORT_EVENT_REGISTER = 0, //!< A test was just registered.
-  UI_TEST_REPORT_EVENT_RUN      = 1, //!< A test is about to run.
-  UI_TEST_REPORT_EVENT_STOP     = 2, //!< A test just stopped running.
 };
 
 /**

@@ -1,9 +1,9 @@
-# LibUI Win32 Interface
+# Win32 API
 
-API with Windows-specific features.
+API for Windows-specific features.
 
-## [Index](../README.md)
-
-- [include](../README.md)
-  - **[ui_win32](./README.md)**
-- [src](../../src/README.md)
+## [Index](../../README.md)
+- [APIs](../README.md)
+  - **[Win32 API](./README.md)**
+    - [ui_win32](./ui_win32.md)
+    - [ui_win32_main](./ui_win32_main.md)
