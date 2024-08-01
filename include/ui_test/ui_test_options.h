@@ -16,7 +16,6 @@
  */
 #define UI_TEST_OPTIONS_HELP_STR                                                                                      \
   "\n"                                                                                                                \
-  "Options:\n"                                                                                                        \
   "    -n [name]\n"                                                                                                   \
   "       Runs all the tests that match the given name (exact match).\n"                                              \
   "\n"                                                                                                                \

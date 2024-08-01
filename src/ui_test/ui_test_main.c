@@ -44,6 +44,7 @@ ui_test_main (const int argc, char **argv)
 
       case 'v':
         options.verbose = 1;
+        break;
 
       case 'h':
         ui_test_main_print_usage (basename (argv[0]), stdout);
