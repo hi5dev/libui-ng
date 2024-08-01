@@ -135,9 +135,14 @@ ui_test_report_stdout_print_summary (const struct ui_test_report_t *report)
   if (report == NULL)
     return;
 
+  if (report->n_tests_registered == 0)
+    {
+      (void)fprintf (stderr, "No tests were registered.\n");
+    }
+
   if (report->n_tests_run == 0)
     {
-      (void)fprintf (stdout, "No tests ran. Perhaps there were no defined expectations?\n");
+      (void)fprintf (stderr, "\nRan 0 out of %d test(s)\n", report->n_tests_registered);
       return;
     }
 
@@ -147,8 +152,10 @@ ui_test_report_stdout_print_summary (const struct ui_test_report_t *report)
   const int n_passed     = report->n_tests_passed;
   const int n_failed     = report->n_tests_failed;
 
+  FILE *out = n_failed > 0 ? stderr : stdout;
+
   // example: Ran 10 tests: 0 skipped (0.00%), 9 passed (90.00%), 1 failed (10.00%)
-  (void)fprintf (stdout,                                                                  //
+  (void)fprintf (out,                                                                     //
                  "\n%s %d %s %d %s: %d %s (%0.2f%%), %d %s (%0.2f%%), %d %s (%0.2f%%)\n", //
                  "Ran", n_run, "of", n_registered, "test(s)",                             //
                  n_skipped, "skipped", percent (n_run, n_skipped),                        //

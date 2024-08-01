@@ -13,7 +13,7 @@
 int
 main (const int argc, char **argv)
 {
-  ui_test_main (argc, argv);
+  return ui_test_main (argc, argv);
 }
 
 #endif
@@ -67,7 +67,10 @@ ui_test_main (const int argc, char **argv)
 
   ui_test_report_stdout_print_summary (&report);
 
-  return report.n_tests_failed == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  if (report.n_tests_run > 0 && report.n_tests_passed + report.n_tests_skipped == report.n_tests_run)
+    return EXIT_SUCCESS;
+
+  return EXIT_FAILURE;
 }
 
 void
