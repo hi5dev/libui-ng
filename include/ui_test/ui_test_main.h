@@ -1,75 +1,23 @@
 #pragma once
 
-#ifndef UI_TEST_MAIN_DEFAULT_PROGNAME
+#include <stdio.h>
+
 /**
  * @brief Default program name to use when the platform's command-line doesn't pass it in to the argument vector.
  */
 #define UI_TEST_MAIN_DEFAULT_PROGNAME "ui_test"
-#endif
 
 /**
- * @brief Program options.
- * @see getopt(3)
+ * @brief Short description of the program shown to the user in the program's help message.
  */
-#define UI_TEST_MAIN_OPTSTR "n:h"
+#define UI_TEST_MAIN_DESCRIPTION "Runs one or more tests"
 
 /**
- * @brief Usage formatted message.
- */
-#define UI_TEST_MAIN_USAGE_FMT "%s [-n name] [-h]"
-
-/**
- * @brief Test runner formatted message.
- */
-#define TEST_RUN_FMT "Running %s ..."
-
-/**
- * @brief Message to print when the test passes.
- */
-#define TEST_PASS "[PASS]"
-
-/**
- * @brief Message to print when the test fails.
- */
-#define TEST_FAIL "[FAIL]"
-
-/**
- * @brief Command-line arguments.
- */
-struct ui_test_main_options_t
-{
-  /**
-   * @brief Optionally specified test name.
-   * @details When not @p NULL, only tests with this name will run.
-   */
-  const char *name;
-};
-
-/**
- * @see errno(3)
- */
-extern int errno;
-
-/**
- * @see getopt(3)
- */
-extern char *optarg;
-
-/**
- * @see getopt(3)
- */
-extern int opterr;
-
-/**
- * @see getopt(3)
- */
-extern int optind;
-
-/**
- * @brief Prints the program's usage and exits with a failure.
+ * @brief Prints the program's usage to the given stream.
  * @param progname name of the executable.
+ * @param out stream to write the message to.
  */
-void ui_test_unit_main_print_usage (char *progname);
+void ui_test_unit_main_print_usage (char *progname, FILE *out);
 
 /**
  * @brief The unit test runner's main-entrypoint.

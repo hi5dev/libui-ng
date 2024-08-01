@@ -1,60 +1,61 @@
 #pragma once
 
+#include "ui_test_backtrace.h"
+#include "ui_test_options.h"
+#include "ui_test_status.h"
+
+/**
+ * @def ui_test_runner
+ * @brief Registers a test runner function.
+ * @example
+ * @code
+ * static void ui_test_runner
+ * ui_example_test (void)
+ * {
+ *   static struct ui_test_t test = ui_test (test, ui_example_test);
+ * }
+ * @endcode
+ * @remark This macro does nothing for release builds.
+ */
+#ifdef NDEBUG
+#define ui_test_runner __attribute__ ((unused))
+#else
 #if defined(__GNUC__)
-#define ui_test_constructor __attribute__ ((constructor))
+#define ui_test_runner __attribute__ ((constructor))
 #elif defined(_MSC_VER)
-#define ui_test_constructor __pragma (section (".CRT$XCU", read)) __declspec (allocate (".CRT$XCU"))
+#pragma section(".CRT$XCU", read)
+#define ui_test_runner __declspec (allocate (".CRT$XCU"))
+#endif
 #endif
 
 /**
- * @brief Initializes a @p ui_test_t that is prepared for registration.
- * @param n the test function.
+ * @def ui_test
+ * @brief Initializes a @p ui_test_t and registers it.
+ * @param var name of the test variable being defined.
+ * @param runner callback function - also used as the test's name
+ * @return @p ui_test_t
+ * @example
+ * @code
+ * static struct ui_test_t test = ui_test (test, ui_example_test);
+ * @endcode
+ * @remark Tests do not run for release builds.
  */
-#define ui_test(n) ui_test_init (#n, n, __FILE__, __LINE__)
 
-/**
- * @brife Information about a test.
- */
-struct ui_test_t;
-
-/**
- * @brief Test statuses.
- */
-enum ui_test_status_t
-{
-  UI_TEST_STATUS_REGISTER = 0, //<! The test is being registered.
-  UI_TEST_STATUS_PENDING  = 1, //<! Still waiting to run.
-  UI_TEST_STATUS_RUNNING  = 2, //<! Currently in progress.
-  UI_TEST_STATUS_PASSED   = 3, //<! Completed successfully.
-  UI_TEST_STATUS_FAILED   = 4, //<! Was interrupted due to a failed expectation.
-};
-
-/**
- * @brief Backtrace information for failed tests.
- */
-struct ui_test_backtrace_t
-{
-  /**
-   * @brief Reason the test failed, or @p NULL if the test hasn't failed.
-   */
-  const char *message;
-
-  /**
-   * @brief Full path to the source file with the test.
-   */
-  const char *filename;
-
-  /**
-   * @brief Line in the source where the test is defined, or of the last failure.
-   */
-  int line;
-};
+#ifdef NDEBUG
+#define ui_test(var, runner)                                                                                          \
+  { UI_TEST_STATUS_SKIPPED, ui_test_backtrace (0), #runner, runner, 0 };                                              \
+  return
+#else
+#define ui_test(var, runner)                                                                                          \
+  { UI_TEST_STATUS_REGISTER, ui_test_backtrace (0), #runner, runner, 0 };                                             \
+  if (ui_test_register (&var))                                                                                        \
+  return
+#endif
 
 /**
  * @brief Test callback function type.
- * @param test that triggered the callback.
  */
-typedef void (ui_test_cb_t) (struct ui_test_t *test);
+typedef void (ui_test_cb_t) (void);
 
 /**
  * @brief Information about a test.
@@ -82,6 +83,11 @@ struct ui_test_t
   ui_test_cb_t *run;
 
   /**
+   * @brief Test options.
+   */
+  struct ui_test_options_t *options;
+
+  /**
    * @brief The previous test or @p NULL for the first registered test.
    */
   struct ui_test_t *previous;
@@ -93,31 +99,35 @@ struct ui_test_t
 };
 
 /**
- * @brief Initializes a @p ui_test_t on the stack.
- * @param name of the test.
- * @param run callback.
- * @param filename of the source file where the test is defined.
- * @param line number of the test's definition in @p filename.
- * @return @p ui_test_t
- */
-struct ui_test_t ui_test_init (const char *name, ui_test_cb_t *run, const char *filename, int line);
-
-/**
  * @brief Runs all the registered tests.
+ * @param options @p ui_test_options_t
  */
-void ui_test_run_all (void);
+void ui_test_run_all (struct ui_test_options_t *options);
 
 /**
  * @brief Runs all tests that match the given name.
  * @param name of the tests to run.
+ * @param options @p ui_test_options_t
  */
-void ui_test_run_by_name (const char *name);
+void ui_test_run_by_name (const char *name, struct ui_test_options_t *options);
 
 /**
  * @brief Runs one specific test.
+ * @param options @p ui_test_options_t
  * @param test to run.
  */
-void ui_test_run_one (struct ui_test_t *test);
+void ui_test_run_one (struct ui_test_t *test, struct ui_test_options_t *options);
+
+/**
+ * @brief Updates the status and backtrace of a @p ui_test_t
+ * @param test @p ui_test_t
+ * @param status @p ui_test_status_t
+ * @param message to include in the backtrace or @p NULL to ignore the backtrace when reporting the test result.
+ * @param filename full path to the file with the test's source code.
+ * @param line number that resulted in changing the test's status.
+ */
+void ui_test_set_status (struct ui_test_t *test, enum ui_test_status_t status, const char *message,
+                         const char *filename, int line);
 
 /**
  * @brief Registers a test.
@@ -125,5 +135,3 @@ void ui_test_run_one (struct ui_test_t *test);
  * @return non-zero if the test was registered, zero if it was already registered before calling this function.
  */
 int ui_test_register (struct ui_test_t *test);
-
-#define ui_test_register(t) if (ui_test_register (&test)) return;

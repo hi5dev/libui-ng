@@ -18,7 +18,10 @@ target_sources (
 
   FILES
   ui_test.h
+  ui_test_backtrace.h
   ui_test_expect.h
   ui_test_main.h
+  ui_test_options.h
   ui_test_report.h
+  ui_test_status.h
 )

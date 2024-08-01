@@ -1,6 +1,7 @@
 #include <ui_test.h>
 #include <ui_test_report.h>
 
+#include <assert.h>
 #include <stddef.h>
 
 void
@@ -36,7 +37,7 @@ ui_test_report (struct ui_test_report_t **report)
 void
 ui_test_report_dispatch (const enum ui_test_report_event_t event, struct ui_test_t *test)
 {
-  struct ui_test_report_t *report;
+  struct ui_test_report_t *report = NULL;
   ui_test_report (&report);
   if (report != NULL)
     switch (event)
@@ -49,8 +50,24 @@ ui_test_report_dispatch (const enum ui_test_report_event_t event, struct ui_test
 
       case UI_TEST_REPORT_EVENT_STOP:
         {
-          if (test->status == UI_TEST_STATUS_FAILED)
-            report->n_tests_failed++;
+          switch (test->status)
+            {
+            case UI_TEST_STATUS_PASSED:
+              report->n_tests_passed++;
+              break;
+
+            case UI_TEST_STATUS_FAILED:
+              report->n_tests_failed++;
+              break;
+
+            case UI_TEST_STATUS_SKIPPED:
+              report->n_tests_skipped++;
+              break;
+
+            default:
+              _assert ("should not be reached", __FILE__, __LINE__);
+            }
+
           break;
         }
 
@@ -61,7 +78,7 @@ ui_test_report_dispatch (const enum ui_test_report_event_t event, struct ui_test
         }
 
       default:;
-        break;
+        _assert ("should not be reached", __FILE__, __LINE__);
       }
 
   ui_test_report_cb_t *callback = NULL;

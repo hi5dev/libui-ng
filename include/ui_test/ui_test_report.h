@@ -30,6 +30,16 @@ struct ui_test_report_t
    * @brief Total number of tests that were interrupted due to a failed expectation.
    */
   int n_tests_failed;
+
+  /**
+   * @brief Total number of tests that passed.
+   */
+  int n_tests_passed;
+
+  /**
+   * @brief Total number of tests that were skipped.
+   */
+  int n_tests_skipped;
 };
 
 /**
