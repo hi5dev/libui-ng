@@ -2,6 +2,7 @@
 
 #include "ui_test_backtrace.h"
 #include "ui_test_options.h"
+#include "ui_test_report.h"
 #include "ui_test_status.h"
 
 /**
@@ -15,7 +16,7 @@
  *   static struct ui_test_t test = ui_test (test, ui_example_test);
  * }
  * @endcode
- * @remark This macro does nothing for release builds.
+ * @remark Functions that use this macro will be marked as unused for release builds so they can be optimized out.
  */
 #ifdef NDEBUG
 #define ui_test_runner __attribute__ ((unused))
@@ -40,7 +41,6 @@
  * @endcode
  * @remark Tests do not run for release builds.
  */
-
 #ifdef NDEBUG
 #define ui_test(var, runner)                                                                                          \
   { UI_TEST_STATUS_SKIPPED, ui_test_backtrace (0), #runner, runner, 0 };                                              \
@@ -85,7 +85,12 @@ struct ui_test_t
   /**
    * @brief Test options.
    */
-  struct ui_test_options_t *options;
+  volatile struct ui_test_options_t *options;
+
+  /**
+   * @brief Current @p ui_test_report_t to notify of changes to the test's state.
+   */
+  volatile struct ui_test_report_t *report;
 
   /**
    * @brief The previous test or @p NULL for the first registered test.
@@ -99,24 +104,50 @@ struct ui_test_t
 };
 
 /**
+ * @return Total number of tests registered.
+ */
+int ui_test_n_registered (void);
+
+/**
+ * @brief Registers a test.
+ * @param test to register.
+ * @return non-zero if the test was registered, zero if it was already registered before calling this function.
+ * @retval 0 when the caller can safely perform the test.
+ * @retval 1 when the test was registered by the current call.
+ * @retval 2 when the test was registered by a previous call, but is not in an appropriate state to run.
+ */
+int ui_test_register (struct ui_test_t *test);
+
+/**
+ * @brief Dispatches an event to its assigned report.
+ * @param test with the report.
+ * @param event to report.
+ */
+void ui_test_report_dispatch (volatile struct ui_test_t *test, enum ui_test_report_event_t event);
+
+/**
  * @brief Runs all the registered tests.
+ * @param report to use while running each test.
  * @param options @p ui_test_options_t
  */
-void ui_test_run_all (struct ui_test_options_t *options);
+void ui_test_run_all (struct ui_test_report_t *report, struct ui_test_options_t *options);
 
 /**
  * @brief Runs all tests that match the given name.
  * @param name of the tests to run.
+ * @param report to use while running the test.
  * @param options @p ui_test_options_t
  */
-void ui_test_run_by_name (const char *name, struct ui_test_options_t *options);
+void ui_test_run_by_name (const char *name, struct ui_test_report_t *report, struct ui_test_options_t *options);
 
 /**
  * @brief Runs one specific test.
- * @param options @p ui_test_options_t
  * @param test to run.
+ * @param report to use while running the test.
+ * @param options @p ui_test_options_t
  */
-void ui_test_run_one (struct ui_test_t *test, struct ui_test_options_t *options);
+void ui_test_run_one (volatile struct ui_test_t *test, struct ui_test_report_t *report,
+                      struct ui_test_options_t *options);
 
 /**
  * @brief Updates the status and backtrace of a @p ui_test_t
@@ -128,10 +159,3 @@ void ui_test_run_one (struct ui_test_t *test, struct ui_test_options_t *options)
  */
 void ui_test_set_status (struct ui_test_t *test, enum ui_test_status_t status, const char *message,
                          const char *filename, int line);
-
-/**
- * @brief Registers a test.
- * @param test to register.
- * @return non-zero if the test was registered, zero if it was already registered before calling this function.
- */
-int ui_test_register (struct ui_test_t *test);

@@ -17,12 +17,12 @@
  * @param progname name of the executable.
  * @param out stream to write the message to.
  */
-void ui_test_unit_main_print_usage (char *progname, FILE *out);
+void ui_test_main_print_usage (char *progname, FILE *out);
 
 /**
- * @brief The unit test runner's main-entrypoint.
+ * @brief Runs the tests.
  * @param argc Command-line argument count.
  * @param argv Command-line argument vector.
  * @return non-zero on failure.
  */
-int ui_test_unit_main (int argc, char **argv);
+int ui_test_main (int argc, char **argv);

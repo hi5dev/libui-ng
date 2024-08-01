@@ -23,5 +23,8 @@ target_sources (
   ui_test_main.h
   ui_test_options.h
   ui_test_report.h
+  ui_test_report_event.h
+  ui_test_report_message.h
+  ui_test_report_stdout.h
   ui_test_status.h
 )

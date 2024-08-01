@@ -4,6 +4,13 @@ add_executable (ui_test)
 
 add_executable (ui::test ALIAS ui_test)
 
+target_compile_definitions (
+  ui_test
+
+  PUBLIC
+  -D UI_TEST_MAIN
+)
+
 target_link_libraries (
   ui_test
 
@@ -16,7 +23,6 @@ target_sources (
 
   PRIVATE
   ui_test.c
-  ui_test_console_reporter.c
   ui_test_main.c
-  ui_test_report.c
+  ui_test_report_stdout.c
 )

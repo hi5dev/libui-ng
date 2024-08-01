@@ -6,7 +6,7 @@
  */
 #define ui_test_backtrace(message)                                                                                    \
   {                                                                                                                   \
-    message, __FILE_NAME__, __LINE__                                                                                  \
+    message, __FILE__, __LINE__                                                                                       \
   }
 
 /**

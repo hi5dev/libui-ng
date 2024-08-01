@@ -13,6 +13,7 @@ target_sources (
   ui
 
   PRIVATE
+  ui_control.c
   ui_event.c
   ui_main.c
 )
@@ -24,10 +25,12 @@ if (TARGET ui_test)
     ui_test
 
     PRIVATE
+    ui_control_test.c
     ui_event_test.c
     ui_main_test.c
   )
 
+  add_test (NAME "ui_control_test" COMMAND ui::test -n ui_control_test)
   add_test (NAME "ui_event_test" COMMAND ui::test -n ui_event_test)
   add_test (NAME "ui_main_test" COMMAND ui::test -n ui_main_test)
 endif ()

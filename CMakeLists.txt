@@ -29,6 +29,10 @@ option (UI_BUILD_DOCS "Build documentation" ${PROJECT_IS_TOP_LEVEL})
 option (UI_BUILD_TESTS "Build test programs" ${PROJECT_IS_TOP_LEVEL})
 option (UI_INSTALL "Generate installation targets" ${PROJECT_IS_TOP_LEVEL})
 
+if (UI_BUILD_TESTS)
+  enable_testing ()
+endif ()
+
 add_subdirectory (include)
 add_subdirectory (src)
 

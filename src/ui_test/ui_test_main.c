@@ -1,22 +1,25 @@
 #include <ui_test.h>
 #include <ui_test_main.h>
 #include <ui_test_options.h>
-#include <ui_test_report.h>
-
-#include "ui_test_console_reporter.h"
+#include <ui_test_report_stdout.h>
 
 #include <getopt.h>
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-extern int   errno;  /// @see errno(3)
-extern char *optarg; /// @see getopt(3)
-extern int   opterr; /// @see getopt(3)
-extern int   optind; /// @see getopt(3)
+#ifdef UI_TEST_MAIN
 
 int
 main (const int argc, char **argv)
+{
+  ui_test_main (argc, argv);
+}
+
+#endif
+
+int
+ui_test_main (const int argc, char **argv)
 {
   int opt;
 
@@ -43,32 +46,31 @@ main (const int argc, char **argv)
         options.verbose = 1;
 
       case 'h':
-        ui_test_unit_main_print_usage (basename (argv[0]), stdout);
+        ui_test_main_print_usage (basename (argv[0]), stdout);
         exit (EXIT_SUCCESS);
 
       default:;
-        ui_test_unit_main_print_usage (basename (argv[0]), stderr);
+        ui_test_main_print_usage (basename (argv[0]), stderr);
         exit (EXIT_FAILURE);
       }
 
-  static ui_test_report_cb_t *console_report_cb = ui_test_console_reporter;
-  ui_test_report_cb (&console_report_cb);
+  struct ui_test_report_t report = { 0 };
+  report.n_tests_registered      = ui_test_n_registered ();
+  report.report_cb               = ui_test_report_stdout_cb;
 
   if (options.name != NULL)
-    ui_test_run_by_name (options.name, &options);
+    ui_test_run_by_name (options.name, &report, &options);
 
   else
-    ui_test_run_all (&options);
+    ui_test_run_all (&report, &options);
 
-  ui_test_console_reporter_print_summary ();
+  ui_test_report_stdout_print_summary (&report);
 
-  ui_test_report_cb (NULL);
-
-  return EXIT_SUCCESS;
+  return report.n_tests_failed == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 void
-ui_test_unit_main_print_usage (char *progname, FILE *out)
+ui_test_main_print_usage (char *progname, FILE *out)
 {
   if (progname == NULL)
     progname = UI_TEST_MAIN_DEFAULT_PROGNAME;

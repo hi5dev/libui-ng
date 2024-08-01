@@ -17,6 +17,7 @@ target_sources (
   INTERFACE FILE_SET HEADERS
 
   FILES
+  ui_control.h
   ui_event.h
   ui_main.h
 )

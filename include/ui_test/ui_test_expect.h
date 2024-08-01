@@ -1,7 +1,5 @@
 #pragma once
 
-#include <ui_test.h>
-
 /**
  * @brief Interrupts the current test; updates its status and backtrace message.
  * @param status to update the test to
