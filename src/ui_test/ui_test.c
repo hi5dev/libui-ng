@@ -4,7 +4,9 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
+#include <ui_test_expect.h>
 
 #ifdef ui_test_register
 #undef ui_test_register
@@ -146,4 +148,25 @@ ui_test_set_status (struct ui_test_t *test, const enum ui_test_status_t status, 
   test->backtrace.message  = message;
   test->backtrace.filename = filename;
   test->backtrace.line     = line;
+}
+
+static ui_test_case
+ui_test_set_status_test (void)
+{
+  static struct ui_test_t test = ui_test (test, ui_test_set_status_test);
+
+  ui_test_set_status (&test, UI_TEST_STATUS_PENDING, "impossible", "this_file.c", 99);
+
+  const enum ui_test_status_t status = test.status;
+  char *message = strdup (test.backtrace.message);
+  char *file = strdup (test.backtrace.filename);
+  const int line = test.backtrace.line;
+
+  ui_expect (status == UI_TEST_STATUS_PENDING, "ui_test_set_status did not update test.status");
+  ui_expect_cmp (str, message, is, "impossible");
+  ui_expect_cmp (str, file, is, "this_file.c");
+  ui_expect_cmp (int, line, is, 99);
+
+  free (message);
+  free (file);
 }

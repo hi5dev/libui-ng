@@ -7,6 +7,7 @@ target_link_libraries (
 
   PRIVATE
   ui::interface
+  ui::test
 )
 
 target_sources (
@@ -18,18 +19,7 @@ target_sources (
   ui_main.c
 )
 
-if (TARGET ui_test)
-  target_link_libraries (ui_test PRIVATE ui)
-
-  target_sources (
-    ui_test
-
-    PRIVATE
-    ui_control_test.c
-    ui_event_test.c
-    ui_main_test.c
-  )
-
+if (UI_CTEST_TARGETS)
   add_test (NAME "ui_control_test" COMMAND ui::test -n ui_control_test)
   add_test (NAME "ui_event_test" COMMAND ui::test -n ui_event_test)
   add_test (NAME "ui_main_test" COMMAND ui::test -n ui_main_test)

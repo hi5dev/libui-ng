@@ -26,7 +26,3 @@ target_sources (
   FILES
   ui_headless_main.h
 )
-
-if (TARGET ui_test_interface)
-  target_link_libraries (ui_test_interface INTERFACE ui::headless::interface)
-endif ()

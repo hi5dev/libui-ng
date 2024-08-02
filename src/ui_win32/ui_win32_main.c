@@ -4,6 +4,9 @@
 #include <ui_win32_main.h>
 #include <ui_main.h>
 
+#include <ui_test.h>
+#include <ui_test_expect.h>
+
 static void
 ui_win32_main_dispatch (struct ui_main_t *main)
 {
@@ -54,4 +57,12 @@ wWinMain (const HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, 
   struct ui_win32_t win32 = { .handle = hInstance, .message = {}, .quit = FALSE };
 
   return ui_win32_main (&win32);
+}
+
+static ui_test_case
+ui_win32_main_test (void)
+{
+  static struct ui_test_t test = ui_test (test, ui_win32_main_test);
+
+  ui_test_skip ("TODO");
 }

@@ -2,6 +2,9 @@
 #include <ui_linux_main.h>
 #include <ui_main.h>
 
+#include <ui_test.h>
+#include <ui_test_expect.h>
+
 #include <stddef.h>
 
 static void
@@ -48,4 +51,12 @@ main (void)
 {
   struct ui_linux_t win32 = { .quit = 0 };
   return ui_linux_main (&win32);
+}
+
+static ui_test_case
+ui_linux_main_test (void)
+{
+  static struct ui_test_t test = ui_test (test, ui_linux_main_test);
+
+  ui_test_skip ("TODO");
 }

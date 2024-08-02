@@ -9,6 +9,7 @@ target_link_libraries (
 
   PRIVATE
   ui::win32::interface
+  ui::test
 
   PUBLIC
   ui
@@ -22,17 +23,7 @@ target_sources (
   ui_win32_main.c
 )
 
-if (TARGET ui_test)
-  target_link_libraries (ui_test PUBLIC ui::ui)
-
-  target_sources (
-    ui_test
-
-    PRIVATE
-    ui_win32_test.c
-    ui_win32_main_test.c
-  )
-
+if (UI_CTEST_TARGETS)
   add_test (NAME "ui_win32_test" COMMAND ui::test -n ui_win32_test)
   add_test (NAME "ui_win32_main_test" COMMAND ui::test -n ui_win32_main_test)
 endif ()

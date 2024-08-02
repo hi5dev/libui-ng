@@ -1,20 +1,13 @@
 cmake_minimum_required (VERSION 3.25)
 
-add_executable (ui_test)
+add_library (ui_test STATIC)
 
-add_executable (ui::test ALIAS ui_test)
-
-target_compile_definitions (
-  ui_test
-
-  PUBLIC
-  -D UI_TEST_MAIN
-)
+add_library (ui::test ALIAS ui_test)
 
 target_link_libraries (
   ui_test
 
-  PRIVATE
+  PUBLIC
   ui::test::interface
 )
 
@@ -23,6 +16,7 @@ target_sources (
 
   PRIVATE
   ui_test.c
+  ui_test_expect.c
   ui_test_main.c
   ui_test_report_stdout.c
 )

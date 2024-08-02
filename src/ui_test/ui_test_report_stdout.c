@@ -4,6 +4,10 @@
 #include <assert.h>
 #include <stdio.h>
 
+#if defined(linux)
+#define _assert __assert
+#endif
+
 #define percent(total, value) ((double)value / (double)total * 100.0)
 
 #define DO_NOT_INCLUDE_MESSAGE 0
@@ -35,7 +39,7 @@ ui_test_report_stdout_backtrace (const struct ui_test_report_message_t *message,
   if (bt == NULL)
     return;
 
-  if (include_message)
+  if (include_message && bt->message != NULL)
     (void)fprintf (stdout, "  %s:%d: %s\n\n", bt->filename, bt->line, bt->message);
 
   else

@@ -22,10 +22,6 @@ target_sources (
   ui_main.h
 )
 
-if (TARGET ui_test_interface)
-  target_link_libraries (ui_test_interface INTERFACE ui::interface)
-endif ()
-
 if (UI_INSTALL)
   install(TARGETS ui_interface FILE_SET HEADERS)
 endif ()

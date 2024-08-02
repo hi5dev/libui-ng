@@ -54,12 +54,14 @@ into problems.
 This framework solves that problem by using normal functions for your tests, like this:
 
 ```c++
-static void ui_test_runner ui_test_example (void);
+static ui_test_case ui_test_example (void);
 ```
 
-The only macro used here, `ui_test_runner`, expands to an `__attribute__` or `__declspec`, depending on the compiler
-you're using, that registers the function to run automatically. This way, there's not a whole lot hiding behind the
-preprocessor. Here's what the above expands to for GNU C:
+The only macro used here, `ui_test_case`, expands to an `__attribute__` or `__declspec`, depending on the compiler
+you're using, that registers the function to run automatically. It also includes `void` so you don't write functions
+with unexpected return types for the tests.
+
+Here's what the above line of code expands to for GNU C:
 
 ```c++
 static void __attribute__((constructor)) ui_test_example (void);
@@ -108,7 +110,7 @@ Here's a complete example of a test without any expanded macros:
 #include <ui_test.h>
 #include <ui_test_expect.h>
 
-static void ui_test_runner
+static ui_test_case
 ui_test_example (void)
 {
   static struct ui_test test = ui_test (test, ui_test_example);
@@ -181,7 +183,7 @@ And here's our test to ensure the widget can be constructed.
 
 #include <stddef.h>
 
-static void ui_test_runner
+static ui_test_case
 ui_widget_test_ctor (void)
 {
   static struct ui_test_t test = ui_test (test, ui_widget_test_ctor);

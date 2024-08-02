@@ -9,6 +9,7 @@ target_link_libraries (
 
   PRIVATE
   ui::linux::interface
+  ui::test
 )
 
 target_sources (
@@ -19,21 +20,11 @@ target_sources (
   ui_linux_main.c
 )
 
-if (TARGET ui_test)
-  target_link_libraries (ui_test PUBLIC ui::ui)
-
-  target_sources (
-    ui_test
-
-    PRIVATE
-    ui_linux_test.c
-    ui_linux_main_test.c
-  )
-
+if (UI_CTEST_TARGETS)
   add_test (NAME "ui_linux_test" COMMAND ui::test -n ui_linux_test)
   add_test (NAME "ui_linux_main_test" COMMAND ui::test -n ui_linux_main_test)
 endif ()
 
 if (UI_INSTALL)
-  install(TARGETS ui_linux)
+  install (TARGETS ui_linux)
 endif ()

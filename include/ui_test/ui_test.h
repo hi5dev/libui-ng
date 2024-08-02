@@ -6,11 +6,11 @@
 #include "ui_test_status.h"
 
 /**
- * @def ui_test_runner
+ * @def ui_test_case
  * @brief Registers a test runner function.
  * @example
  * @code
- * static void ui_test_runner
+ * static ui_test_case
  * ui_example_test (void)
  * {
  *   static struct ui_test_t test = ui_test (test, ui_example_test);
@@ -19,13 +19,13 @@
  * @remark Functions that use this macro will be marked as unused for release builds so they can be optimized out.
  */
 #ifdef NDEBUG
-#define ui_test_runner __attribute__ ((unused))
+#define ui_test_case void __attribute__ ((unused))
 #else
 #if defined(__GNUC__)
-#define ui_test_runner __attribute__ ((constructor))
+#define ui_test_case void __attribute__ ((constructor))
 #elif defined(_MSC_VER)
 #pragma section(".CRT$XCU", read)
-#define ui_test_runner __declspec (allocate (".CRT$XCU"))
+#define ui_test_case void __declspec (allocate (".CRT$XCU"))
 #endif
 #endif
 

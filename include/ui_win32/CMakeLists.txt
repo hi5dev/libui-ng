@@ -37,10 +37,6 @@ target_sources (
   ui_win32_main.h
 )
 
-if (TARGET ui_test_interface)
-  target_link_libraries (ui_test_interface INTERFACE ui::win32::interface)
-endif ()
-
 if (UI_INSTALL)
   install(TARGETS ui_win32_interface FILE_SET HEADERS)
 endif ()

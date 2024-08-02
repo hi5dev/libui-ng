@@ -8,7 +8,7 @@ Macros for creating and registering tests, and functions used internally by [ui_
   - [Test Framework API](./README.md)
     - **[ui_test](./ui_test.md)**
       - [Macros](#macros)
-        - [ui_test_runner](#ui_test_runner)
+        - [ui_test_case](#ui_test_case)
         - [ui_test](#ui_test)
       - [Types](#types)
         - [ui_test_cb_t](#ui_test_cb_t)
@@ -22,12 +22,12 @@ Macros for creating and registering tests, and functions used internally by [ui_
 
 ### Macros
 
-#### `ui_test_runner`
+#### `ui_test_case`
 
 Registers a function to run at the application's startup for registering a test before `main` is called.
 
 ```c++
-static void ui_test_runner ui_test_example (void);
+static ui_test_case ui_test_example (void);
 ```
 
 #### `ui_test`

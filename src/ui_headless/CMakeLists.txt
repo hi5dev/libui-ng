@@ -9,6 +9,7 @@ target_link_libraries (
 
   PRIVATE
   ui::headless::interface
+  ui::test
 )
 
 target_sources (
@@ -19,17 +20,7 @@ target_sources (
   ui_headless_main.c
 )
 
-if (TARGET ui_test)
-  target_link_libraries (ui_test PRIVATE ui::headless)
-
-  target_sources (
-    ui_test
-
-    PRIVATE
-    ui_headless_main_test.c
-    ui_headless_test.c
-  )
-
+if (UI_CTEST_TARGETS)
   add_test (NAME "ui_headless_main_test" COMMAND ui::test -n ui_headless_main_test)
   add_test (NAME "ui_headless_test" COMMAND ui::test -n ui_headless_test)
 endif ()

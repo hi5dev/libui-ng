@@ -26,10 +26,10 @@ set (CMAKE_STATIC_LIBRARY_PREFIX "")
 
 option (UI_BUILD_EXAMPLES "Build example programs" ${PROJECT_IS_TOP_LEVEL})
 option (UI_BUILD_DOCS "Build documentation" ${PROJECT_IS_TOP_LEVEL})
-option (UI_BUILD_TESTS "Build test programs" ${PROJECT_IS_TOP_LEVEL})
+option (UI_CTEST_TARGETS "Include CTest targets" ${PROJECT_IS_TOP_LEVEL})
 option (UI_INSTALL "Generate installation targets" ${PROJECT_IS_TOP_LEVEL})
 
-if (UI_BUILD_TESTS)
+if (UI_CTEST_TARGETS)
   enable_testing ()
 endif ()
 

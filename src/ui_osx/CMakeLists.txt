@@ -9,6 +9,7 @@ target_link_libraries (
 
   PRIVATE
   ui::osx::interface
+  ui::test
 )
 
 target_sources (
@@ -19,17 +20,7 @@ target_sources (
   ui_osx_main.c
 )
 
-if (TARGET ui_test)
-  target_link_libraries (ui_test PUBLIC ui::ui)
-
-  target_sources (
-    ui_test
-
-    PRIVATE
-    ui_linux_main_test.c
-    ui_linux_test.c
-  )
-
+if (UI_CTEST_TARGETS)
   add_test (NAME "ui_osx_main_test" COMMAND ui::test -n ui_osx_main_test)
   add_test (NAME "ui_osx_test" COMMAND ui::test -n ui_osx_test)
 endif ()

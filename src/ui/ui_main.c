@@ -1,5 +1,8 @@
 #include <ui_main.h>
 
+#include <ui_test.h>
+#include <ui_test_expect.h>
+
 #include <stddef.h>
 
 void
@@ -39,4 +42,12 @@ ui_main_update (struct ui_main_t *ui_main)
 {
   if (ui_main != NULL && ui_main->update != NULL)
     ui_main->update (ui_main);
+}
+
+static ui_test_case
+ui_main_test (void)
+{
+  static struct ui_test_t test = ui_test (test, ui_main_test);
+
+  ui_test_skip ("TODO");
 }

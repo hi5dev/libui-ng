@@ -8,16 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef UI_TEST_MAIN
-
-int
-main (const int argc, char **argv)
-{
-  return ui_test_main (argc, argv);
-}
-
-#endif
-
 int
 ui_test_main (const int argc, char **argv)
 {
