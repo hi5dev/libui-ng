@@ -20,7 +20,7 @@ target_sources (
 )
 
 if (UI_CTEST_TARGETS)
-  add_test (NAME "ui_control_test" COMMAND ui::test -n ui_control_test)
-  add_test (NAME "ui_event_test" COMMAND ui::test -n ui_event_test)
-  add_test (NAME "ui_main_test" COMMAND ui::test -n ui_main_test)
+  add_test (NAME "ui_control_test" COMMAND ui::test::runner -n ui_control_test)
+  add_test (NAME "ui_event_test" COMMAND ui::test::runner -n ui_event_test)
+  add_test (NAME "ui_main_test" COMMAND ui::test::runner -n ui_main_test)
 endif ()

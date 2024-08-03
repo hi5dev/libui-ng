@@ -221,6 +221,6 @@ if (TARGET ui_test)
   # easily  run and debug each  test on  its own. If you were to put this  inside a
   # macro, the button would run all the tests created by the macro, adding a couple
   # more irritating steps to picking out just the test you want to run.
-  add_test (NAME "ui_widget_test_ctor" COMMAND ui::test -n ui_widget_test_ctor)
+  add_test (NAME "ui_widget_test_ctor" COMMAND ui::test::runner -n ui_widget_test_ctor)
 endif ()
 ```

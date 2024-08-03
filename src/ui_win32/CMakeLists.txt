@@ -24,8 +24,8 @@ target_sources (
 )
 
 if (UI_CTEST_TARGETS)
-  add_test (NAME "ui_win32_test" COMMAND ui::test -n ui_win32_test)
-  add_test (NAME "ui_win32_main_test" COMMAND ui::test -n ui_win32_main_test)
+  add_test (NAME "ui_win32_test" COMMAND ui::test::runner -n ui_win32_test)
+  add_test (NAME "ui_win32_main_test" COMMAND ui::test::runner -n ui_win32_main_test)
 endif ()
 
 if (UI_INSTALL)

@@ -21,6 +21,6 @@ target_sources (
 )
 
 if (UI_CTEST_TARGETS)
-  add_test (NAME "ui_headless_main_test" COMMAND ui::test -n ui_headless_main_test)
-  add_test (NAME "ui_headless_test" COMMAND ui::test -n ui_headless_test)
+  add_test (NAME "ui_headless_main_test" COMMAND ui::test::runner -n ui_headless_main_test)
+  add_test (NAME "ui_headless_test" COMMAND ui::test::runner -n ui_headless_test)
 endif ()
