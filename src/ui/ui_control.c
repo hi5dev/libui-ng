@@ -21,7 +21,7 @@ ui_control_test_create (void)
   static struct ui_test_t test = ui_test (test, ui_control_test_create);
 
   struct ui_control_t *control = ui_control_create ();
-  ui_expect (control != NULL, "control was not constructed");
+  ui_expect_not_null (control);
   ui_control_destroy (control);
 }
 

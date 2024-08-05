@@ -67,23 +67,25 @@
 
 /**
  * @brief Expects two values of the same given type to either be equal or not equal.
- * @param test that is running.
- * @param type of the two values being compared.
- * @param l the expected value (left-side of the comparison).
- * @param invert when non-zero the test passes when the two values are not equal.
- * @param r the actual value (right-side of the comparison).
- */
-#define ui_test_cmp(test, type, l, invert, r) ui_test_cmp_##type (&test, invert, l, r, __FILE__, __LINE__)
-
-/**
- * @brief Expects two values of the same given type to either be equal or not equal.
  * @param type of the two values being compared.
  * @param l the actual value
  * @param is_or_is_not if the values being compared should be equal or not equal.
  * @param r the expected value
  */
 #define ui_expect_cmp(type, l, is_or_is_not, r)                                                                       \
-  _ui_expect (ui_test_cmp (test, type, l, (int)ui_test_##is_or_is_not, r))
+  _ui_expect (ui_test_cmp_##type (&test, (int)ui_test_##is_or_is_not, l, r, __FILE__, __LINE__))
+
+/**
+ * @brief Expects the given pointer to <b>be</b> @p NULL
+ * @param ptr to check for @p NULL
+ */
+#define ui_expect_null(ptr) _ui_expect (ui_test_expect_null (&test, 0, #ptr, ptr, __FILE__, __LINE__))
+
+/**
+ * @brief Expects the given pointer <b>not</b> to be @p NULL
+ * @param ptr to check for @p NULL
+ */
+#define ui_expect_not_null(ptr) _ui_expect (ui_test_expect_null (&test, 1, #ptr, ptr, __FILE__, __LINE__))
 
 /**
  * @brief Used to determine if something is or is not.
@@ -154,3 +156,19 @@ int ui_test_cmp_int (struct ui_test_t *test, int invert, int l, int r, const cha
  * @return @p 1 when @p invert is @p 1 and @p l and @p r do <b>not</b> match
  */
 int ui_test_cmp_str (struct ui_test_t *test, int invert, const char *l, const char *r, const char *file, int line);
+
+/**
+ * @brief Tests for @p NULL or not @p NULL
+ * @param test that is running.
+ * @param invert non-zero to expect @p NULL
+ * @param ptr_name name of the pointer that should or should not be @p NULL.
+ * @param actual pointer to check for @p NULL
+ * @param file full path to the caller's source file.
+ * @param line line number of the caller.
+ * @return @p 1 when @p invert is @p 0 and @p actual <b>is</b> @p NULL
+ * @return @p 0 when @p invert is @p 0 and @p actual is <b>not</b> @p NULL
+ * @return @p 1 when @p invert is @p 1 and @p actual <b>is</b> @p NULL
+ * @return @p 0 when @p invert is @p 1 and @p actual is <b>not</b> @p NULL
+ */
+int ui_test_expect_null (struct ui_test_t *test, int invert, const char *ptr_name, void *actual, const char *file,
+                         int line);

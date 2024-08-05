@@ -161,10 +161,16 @@ int
 ui_test_cmp_str (struct ui_test_t *test, const int invert, const char *l, const char *r, const char *file,
                  const int line)
 {
-  const int diff = strcmp (l, r);
-
-  if (diff == 0 == (invert == 0))
-    return ui_test_pass (test, file, line);
+  if (l == NULL || r == NULL)
+    {
+      if (l == NULL == (r == NULL) == (invert == 0))
+        return ui_test_pass (test, file, line);
+    }
+  else
+    {
+      if (strcmp (l, r) == 0 == (invert == 0))
+        return ui_test_pass (test, file, line);
+    }
 
   const size_t message_size = snprintf (NULL, 0, ui_test_cmp_str_fmt, invert ? "not to" : "to", r, l);
   char        *message      = malloc (message_size + 1);
@@ -196,6 +202,44 @@ ui_test_cmp_str_test (void)
   ui_expect (test.backtrace.message == NULL, "expected ui_test_cmp_str to set test.backtrace.message");
 
   ui_expect_cmp (str, "hello", is, "hello");
-
   ui_expect_cmp (str, "hello world", is_not, "hello earth");
+
+  ui_expect_cmp (str, NULL, is_not, "");
+  ui_expect_cmp (str, "", is_not, NULL);
+}
+
+int
+ui_test_expect_null (struct ui_test_t *test, const int invert, const char *ptr_name, void *actual, const char *file,
+                     const int line)
+{
+  if (actual == NULL == (invert == 0))
+    return ui_test_pass (test, file, line);
+
+  char message[BUFSIZ];
+
+  const int size = sprintf (message, "expected %s %s be NULL", ptr_name, invert ? "not to" : "to");
+
+  message[(size + 1) / sizeof (char)] = '\0';
+
+  return ui_test_fail (test, message, file, line);
+}
+
+static ui_test_case
+ui_test_expect_null_test (void)
+{
+  static struct ui_test_t test = ui_test (test, ui_test_expect_null_test);
+
+  char *is_null     = NULL;
+  char *is_not_null = "";
+
+  (void)ui_test_expect_null (&test, 0, "is_not_null", is_not_null, __FILE__, __LINE__);
+  ui_expect_cmp (str, test.backtrace.message, is, "expected is_not_null to be NULL");
+
+  (void)ui_test_expect_null (&test, 1, "is_null", is_null, __FILE__, __LINE__);
+  ui_expect_cmp (str, test.backtrace.message, is, "expected is_null not to be NULL");
+
+  ui_expect_cmp (int, ui_test_expect_null (&test, 0, "is_null", is_null, __FILE__, __LINE__), is, 1);
+  ui_expect_cmp (int, ui_test_expect_null (&test, 0, "is_not_null", is_not_null, __FILE__, __LINE__), is, 0);
+  ui_expect_cmp (int, ui_test_expect_null (&test, 1, "is_null", is_null, __FILE__, __LINE__), is, 0);
+  ui_expect_cmp (int, ui_test_expect_null (&test, 1, "is_not_null", is_not_null, __FILE__, __LINE__), is, 1);
 }
