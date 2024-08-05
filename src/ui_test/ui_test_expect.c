@@ -60,19 +60,18 @@ ui_test_fail (struct ui_test_t *test, const char *message, const char *file, con
   return 0;
 }
 
-int
+static int
 ui_test_cmp_float_bias (struct ui_test_t *test, const int invert, const struct ui_float_bias_t l,
                         const struct ui_float_bias_t r, const char *file, const int line)
 {
   const int same_sign = l.value.i < 0 == r.value.i < 0;
-  const int diff      = fabs (l.value.i) - fabs (r.value.i);
 
   // when the signs are different, test for +0 == -0
   if ((!same_sign && l.value.i == r.value.i) == (invert == 0))
     return ui_test_pass (test, file, line);
 
   // compare difference
-  if (diff <= l.epsilon.d == (invert == 0))
+  if (fabs (l.value.i) - fabs (r.value.i) <= l.epsilon.d == (invert == 0))
     return ui_test_pass (test, file, line);
 
   const size_t message_size = snprintf (NULL, 0, ui_test_cmp_flt_fmt, l.value.f, invert ? "not to" : "to", r.value.f);
