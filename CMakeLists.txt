@@ -22,14 +22,12 @@ set (PROJECT_VERSION_TWEAK "-alpha+git.hi5dev.main")
 set (CMAKE_C_STANDARD 99)
 set (CMAKE_CXX_STANDARD 11)
 
-set (CMAKE_STATIC_LIBRARY_PREFIX "")
-
 option (UI_BUILD_EXAMPLES "Build example programs" ${PROJECT_IS_TOP_LEVEL})
 option (UI_BUILD_DOCS "Build documentation" ${PROJECT_IS_TOP_LEVEL})
-option (UI_CTEST_TARGETS "Include CTest targets" ${PROJECT_IS_TOP_LEVEL})
+option (UI_ENABLE_TESTING "Build test runner and enable CTest targets" ${PROJECT_IS_TOP_LEVEL})
 option (UI_INSTALL "Generate installation targets" ${PROJECT_IS_TOP_LEVEL})
 
-if (UI_CTEST_TARGETS)
+if (UI_ENABLE_TESTING)
   enable_testing ()
 endif ()
 

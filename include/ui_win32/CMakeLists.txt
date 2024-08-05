@@ -1,5 +1,20 @@
 cmake_minimum_required (VERSION 3.25)
 
+project (
+  ui_interface
+
+  DESCRIPTION
+  "LibUI Win32 API"
+
+  VERSION
+  "${CMAKE_PROJECT_VERSION}"
+
+  LANGUAGES
+  C
+)
+
+set (PROJECT_VERSION_TWEAK "${CMAKE_PROJECT_VERSION_TWEAK}")
+
 add_library (ui_win32_interface INTERFACE EXCLUDE_FROM_ALL)
 
 add_library (ui::win32::interface ALIAS ui_win32_interface)

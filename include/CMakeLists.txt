@@ -1,10 +1,22 @@
 cmake_minimum_required (VERSION 3.25)
 
-if (UI_BUILD_TESTS)
-  add_subdirectory (ui_test)
-  add_subdirectory (ui_headless)
-endif ()
+project (
+  ui_api
 
+  DESCRIPTION
+  "Collection of header-only/interface libraries for LibUI's API"
+
+  VERSION
+  "${CMAKE_PROJECT_VERSION}"
+
+  LANGUAGES
+  C
+)
+
+set (PROJECT_VERSION_TWEAK "${CMAKE_PROJECT_VERSION_TWEAK}")
+
+add_subdirectory (ui_headless)
+add_subdirectory (ui_test)
 add_subdirectory (ui)
 
 if (APPLE)

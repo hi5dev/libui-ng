@@ -46,13 +46,6 @@ ui_headless_main (struct ui_headless_t *ui_headless)
   return ui_main.exit_code;
 }
 
-int
-main (void)
-{
-  struct ui_headless_t ui_headless = { .quit = 0 };
-  return ui_headless_main (&ui_headless);
-}
-
 static ui_test_case
 ui_headless_main_test (void)
 {

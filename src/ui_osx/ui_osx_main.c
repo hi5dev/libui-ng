@@ -1,6 +1,8 @@
+#include <ui_main.h>
 #include <ui_osx.h>
 #include <ui_osx_main.h>
-#include <ui_main.h>
+#include <ui_test.h>
+#include <ui_test_expect.h>
 
 #include <stddef.h>
 
@@ -43,9 +45,10 @@ ui_osx_main (struct ui_osx_t *ui_osx)
   return ui_main.exit_code;
 }
 
-int
-main (void)
+static ui_test_case
+ui_osx_main_test (void)
 {
-  struct ui_osx_t ui_osx = { .quit = 0 };
-  return ui_osx_main (&ui_osx);
+  static struct ui_test_t test = ui_test (test, ui_osx_main_test);
+
+  ui_test_skip ("TODO");
 }

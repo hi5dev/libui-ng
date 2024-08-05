@@ -1,5 +1,20 @@
 cmake_minimum_required (VERSION 3.25)
 
+project (
+  ui_osx_interface
+
+  DESCRIPTION
+  "LibUI OSX API"
+
+  VERSION
+  "${CMAKE_PROJECT_VERSION}"
+
+  LANGUAGES
+  C
+)
+
+set (PROJECT_VERSION_TWEAK "${CMAKE_PROJECT_VERSION_TWEAK}")
+
 add_library (ui_osx_interface INTERFACE EXCLUDE_FROM_ALL)
 
 add_library (ui::osx::interface ALIAS ui_osx_interface)

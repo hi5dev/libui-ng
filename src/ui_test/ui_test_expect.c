@@ -1,6 +1,6 @@
-#include <assert.h>
 #include <ui_test_expect.h>
 
+#include <assert.h>
 #include <float.h>
 #include <math.h>
 #include <stdint.h>

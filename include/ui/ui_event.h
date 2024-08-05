@@ -1,5 +1,4 @@
 #pragma once
-#include <ui_test.h>
 
 /**
  * @brief Event data.
