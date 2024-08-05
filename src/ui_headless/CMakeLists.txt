@@ -23,8 +23,11 @@ target_link_libraries (
   ui_headless
 
   PRIVATE
-  ui::headless::interface
   ui::test
+
+  PUBLIC
+  ui::headless::interface
+  ui::ui
 )
 
 target_sources (

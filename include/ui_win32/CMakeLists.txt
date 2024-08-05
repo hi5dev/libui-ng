@@ -49,7 +49,6 @@ target_sources (
 
   FILES
   ui_win32.h
-  ui_win32_main.h
 )
 
 if (UI_INSTALL)

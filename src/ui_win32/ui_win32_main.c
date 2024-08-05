@@ -1,8 +1,7 @@
 #include <windows.h>
 
-#include <ui_win32.h>
-#include <ui_win32_main.h>
 #include <ui_main.h>
+#include <ui_win32.h>
 
 #include <ui_test.h>
 #include <ui_test_expect.h>
@@ -32,12 +31,16 @@ ui_win32_main_update (struct ui_main_t *ui_main)
 }
 
 int
-ui_win32_main (struct ui_win32_t *ui_win32)
+ui_main (void)
 {
+  const HINSTANCE hInstance = GetModuleHandle (NULL);
+
+  struct ui_win32_t ui_win32 = { .handle = hInstance, .message = {}, .quit = FALSE };
+
   struct ui_main_t ui_main = {
     .exit_code = 0,
     .running   = 0,
-    .data      = ui_win32,
+    .data      = &ui_win32,
     .dispatch  = ui_win32_main_dispatch,
     .update    = ui_win32_main_update,
   };
@@ -45,18 +48,6 @@ ui_win32_main (struct ui_win32_t *ui_win32)
   ui_main_run (&ui_main);
 
   return ui_main.exit_code;
-}
-
-int WINAPI
-wWinMain (const HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd)
-{
-  UNREFERENCED_PARAMETER (hPrevInstance);
-  UNREFERENCED_PARAMETER (lpCmdLine);
-  UNREFERENCED_PARAMETER (nShowCmd);
-
-  struct ui_win32_t win32 = { .handle = hInstance, .message = {}, .quit = FALSE };
-
-  return ui_win32_main (&win32);
 }
 
 static ui_test_case

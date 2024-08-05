@@ -59,3 +59,5 @@ void ui_main_dispatch (struct ui_main_t *ui_main);
  * @see ui_main_t#update
  */
 void ui_main_update (struct ui_main_t *ui_main);
+
+int ui_main (void);

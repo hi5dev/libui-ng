@@ -23,11 +23,11 @@ target_link_libraries (
   ui_win32
 
   PRIVATE
-  ui::win32::interface
   ui::test
 
   PUBLIC
   ui
+  ui::win32::interface
 )
 
 target_sources (

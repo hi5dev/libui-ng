@@ -23,8 +23,11 @@ target_link_libraries (
   ui_osx
 
   PRIVATE
-  ui::osx::interface
   ui::test
+
+  PUBLIC
+  ui::osx::interface
+  ui::ui
 )
 
 target_sources (

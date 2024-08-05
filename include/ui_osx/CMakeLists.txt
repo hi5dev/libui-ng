@@ -40,7 +40,6 @@ target_sources (
 
   FILES
   ui_osx.h
-  ui_osx_main.h
 )
 
 if (UI_INSTALL)

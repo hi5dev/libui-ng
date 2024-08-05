@@ -21,8 +21,10 @@ target_link_libraries (
   ui
 
   PRIVATE
-  ui::interface
   ui::test
+
+  PUBLIC
+  ui::interface
 )
 
 target_sources (

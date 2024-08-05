@@ -1,6 +1,5 @@
 #include <ui_main.h>
 #include <ui_osx.h>
-#include <ui_osx_main.h>
 #include <ui_test.h>
 #include <ui_test_expect.h>
 
@@ -30,12 +29,14 @@ ui_osx_main_update (struct ui_main_t *ui_main)
 }
 
 int
-ui_osx_main (struct ui_osx_t *ui_osx)
+ui_main (void)
 {
+  struct ui_osx_t ui_osx = { 0 };
+
   struct ui_main_t ui_main = {
     .exit_code = 0,
     .running   = 0,
-    .data      = ui_osx,
+    .data      = &ui_osx,
     .dispatch  = ui_osx_main_dispatch,
     .update    = ui_osx_main_update,
   };

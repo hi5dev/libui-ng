@@ -15,9 +15,9 @@ project (
 
 set (PROJECT_VERSION_TWEAK "${CMAKE_PROJECT_VERSION_TWEAK}")
 
+add_subdirectory (ui)
 add_subdirectory (ui_headless)
 add_subdirectory (ui_test)
-add_subdirectory (ui)
 
 if (APPLE)
   add_subdirectory (ui_osx)

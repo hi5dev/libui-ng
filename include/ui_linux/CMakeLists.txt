@@ -40,7 +40,6 @@ target_sources (
 
   FILES
   ui_linux.h
-  ui_linux_main.h
 )
 
 if (UI_INSTALL)

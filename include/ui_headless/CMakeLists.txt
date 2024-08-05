@@ -39,5 +39,5 @@ target_sources (
   INTERFACE FILE_SET HEADERS
 
   FILES
-  ui_headless_main.h
+  ui_headless.h
 )

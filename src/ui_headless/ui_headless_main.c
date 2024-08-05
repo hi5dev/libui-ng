@@ -1,5 +1,4 @@
 #include <ui_headless.h>
-#include <ui_headless_main.h>
 #include <ui_main.h>
 
 #include <ui_test.h>

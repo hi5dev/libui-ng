@@ -23,8 +23,11 @@ target_link_libraries (
   ui_linux
 
   PRIVATE
-  ui::linux::interface
   ui::test
+
+  PUBLIC
+  ui::linux::interface
+  ui
 )
 
 target_sources (
