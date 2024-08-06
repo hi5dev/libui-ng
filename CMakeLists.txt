@@ -27,6 +27,8 @@ option (UI_BUILD_DOCS "Build documentation" ${PROJECT_IS_TOP_LEVEL})
 option (UI_ENABLE_TESTING "Build test runner and enable CTest targets" ${PROJECT_IS_TOP_LEVEL})
 option (UI_INSTALL "Generate installation targets" ${PROJECT_IS_TOP_LEVEL})
 
+add_subdirectory (lib)
+
 if (UI_ENABLE_TESTING)
   enable_testing ()
 endif ()

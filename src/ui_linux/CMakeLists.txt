@@ -36,6 +36,7 @@ target_sources (
   PRIVATE
   ui_linux.c
   ui_linux_main.c
+  ui_linux_window.c
 )
 
 if (TARGET ui::test::runner)

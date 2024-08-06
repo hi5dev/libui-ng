@@ -1,18 +1,21 @@
-#if defined(WIN32)
-#include <windows.h>
-#define ui_timer_main(...) WINAPI wWinMain (const HINSTANCE, HINSTANCE, LPWSTR, int)
-#else
-#define ui_timer_main(...) main (void)
-#endif
-
+#include "main.h"
 #include "ui_timer.h"
 
-#include <ui_main.h>
+struct ui_timer_t
+{
+  double duration; //!< @brief Duration of the timer in seconds.
+  double elapsed;  //!< @brief Time elapsed in seconds.
+};
 
 int
-ui_timer_main (void)
+ui_timer_main (struct ui_timer_t *)
 {
-  struct ui_timer_t timer = { 50, 0 };
-
   return ui_main ();
+}
+
+int
+main (void)
+{
+  struct ui_timer_t timer = { .duration = UI_TIMER_DEFAULT_DURATION, .elapsed = 0 };
+  return ui_timer_main (&timer);
 }

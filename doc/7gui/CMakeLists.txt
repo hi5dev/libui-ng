@@ -56,3 +56,5 @@ add_ui_7gui_executable (crud)
 add_ui_7gui_executable (flight_booker)
 add_ui_7gui_executable (temperature_converter)
 add_ui_7gui_executable (timer)
+
+target_link_libraries (ui_cells PRIVATE tinyexpr)

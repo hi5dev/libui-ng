@@ -36,6 +36,7 @@ target_sources (
   PRIVATE
   ui_win32.c
   ui_win32_main.c
+  ui_win32_window.c
 )
 
 if (TARGET ui::test::runner)
@@ -43,6 +44,7 @@ if (TARGET ui::test::runner)
 
   add_test (NAME "ui_win32/test" COMMAND ui::test::runner -n ui_win32_test)
   add_test (NAME "ui_win32/test/main" COMMAND ui::test::runner -n ui_win32_main_test)
+  add_test (NAME "ui_win32/test/get_last_error" COMMAND ui::test::runner -n ui_win32_get_last_error_test)
 endif ()
 
 if (UI_INSTALL)

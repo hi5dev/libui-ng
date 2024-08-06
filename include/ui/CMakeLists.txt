@@ -35,6 +35,7 @@ target_sources (
   ui_control.h
   ui_event.h
   ui_main.h
+  ui_window.h
 )
 
 if (UI_INSTALL)

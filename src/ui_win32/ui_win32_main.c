@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <windows.h>
 
 #include <ui_main.h>

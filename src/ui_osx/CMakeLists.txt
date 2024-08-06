@@ -36,6 +36,7 @@ target_sources (
   PRIVATE
   ui_osx.c
   ui_osx_main.c
+  ui_osx_window.c
 )
 
 if (TARGET ui::test::runner)

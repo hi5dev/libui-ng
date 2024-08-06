@@ -28,12 +28,13 @@ started.
 
 ## **[Index](./README.md)**
 
-- [doc](./doc/README.md)
-  - [examples](./doc/examples/README.md)
-  - [linux](./doc/linux/README.md)
-  - [osx](./doc/osx/README.md)
-  - [schemas](./doc/schemas/README.md)
-  - [win32](./doc/win32/README.md)
-- [include](./include/README.md)
-- [pkg](./pkg/README.md)
-- [src](./src/README.md)
+- [Documentation](./doc/README.md)
+  - [Examples](./doc/examples/README.md)
+  - [Linux](./doc/linux/README.md)
+  - [OSX](./doc/osx/README.md)
+  - [XML Schemas](./doc/schemas/README.md)
+  - [Win32](./doc/win32/README.md)
+- [Third-Party Libraries](./lib/README.md)
+- [APIs](./include/README.md)
+- [Redistribution](./pkg/README.md)
+- [Implementations](./src/README.md)

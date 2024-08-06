@@ -1,35 +1,35 @@
-#if defined(WIN32)
-#include <windows.h>
-#define ui_counter_main(...) WINAPI wWinMain (const HINSTANCE, HINSTANCE, LPWSTR, int)
-#else
-#define ui_counter_main(...) main (void)
-#endif
+#include "main.h"
 
 #include "ui_counter.h"
 
-#include <ui_main.h>
+#include <ui_window.h>
 
-/**
- * @implements ui_counter_t
- */
-struct ui_counter_p
+struct ui_counter_t
 {
-  /**
-   * @brief The counter's current value.
-   */
-  int value;
+  struct ui_window_t *window;
+
+  int value; //!< @brief Number of times the user has clicked the button.
 };
 
 int
-ui_counter_main (void)
+ui_counter_main (struct ui_counter_t *counter)
 {
-  // struct ui_counter_t *counter = ui_counter_create ();
-  //
-  // struct ui_counter_p counter_data = { 0 };
-  //
-  // counter->impl = &counter_data;
-  //
-  // ui_counter_destroy (counter);
 
-  return ui_main ();
+  const int exit_code = ui_main ();
+
+  ui_window_destroy (counter->window);
+
+  return exit_code;
+}
+
+int
+main (void)
+{
+  struct ui_counter_t counter = { 0 };
+
+  counter.window = ui_window_create ("Counter", 320, 200, 0);
+  if (!counter.window)
+    return EXIT_FAILURE;
+
+  return ui_counter_main (&counter);
 }

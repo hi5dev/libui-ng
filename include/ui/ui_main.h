@@ -60,4 +60,8 @@ void ui_main_dispatch (struct ui_main_t *ui_main);
  */
 void ui_main_update (struct ui_main_t *ui_main);
 
+/**
+ * @brief The user-interface's main entry-point.
+ * @return non-zero when exiting with an error.
+ */
 int ui_main (void);

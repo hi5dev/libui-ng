@@ -34,6 +34,7 @@ target_sources (
   ui_control.c
   ui_event.c
   ui_main.c
+  ui_window.c
 )
 
 if (TARGET ui::test::runner)
