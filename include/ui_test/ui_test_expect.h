@@ -172,3 +172,17 @@ int ui_test_cmp_str (struct ui_test_t *test, int invert, const char *l, const ch
  */
 int ui_test_expect_null (struct ui_test_t *test, int invert, const char *ptr_name, void *actual, const char *file,
                          int line);
+
+/**
+ * @brief Tests for true or false conditions.
+ * @param test that is running.
+ * @param invert non-zero to expect false.
+ * @param actual non-zero when true.
+ * @param file full path to the caller's source file.
+ * @param line line number of the caller.
+ * @return @p 1 when @p invert is @p 0 and @p actual is <b>non-zero</b>
+ * @return @p 0 when @p invert is @p 0 and @p actual is <b>zero</b>
+ * @return @p 1 when @p invert is @p 1 and @p actual is <b>non-zero</b>
+ * @return @p 0 when @p invert is @p 1 and @p actual is <b>zero</b>
+ */
+int ui_test_expect_bool (struct ui_test_t *test, int invert, int actual, const char *file, int line);

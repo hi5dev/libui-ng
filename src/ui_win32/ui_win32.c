@@ -7,36 +7,54 @@
 #include <assert.h>
 #include <strsafe.h>
 
-static char *
-ui_win32_get_last_error (const char *context, const char *file, const int line)
+/**
+ * @brief Gets a the system message for the last error returned by the Win32 API @p GetLastError function.
+ * @param[out] dst message buffer - must be a valid pointer to a @p NULL char array.
+ * @param[in] context message to include with the formatted Win32 API error message.
+ * @param[in] file of the source.
+ * @param[in] line number of the source.
+ * @return @p GetLastError return value.
+ */
+static DWORD
+ui_win32_get_last_error (char **dst, const char *context, const char *file, const int line)
 {
-  const DWORD last_error = GetLastError ();
-  if (last_error == NO_ERROR)
-    return NULL;
+  assert (dst != NULL && *dst == NULL);
 
-  static const int flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
+  // example: "file:line [context]: last error message"
+  static const char *message_format = "%s:%d [%s]: %s";
 
+  // retrieve the calling thread's last-error code value
+  const DWORD err = GetLastError ();
+
+  // ignore non-errors
+  if (err == ERROR_SUCCESS)
+    return err;
+
+  // allocate a buffer and get the system message using the Win32 API
   char *buffer = NULL;
-  FormatMessageA (flags, NULL, last_error, MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&buffer, 0, NULL);
+  FormatMessageA (UI_WIN32_ERROR_MESSAGE_FLAGS, NULL, err, UI_WIN32_NEUTRAL_LANGUAGE_ID, (LPSTR)&buffer, 0, NULL);
   if (buffer == NULL)
-    return NULL;
+    return err;
 
-  const char  *message_format = "%s:%d [%s]: %s";
+  // create another message that includes the provided context in the message_format described above
   const size_t message_length = snprintf (NULL, 0, message_format, file, line, context, buffer);
   char        *message        = malloc (message_length + 1);
-
   if (message != NULL)
     {
       (void)snprintf (message, message_length + 1, message_format, file, line, context, buffer);
 
-      // remove trailing CRLF when present
+      // the Win32 API sometimes includes a CRLF, but not always
       for (int i = message_length - 1; i > 0 && message[i] == '\n' || message[i] == '\r'; --i)
         message[i] = '\0';
     }
 
+  // the buffer has been copied into the message
   LocalFree (buffer);
 
-  return message;
+  // null when out of memory
+  *dst = message;
+
+  return err;
 }
 
 static ui_test_case
@@ -44,24 +62,47 @@ ui_win32_get_last_error_test (void)
 {
   static struct ui_test_t test = ui_test (test, ui_win32_get_last_error_test);
 
-  SetLastError (ERROR_INVALID_HANDLE);
-  char *message = ui_win32_get_last_error ("test", "file", 99);
-  SetLastError (NO_ERROR);
+  char *message = NULL;
 
   static const char *expected = "file:99 [test]: The handle is invalid.";
+
+  SetLastError (ERROR_INVALID_HANDLE);
+  int err = ui_win32_get_last_error (&message, "test", "file", 99);
+  SetLastError (ERROR_SUCCESS);
+
+  ui_expect_cmp (int, err, is, 1);
+  ui_expect_not_null (message);
   ui_expect_cmp (str, message, is, expected);
 
   free (message);
+
+  message = NULL;
+  err     = ui_win32_get_last_error (&message, "test", "file", 101);
+  ui_expect_cmp (int, err, is, 0);
+  ui_expect_null (message);
 }
 
-void
-_ui_win32_log_last_error (const char *message, const char *file, const int line)
+DWORD
+_ui_win32_log_last_error (FILE *stream, const char *message, const char *file, const int line)
 {
-  char *log_message = ui_win32_get_last_error (message, file, line);
+  char *log_message = NULL;
 
-  (void)fprintf (stderr, "%s\n", log_message);
+  const DWORD last_error = ui_win32_get_last_error (&log_message, message, file, line);
+  if (last_error == ERROR_SUCCESS)
+    return last_error;
 
-  free (log_message);
+  if (log_message == NULL)
+    {
+      // provide a fallback message when out of memory
+      (void)fprintf (stream, "%s:%d [%s]: error code %lu\n", file, line, message, GetLastError ());
+    }
+  else
+    {
+      (void)fprintf (stream, "%s\n", log_message);
+      free (log_message);
+    }
+
+  return last_error;
 }
 
 void

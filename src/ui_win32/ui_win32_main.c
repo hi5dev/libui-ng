@@ -35,6 +35,8 @@ int
 ui_main (void)
 {
   const HINSTANCE hInstance = GetModuleHandle (NULL);
+  if (hInstance == NULL)
+    ui_win32_log_last_error ("GetModuleHandle");
 
   struct ui_win32_t ui_win32 = { .handle = hInstance, .message = {}, .quit = FALSE };
 

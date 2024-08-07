@@ -243,3 +243,40 @@ ui_test_expect_null_test (void)
   ui_expect_cmp (int, ui_test_expect_null (&test, 1, "is_null", is_null, __FILE__, __LINE__), is, 0);
   ui_expect_cmp (int, ui_test_expect_null (&test, 1, "is_not_null", is_not_null, __FILE__, __LINE__), is, 1);
 }
+
+int
+ui_test_expect_bool (struct ui_test_t *test, const int invert, const int actual, const char *file, const int line)
+{
+  if (actual == 1 == (invert == 0))
+    return ui_test_pass (test, file, line);
+
+  char message[BUFSIZ];
+
+  const int size = sprintf (message, "expected %d to be %s", actual, invert ? "zero" : "non-zero");
+
+  message[(size + 1) / sizeof (char)] = '\0';
+
+  return ui_test_fail (test, message, file, line);
+}
+
+static ui_test_case
+ui_test_expect_bool_test (void)
+{
+  static struct ui_test_t test = ui_test (test, ui_test_expect_bool_test);
+
+  const int t00 = ui_test_expect_bool (&test, 0, 0, __FILE__, __LINE__);
+  ui_expect_cmp (str, test.backtrace.message, is, "expected 0 to be non-zero");
+  ui_expect_cmp (int, t00, is, 0);
+
+  const int t11 = ui_test_expect_bool (&test, 1, 1, __FILE__, __LINE__);
+  ui_expect_cmp (str, test.backtrace.message, is, "expected 1 to be zero");
+  ui_expect_cmp (int, t11, is, 0);
+
+  const int t10 = ui_test_expect_bool (&test, 1, 0, __FILE__, __LINE__);
+  ui_expect_null (test.backtrace.message);
+  ui_expect_cmp (int, t10, is, 1);
+
+  const int t01 = ui_test_expect_bool (&test, 0, 1, __FILE__, __LINE__);
+  ui_expect_null (test.backtrace.message);
+  ui_expect_cmp (int, t01, is, 1);
+}
