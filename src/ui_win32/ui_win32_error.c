@@ -92,8 +92,8 @@ _ui_win32_log_last_error (FILE *stream, const char *context, const char *file, c
 {
   const struct ui_win32_error_t error = ui_win32_get_last_error (context, file, line);
 
-  // do not log non-error codes
-  if (error.code != ERROR_SUCCESS)
+  // do not log when disabled, or if GetLastError returned a non-error code
+  if (stream != NULL && error.code != ERROR_SUCCESS)
     (void)fprintf (stream, "%s\n", error.message);
 
   if (LocalFree (error.message) != NULL)

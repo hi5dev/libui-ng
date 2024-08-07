@@ -4,12 +4,22 @@
 
 #include <stdio.h>
 
+#if !defined(UI_WIN32_ERROR_LOG_FILE)
+/**
+ * @brief Default output stream for logging Win32 API errors.
+ * @remark Set to @p NULL to disable logging, or a different @p FILE* to override.
+ * @remark Logging is disabled when set to NULL
+ */
+#define UI_WIN32_ERROR_LOG_FILE stderr
+#endif
+
 /**
  * @brief Logs a Win32 API error.
  * @param message with details about the error.
  * @see @ref _ui_win32_log_last_error
  */
-#define ui_win32_log_last_error(message) _ui_win32_log_last_error (stderr, message, __FILE__, __LINE__)
+#define ui_win32_log_last_error(message)                                                                              \
+  _ui_win32_log_last_error (UI_WIN32_ERROR_LOG_FILE, message, __FILE__, __LINE__)
 
 /**
  * @brief Logs the last Win32 API non-error and aborts.
