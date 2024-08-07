@@ -80,6 +80,12 @@ int ui_window_get_resizable (struct ui_window_t *window);
 char *ui_window_get_title (struct ui_window_t *window);
 
 /**
+ * @brief Hides a window.
+ * @param window @p ui_window_t
+ */
+void ui_window_hide (struct ui_window_t *window);
+
+/**
  * @brief Turns a window's border on or off.
  * @param window *p ui_window_t
  * @param borderless Non-zero to turn the border off.
@@ -130,3 +136,9 @@ void ui_window_set_resizable (struct ui_window_t *window, int resizable);
  * @remark This method is merely a hint and may be ignored on unix platforms.
  */
 void ui_window_set_title (struct ui_window_t *window, const char *title);
+
+/**
+ * @brief Shows a window.
+ * @param window @p ui_window_t
+ */
+void ui_window_show (struct ui_window_t *window);

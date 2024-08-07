@@ -1,12 +1,16 @@
+#include "ui_temperature_converter.h"
 #include "main.h"
 
-#include "ui_temperature_converter.h"
-
 #include <assert.h>
+#include <ui_window.h>
 
 struct ui_temperature_converter_t
 {
-  double kelvin; //!< @brief Temperature is stored in degrees on the Kelvin scale.
+  /// @brief The application's main window.
+  struct ui_window_t *window;
+
+  /// @brief Temperature is stored in degrees on the Kelvin scale.
+  double kelvin;
 };
 
 void
@@ -47,9 +51,15 @@ ui_temperature_converter_get (struct ui_temperature_converter_t *temperature_con
 }
 
 int
-ui_temperature_converter_main (struct ui_temperature_converter_t *)
+ui_temperature_converter_main (struct ui_temperature_converter_t *temperature_converter)
 {
-  return ui_main ();
+  ui_window_show (temperature_converter->window);
+
+  const int exit_code = ui_main ();
+
+  ui_window_destroy (temperature_converter->window);
+
+  return exit_code;
 }
 
 int
@@ -64,6 +74,9 @@ main (void)
   ui_temperature_converter_set (&temperature_converter, FAHRENHEIT, 32.0);
   assert (ui_temperature_converter_get (&temperature_converter, FAHRENHEIT) == 32.0);
   assert (ui_temperature_converter_get (&temperature_converter, CELCIUS) == 0.0);
+
+  temperature_converter.window = ui_window_create ("Temperature Converter", 320, 240, 0);
+  assert (temperature_converter.window != NULL);
 
   return ui_temperature_converter_main (&temperature_converter);
 }

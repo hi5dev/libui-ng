@@ -39,12 +39,13 @@ target_sources (
   ui_osx_window.c
 )
 
-if (TARGET ui::test::runner)
-  ui_test_runner (LINK_LIBRARY ui::ui)
+ui_test (
+  ui_osx
 
-  add_test (NAME "ui_osx/test" COMMAND ui::test::runner -n ui_osx_test)
-  add_test (NAME "ui_osx/test/main" COMMAND ui::test::runner -n ui_osx_main_test)
-endif ()
+  TEST_CASES
+  ui_osx_test
+  ui_osx_main_test
+)
 
 if (UI_INSTALL)
   install(TARGETS ui_osx)

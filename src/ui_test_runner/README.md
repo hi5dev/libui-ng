@@ -16,6 +16,6 @@ Here's a template you can use for including your tests in the test runner.
 if (TARGET ui::test::runner)
   ui_test_runner (LINK_LIBRARY "ui::target::alias")
 
-  add_test (NAME "ui_target/test/name" COMMAND ui::test::runner "-n ui_target_test_function")
+  add_ui_test (NAMESPACE "ui_target" FUNCTION "ui_target_test_function")
 endif ()
 ```

@@ -205,22 +205,15 @@ target_sources (ui_interface INTERFACE FILE_SET HEADERS FILES ui_widget.h)
 
 #### `src/ui/CMakeLists.txt`
 
-Similarly, we can add the source to the implementation library, and then conditionally add the test, depending on
-whether or not the test target exists. Again, you'd want to simply add the sources to the existing calls to
-`target_sources` when you're actually working on the library.
+Use the `ui_test` CMake function to include the tests in the `ui::test::runner` executable.
 
 ```cmake
 target_sources (ui PRIVATE ui_widget.c)
 
-if (TARGET ui_test)
-  target_sources (ui_test PRIVATE ui_widget_test.c)
+ui_test (
+  ui_widget
 
-  # Every test has its own call to `add_test` so you can run them independently. We
-  # don't use macros for this,  because we want to be able to run these from an IDE
-  # For example, CLion adds a button next  to all these lines that you can click to
-  # easily  run and debug each  test on  its own. If you were to put this  inside a
-  # macro, the button would run all the tests created by the macro, adding a couple
-  # more irritating steps to picking out just the test you want to run.
-  add_test (NAME "ui_widget_test_ctor" COMMAND ui::test::runner -n ui_widget_test_ctor)
-endif ()
+  TEST_CASES
+  ui_widget_test_ctor
+)
 ```

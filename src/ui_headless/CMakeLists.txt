@@ -38,9 +38,10 @@ target_sources (
   ui_headless_main.c
 )
 
-if (TARGET ui::test::runner)
-  ui_test_runner (LINK_LIBRARY ui::headless)
+ui_test (
+  ui_headless
 
-  add_test (NAME "ui_headless/test" COMMAND ui::test::runner -n ui_headless_test)
-  add_test (NAME "ui_headless/test/main" COMMAND ui::test::runner -n ui_headless_main_test)
-endif ()
+  TEST_CASES
+  ui_headless_test
+  ui_headless_main_test
+)

@@ -79,7 +79,7 @@
  * @brief Expects the given pointer to <b>be</b> @p NULL
  * @param ptr to check for @p NULL
  */
-#define ui_expect_null(ptr) _ui_expect (ui_test_expect_null (&test, 0, #ptr, ptr, __FILE__, __LINE__))
+#define ui_expect_null(ptr) _ui_expect (ui_test_expect_null (&test, 0, #ptr, (void *)ptr, __FILE__, __LINE__))
 
 /**
  * @brief Expects the given pointer <b>not</b> to be @p NULL

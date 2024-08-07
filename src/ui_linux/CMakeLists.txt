@@ -39,12 +39,13 @@ target_sources (
   ui_linux_window.c
 )
 
-if (TARGET ui::test::runner)
-  ui_test_runner (LINK_LIBRARY ui::ui)
+ui_test (
+  ui_linux
 
-  add_test (NAME "ui_linux/test" COMMAND ui::test::runner -n ui_linux_test)
-  add_test (NAME "ui_linux/test/main" COMMAND ui::test::runner -n ui_linux_main_test)
-endif ()
+  TEST_CASES
+  ui_linux_test
+  ui_linux_main_test
+)
 
 if (UI_INSTALL)
   install (TARGETS ui_linux)

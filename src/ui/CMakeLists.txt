@@ -37,10 +37,10 @@ target_sources (
   ui_window.c
 )
 
-if (TARGET ui::test::runner)
-  ui_test_runner (LINK_LIBRARY ui)
+ui_test (
+  ui
 
-  add_test (NAME "ui/test/control" COMMAND ui::test::runner -n ui_control_test_create)
-  add_test (NAME "ui/test/event" COMMAND ui::test::runner -n ui_event_test)
-  add_test (NAME "ui/test/main" COMMAND ui::test::runner -n ui_main_test)
-endif ()
+  TEST_CASES
+  ui_control_test_create
+  ui_event_test
+)

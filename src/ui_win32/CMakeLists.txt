@@ -28,6 +28,9 @@ target_link_libraries (
   PUBLIC
   ui
   ui::win32::interface
+
+  Kernel32
+  User32
 )
 
 target_sources (
@@ -35,18 +38,21 @@ target_sources (
 
   PRIVATE
   ui_win32.c
+  ui_win32_error.c
   ui_win32_main.c
   ui_win32_window.c
 )
 
-if (TARGET ui::test::runner)
-  ui_test_runner (LINK_LIBRARY ui::ui)
+ui_test (
+  ui_win32
 
-  add_test (NAME "ui_win32/test" COMMAND ui::test::runner -n ui_win32_test)
-  add_test (NAME "ui_win32/test/main" COMMAND ui::test::runner -n ui_win32_main_test)
-  add_test (NAME "ui_win32/test/get_last_error" COMMAND ui::test::runner -n ui_win32_get_last_error_test)
-endif ()
+  TEST_CASES
+  ui_win32_get_last_error_test
+  ui_win32_log_last_error_test
+  ui_win32_window_create_menu_test
+  ui_win32_window_register_class_test
+)
 
 if (UI_INSTALL)
-  install(TARGETS ui_win32)
+  install (TARGETS ui_win32)
 endif ()

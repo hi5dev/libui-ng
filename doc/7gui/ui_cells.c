@@ -1,24 +1,36 @@
+#include "ui_cells.h"
 #include "main.h"
 
-#include "ui_cells.h"
-
+#include <assert.h>
 #include <tinyexpr.h>
+#include <ui_window.h>
 
 struct ui_cells_t
 {
-  int unused; //!< @brief Placeholder to satisfy the non-empty struct requirement of some compilers.
+  /// @brief The application's main window.
+  struct ui_window_t *window;
 };
 
 int
-ui_cells_main (struct ui_cells_t *)
+ui_cells_main (struct ui_cells_t *cells)
 {
-  return ui_main ();
+  ui_window_show (cells->window);
+
+  const int exit_code = ui_main ();
+
+  ui_window_destroy (cells->window);
+
+  return exit_code;
 }
 
 int
 main (void)
 {
   struct ui_cells_t cells = { 0 };
+
+  cells.window = ui_window_create ("Cells", 320, 240, 0);
+  assert (cells.window != NULL);
+
   return ui_cells_main (&cells);
 }
 
