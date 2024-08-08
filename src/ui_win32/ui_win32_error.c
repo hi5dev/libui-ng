@@ -51,14 +51,14 @@ ui_win32_get_last_error (const char *context, const char *file, const int line)
   // allocate memory for another message that includes the provided context in the message_format described above
   error.message = LocalAlloc (LPTR, sizeof (TCHAR) * (message_length + 1));
   if (error.message == NULL)
-    (void)fprintf (stderr, "%s:%d [%s, LocalAlloc]: error #%d\n", file, line, context, GetLastError ());
+    (void)fprintf (stderr, "%s:%d [%s, LocalAlloc]: error #%lu\n", file, line, context, GetLastError ());
   else
     // write the error message to the struct with the provided context
     (void)snprintf (error.message, message_length + 1, message_format, file, line, context, buf);
 
   // the buffer has been copied into the message
   if (LocalFree (buf) != NULL)
-    (void)fprintf (stderr, "%s:%d [%s, LocalFree]: failed with error code %d", file, line, context, GetLastError ());
+    (void)fprintf (stderr, "%s:%d [%s, LocalFree]: failed with error code %lu", file, line, context, GetLastError ());
 
   // the Win32 API sometimes includes a CR/LF, but not always
   for (int i = message_length - 1; i > 0 && error.message[i] == '\r' || error.message[i] == '\n'; --i)
@@ -97,7 +97,7 @@ _ui_win32_log_last_error (FILE *stream, const char *context, const char *file, c
     (void)fprintf (stream, "%s\n", error.message);
 
   if (LocalFree (error.message) != NULL)
-    (void)fprintf (stream, "%s:%d [LocalFree]: failed with error code %d", file, line, GetLastError ());
+    (void)fprintf (stream, "%s:%d [LocalFree]: failed with error code %lu", file, line, GetLastError ());
 
   return error.code;
 }
