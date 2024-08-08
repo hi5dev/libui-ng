@@ -31,9 +31,11 @@ target_sources (
 
   PRIVATE
   ui_test.c
+  ui_test_assert.c
   ui_test_expect.c
   ui_test_main.c
   ui_test_report_stdout.c
+  ui_test_ulp.c
 )
 
 function (ui_test UI_TARGET)
@@ -73,11 +75,24 @@ ui_test (
   ui_test
 
   TEST_CASES
+  ui_test_assert_cmp_bool_test
+  ui_test_assert_cmp_double_test
+  ui_test_assert_cmp_float_test
+  ui_test_assert_cmp_int_test
+  ui_test_assert_cmp_string_test
+
+  ui_test_assert_eq_bool_test
+
   ui_test_cmp_double_test
   ui_test_cmp_float_test
   ui_test_cmp_int_test
   ui_test_cmp_str_test
+
   ui_test_expect_bool_test
   ui_test_expect_null_test
+
   ui_test_set_status_test
+
+  ui_test_ulp_compare_double_test
+  ui_test_ulp_compare_float_test
 )

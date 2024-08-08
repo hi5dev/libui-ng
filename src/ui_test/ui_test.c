@@ -139,8 +139,8 @@ ui_test_run_one (volatile struct ui_test_t *test, struct ui_test_report_t *repor
 }
 
 void
-ui_test_set_status (struct ui_test_t *test, const enum ui_test_status_t status, const char *message,
-                    const char *filename, const int line)
+ui_test_set_status (struct ui_test_t *test, const enum ui_test_status_t status, char *message, const char *filename,
+                    const int line)
 {
   assert (test != NULL);
 
@@ -158,9 +158,10 @@ ui_test_set_status_test (void)
   ui_test_set_status (&test, UI_TEST_STATUS_PENDING, "impossible", "this_file.c", 99);
 
   const enum ui_test_status_t status = test.status;
-  char *message = strdup (test.backtrace.message);
-  char *file = strdup (test.backtrace.filename);
-  const int line = test.backtrace.line;
+
+  char     *message = strdup (test.backtrace.message);
+  char     *file    = strdup (test.backtrace.filename);
+  const int line    = test.backtrace.line;
 
   ui_expect (status == UI_TEST_STATUS_PENDING, "ui_test_set_status did not update test.status");
   ui_expect_cmp (str, message, is, "impossible");

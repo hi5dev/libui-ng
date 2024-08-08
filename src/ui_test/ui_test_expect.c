@@ -66,8 +66,8 @@ ui_test_cmp_float_bias (struct ui_test_t *test, const int invert, const struct u
 {
   const int same_sign = l.value.i < 0 == r.value.i < 0;
 
-  // when the signs are different, test for +0 == -0
-  if ((!same_sign && l.value.i == r.value.i) == (invert == 0))
+   // when the signs are different, test for +0 == -0
+  if ((!same_sign && l.value.i == r.value.i) == (invert== 0))
     return ui_test_pass (test, file, line);
 
   // compare difference

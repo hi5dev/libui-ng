@@ -157,5 +157,5 @@ void ui_test_run_one (volatile struct ui_test_t *test, struct ui_test_report_t *
  * @param filename full path to the file with the test's source code.
  * @param line number that resulted in changing the test's status.
  */
-void ui_test_set_status (struct ui_test_t *test, enum ui_test_status_t status, const char *message,
+void ui_test_set_status (struct ui_test_t *test, enum ui_test_status_t status, char *message,
                          const char *filename, int line);

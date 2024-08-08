@@ -33,6 +33,7 @@ target_sources (
 
   FILES
   ui_test.h
+  ui_test_assert.h
   ui_test_backtrace.h
   ui_test_expect.h
   ui_test_main.h

@@ -16,6 +16,7 @@ LibUI test framework and runner API.
       - [`src/ui/CMakeLists.txt`](#srcuicmakeliststxt)
     - **API**
       - [ui_test](./ui_test.md)
+      - [ui_test_assert](./ui_test_assert.md)
       - [ui_test_backtrace](./ui_test_backtrace.md)
       - [ui_test_expect](./ui_test_expect.md)
       - [ui_test_main](./ui_test_main.md)

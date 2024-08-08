@@ -17,7 +17,7 @@ struct ui_test_backtrace_t
   /**
    * @brief Reason the test failed, or @p NULL if the test hasn't failed.
    */
-  const char *message;
+  char *message;
 
   /**
    * @brief Full path to the source file with the test.
