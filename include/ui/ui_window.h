@@ -39,7 +39,7 @@ int ui_window_get_borderless (struct ui_window_t *window);
  * @param[out] height of the window's content.
  * @remark The content size is the area inside the window without any menus, title bars, resize grips, etc.
  */
-void ui_window_get_content_size (struct ui_window_t *window, int *width, int *height);
+void ui_window_get_client_size (struct ui_window_t *window, int *width, int *height);
 
 /**
  * @brief Checks if a window has focus.
@@ -86,6 +86,13 @@ char *ui_window_get_title (struct ui_window_t *window);
 void ui_window_hide (struct ui_window_t *window);
 
 /**
+ * @brief Gets a window's visibility state.
+ * @param window @p ui_window_t
+ * @return non-zero when the window is visible.
+ */
+int ui_window_is_visible (struct ui_window_t *window);
+
+/**
  * @brief Turns a window's border on or off.
  * @param window *p ui_window_t
  * @param borderless Non-zero to turn the border off.
@@ -101,7 +108,7 @@ void ui_window_set_borderless (struct ui_window_t *window, int borderless);
  * @remark The content size is the area inside the window without any menus, title bars, resize grips, etc.
  * @remark This method is merely a hint and may be ignored by the system.
  */
-void ui_window_set_content_size (struct ui_window_t *window, int width, int height);
+void ui_window_set_client_size (struct ui_window_t *window, int width, int height);
 
 /**
  * @brief Enters or leaves full screen for a window.

@@ -43,4 +43,13 @@ ui_test (
   TEST_CASES
   ui_control_test_create
   ui_event_test
+  ui_window_borderless_test
+  ui_window_cdtor_test
+  ui_window_client_size_test
+  ui_window_focus_test
+  ui_window_fullscreen_test
+  ui_window_position_test
+  ui_window_resizable_test
+  ui_window_title_test
+  ui_window_visibility_test
 )

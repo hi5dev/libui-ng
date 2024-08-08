@@ -28,6 +28,35 @@ struct ui_window_t
 HMENU ui_win32_window_create_menu (struct ui_window_t *window);
 
 /**
+ * @brief Gets the state of specific window attribute(s).
+ * @param window @p ui_window_t
+ * @param index zero-based offset of the value to get.
+ * @param attribute value of the attribute(s) in question.
+ * @return non-zero when the given attribute(s) are set.
+ */
+LONG ui_win32_window_get_attribute (struct ui_window_t *window, int index, LONG attribute);
+
+/**
+ * @brief Gets a window's attributes.
+ * @param window @p ui_window_t
+ * @param index zero-based offset of the value to get.
+ * @return window attributes.
+ */
+LONG ui_win32_window_get_attributes (struct ui_window_t *window, int index);
+
+/**
+ * @brief Gets a window's position and/or size.
+ * @param window @p ui_window_t
+ * @param client_size non-zero to get the window's client-rect.
+ * @param[out] x position
+ * @param[out] y position
+ * @param[out] width size
+ * @param[out] height size
+ * @remark Any of the given pointers can be @p NULL to ignore.
+ */
+void ui_win32_window_get_rect (struct ui_window_t *window, int client_size, int *x, int *y, int *width, int *height);
+
+/**
  * @brief Win32 API @p WNDPROC callback.
  * @param handle to the window provided by the Win32 API when it was created.
  * @param message system-defined message sent from the API to communicate with the window.
@@ -43,3 +72,29 @@ LRESULT CALLBACK ui_win32_window_procedure (HWND handle, UINT message, WPARAM wp
  * @remark @p instance must not be @p NULL
  */
 void ui_win32_window_register_class (HINSTANCE instance);
+
+/**
+ * @brief Adds a window flag.
+ * @param window @p ui_window_t
+ * @param index zero-based offset of the value to set.
+ * @param attribute value of the attribute to set.
+ * @return updated window attributes.
+ */
+LONG ui_win32_window_set_attribute (struct ui_window_t *window, int index, LONG attribute);
+
+/**
+ * @brief Sets a window's attributes..
+ * @param window @p ui_window_t
+ * @param index zero-based offset of the value to set.
+ * @param attributes updated window attributes.
+ */
+void ui_win32_window_set_attributes (struct ui_window_t *window, int index, LONG attributes);
+
+/**
+ * @brief Removes an attribute from a window.
+ * @param window @p ui_window_t
+ * @param index zero-based offset of the value to clear.
+ * @param attribute value of the attribute to clear.
+ * @return updated window attributes.
+ */
+LONG ui_win32_window_unset_attribute (struct ui_window_t *window, int index, LONG attribute);

@@ -7,4 +7,5 @@ API for Windows-specific features.
   - **[Win32 API](./README.md)**
     - [ui_win32](./ui_win32.md)
     - [ui_win32_error](./ui_win32_error.md)
+    - [ui_win32_options](./ui_win32_options.md)
     - [ui_win32_window](./ui_win32_window.md)

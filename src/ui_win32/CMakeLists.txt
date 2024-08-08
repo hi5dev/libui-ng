@@ -31,6 +31,7 @@ target_link_libraries (
 
   Kernel32
   User32
+  onecore
 )
 
 target_sources (
@@ -40,6 +41,7 @@ target_sources (
   ui_win32.c
   ui_win32_error.c
   ui_win32_main.c
+  ui_win32_options.c
   ui_win32_window.c
 )
 

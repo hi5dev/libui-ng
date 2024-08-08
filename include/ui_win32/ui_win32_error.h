@@ -35,6 +35,17 @@
   while (0)
 
 /**
+ * @brief Logs the last Win32 API non-success error code; asserting ERROR_SUCCESS to fail while debugging.
+ * @param context Typicall the Win32 API method called that raised the error.
+ */
+#define ui_win32_assert_on_error(context)                                                                             \
+  ({                                                                                                                  \
+    const DWORD context##_error = ui_win32_log_last_error (#context);                                                 \
+    assert (context##_error == ERROR_SUCCESS);                                                                        \
+    context##_error;                                                                                                  \
+  })
+
+/**
  * @brief Extended information about a Win32 API error.
  * @see @ref ui_win32_get_last_error
  */

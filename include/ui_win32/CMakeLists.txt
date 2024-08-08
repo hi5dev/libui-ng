@@ -50,6 +50,7 @@ target_sources (
   FILES
   ui_win32.h
   ui_win32_error.h
+  ui_win32_options.h
   ui_win32_window.h
 )
 
