@@ -36,7 +36,7 @@ ui_win32_get_last_error (const char *context, const char *file, const int line)
   // FormatMessageA returns the number of TCHARs stored in the output buffer, excluding the terminating null
   // character, or zero on failure.
   if (buf_size == 0)
-    (void)fprintf (stderr, "%s:%d [%s, %s]: error #%d\n", file, line, context, "FormatMessageA", GetLastError ());
+    (void)fprintf (stderr, "%s:%d [%s, %s]: error #%lu\n", file, line, context, "FormatMessageA", GetLastError ());
 
   // cover some edge-cases
   assert (buf_size > 0);
