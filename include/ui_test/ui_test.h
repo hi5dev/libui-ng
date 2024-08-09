@@ -53,6 +53,30 @@
 #endif
 
 /**
+ * @brief Returns from the caller if the given condition is true.
+ * @param condition that should be true.
+ */
+#define ui_test_return_if(condition, ...)                                                                             \
+  do                                                                                                                  \
+    {                                                                                                                 \
+      if ((condition))                                                                                                \
+        return __VA_ARGS__;                                                                                           \
+    }                                                                                                                 \
+  while (0)
+
+/**
+ * @brief Returns from the caller if the given condition is not true.
+ * @param condition that should not be true.
+ */
+#define ui_test_return_if_not(condition, ...)                                                                         \
+  do                                                                                                                  \
+    {                                                                                                                 \
+      if ((condition))                                                                                                \
+        return __VA_ARGS__;                                                                                           \
+    }                                                                                                                 \
+  while (0)
+
+/**
  * @brief Test callback function type.
  */
 typedef void (ui_test_cb_t) (void);
@@ -157,5 +181,5 @@ void ui_test_run_one (volatile struct ui_test_t *test, struct ui_test_report_t *
  * @param filename full path to the file with the test's source code.
  * @param line number that resulted in changing the test's status.
  */
-void ui_test_set_status (struct ui_test_t *test, enum ui_test_status_t status, char *message,
-                         const char *filename, int line);
+void ui_test_set_status (struct ui_test_t *test, enum ui_test_status_t status, char *message, const char *filename,
+                         int line);

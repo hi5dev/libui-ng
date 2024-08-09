@@ -146,7 +146,7 @@ ui_test_set_status (struct ui_test_t *test, const enum ui_test_status_t status, 
 
   test->status             = status;
   test->backtrace.message  = message;
-  test->backtrace.filename = filename;
+  test->backtrace.file = filename;
   test->backtrace.line     = line;
 }
 
@@ -160,7 +160,7 @@ ui_test_set_status_test (void)
   const enum ui_test_status_t status = test.status;
 
   char     *message = strdup (test.backtrace.message);
-  char     *file    = strdup (test.backtrace.filename);
+  char     *file    = strdup (test.backtrace.file);
   const int line    = test.backtrace.line;
 
   ui_expect (status == UI_TEST_STATUS_PENDING, "ui_test_set_status did not update test.status");

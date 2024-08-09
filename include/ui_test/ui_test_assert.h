@@ -1,52 +1,72 @@
 #pragma once
 
-#define ui_assert_cmp(actual, expected)                                                                               \
-  _Generic ((expected),                                                                                               \
-      char *: ui_test_assert_cmp_string,                                                                              \
-      double: ui_test_assert_cmp_double,                                                                              \
-      float: ui_test_assert_cmp_float,                                                                                \
-      int: ui_test_assert_cmp_int) (actual, expected)
+#include <ui_test.h>
+#include <ui_test_compare.h>
 
-#define ui_assert_eq(actual, expected)                                                                                \
-  _Generic ((expected),                                                                                               \
-      char *: ui_test_assert_eq_string,                                                                               \
-      double: ui_test_assert_eq_double,                                                                               \
-      float: ui_test_assert_eq_float,                                                                                 \
-      int: ui_test_assert_eq_int) (&test, 1, actual, expected, __FILE__, __LINE__)
+#pragma region macros
 
-#define ui_assert_not_eq(actual, expected)                                                                            \
-  _Generic ((expected),                                                                                               \
-      char *: ui_test_assert_eq_string,                                                                               \
-      double: ui_test_assert_eq_double,                                                                               \
-      float: ui_test_assert_eq_float,                                                                                 \
-      int: ui_test_assert_eq_int) (&test, 0, actual, expected, __FILE__, __LINE__)
+#define ui_test_assert_compare(test, actual, expected, invert, file, func, line)                                      \
+  ({                                                                                                                  \
+    const void *_actual   = (const void *)actual;                                                                    \
+    const void *_expected = (const void *)expected;                                                                  \
+    ui_test_assert_init (test, file, func, line,                                                                      \
+                         ui_test_compare_init (_actual, _expected, invert, ui_test_compare_function (actual),         \
+                                               ui_test_compare_message (actual)));                                    \
+  })
 
-#define ui_assert_true(b)  ui_assert_eq (&test, b, 1, __FILE__, __LINE__)
-#define ui_assert_false(b) ui_assert_not_eq (&test, b, 1, __FILE__, __LINE__)
+#define ui_assert_equality(actual, expected, invert, file, func, line)                                                \
+  ui_test_return_if_not (ui_test_assert (ui_test_assert_compare (&test, actual, expected, invert, file, func, line)))
 
-#define ui_assert_null(ptr)     ui_test_assert_eq_null (&test, (ptr), 1, __FILE__, __LINE__)
-#define ui_assert_not_null(ptr) ui_test_assert_eq_null (&test, (ptr), 0, __FILE__, __LINE__)
+#define ui_assert_eq(actual, equal) ui_assert_equality (actual, equal, 0, __FILE__, __FUNCTION__, __LINE__)
 
-typedef int (ui_test_assert_cmp_func) (const void *, const void *);
+#define ui_assert_not_eq(actual, not_equal) ui_assert_equality (actual, not_equal, 1, __FILE__, __FUNCTION__, __LINE__)
 
-int ui_test_assert_cmp_bool (int l, int r);
+#pragma endregion
 
-int ui_test_assert_cmp_double (double l, double r);
+#pragma region types
 
-int ui_test_assert_cmp_float (float l, float r);
+/**
+ * @brief Test assertion data.
+ */
+struct ui_test_assert_t;
 
-int ui_test_assert_cmp_int (int l, int r);
+#pragma endregion
 
-int ui_test_assert_cmp_string (char *l, char *r);
+#pragma region structure
 
-void ui_test_assert_eq_bool (struct ui_test_t *test, int eq, int actual, int expected, char *file, int line);
+/**
+ * @brief Test assertion data.
+ */
+struct ui_test_assert_t
+{
+  /// @brief Test case.
+  struct ui_test_t *test;
 
-void ui_test_assert_eq_double (struct ui_test_t *test, int eq, double actual, double expected, char *file, int line);
+  /// @brief Source file.
+  const char *file;
 
-void ui_test_assert_eq_float (struct ui_test_t *test, int eq, float actual, float expected, char *file, int line);
+  /// @brief Function name.
+  const char *func;
 
-void ui_test_assert_eq_int (struct ui_test_t *test, int eq, int actual, int expected, char *file, int line);
+  /// @brief Line number.
+  const int line;
 
-void ui_test_assert_eq_null (struct ui_test_t *test, int eq, void *ptr, char *file, int line);
+  /// @brief Values being compared.
+  struct ui_test_compare_t compare;
+};
 
-void ui_test_assert_eq_string (struct ui_test_t *test, int eq, char *actual, char *expected, char *file, int line);
+struct ui_test_assert_t ui_test_assert_init (struct ui_test_t *test, const char *file, const char *func, int line,
+                                             struct ui_test_compare_t compare);
+
+#pragma endregion
+
+#pragma region functions
+
+/**
+ * @brief Performs the test described in the given assertion data and updates its test.
+ * @param data @p ui_test_assert_t
+ * @return non-zero when the test passes.
+ */
+int ui_test_assert (struct ui_test_assert_t data);
+
+#pragma endregion

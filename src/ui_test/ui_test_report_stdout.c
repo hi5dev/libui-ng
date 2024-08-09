@@ -40,10 +40,10 @@ ui_test_report_stdout_backtrace (const struct ui_test_report_message_t *message,
     return;
 
   if (include_message && bt->message != NULL)
-    (void)fprintf (stdout, "  %s:%d: %s\n\n", bt->filename, bt->line, bt->message);
+    (void)fprintf (stdout, "  %s:%d: %s\n\n", bt->file, bt->line, bt->message);
 
   else
-    (void)fprintf (stdout, "  %s:%d\n\n", bt->filename, bt->line);
+    (void)fprintf (stdout, "  %s:%d\n\n", bt->file, bt->line);
 }
 
 static void
