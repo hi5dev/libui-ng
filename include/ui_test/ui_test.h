@@ -53,30 +53,6 @@
 #endif
 
 /**
- * @brief Returns from the caller if the given condition is true.
- * @param condition that should be true.
- */
-#define ui_test_return_if(condition, ...)                                                                             \
-  do                                                                                                                  \
-    {                                                                                                                 \
-      if ((condition))                                                                                                \
-        return __VA_ARGS__;                                                                                           \
-    }                                                                                                                 \
-  while (0)
-
-/**
- * @brief Returns from the caller if the given condition is not true.
- * @param condition that should not be true.
- */
-#define ui_test_return_if_not(condition, ...)                                                                         \
-  do                                                                                                                  \
-    {                                                                                                                 \
-      if ((condition))                                                                                                \
-        return __VA_ARGS__;                                                                                           \
-    }                                                                                                                 \
-  while (0)
-
-/**
  * @brief Test callback function type.
  */
 typedef void (ui_test_cb_t) (void);
