@@ -23,6 +23,7 @@ endif ()
 add_subdirectory (ui_test)
 
 add_subdirectory (ui)
+add_subdirectory (ui_event)
 add_subdirectory (ui_headless)
 
 if (APPLE)

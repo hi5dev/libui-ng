@@ -143,6 +143,22 @@ int ui_test_cmp_float (struct ui_test_t *test, int invert, float l, float r, con
 int ui_test_cmp_int (struct ui_test_t *test, int invert, int l, int r, const char *file, int line);
 
 /**
+ * @brief Checks the equality of two unsigned longs.
+ * @param test that is running.
+ * @param invert non-zero when the values should not be equal.
+ * @param l the expected value
+ * @param r the actual value
+ * @param file full path to the caller's source file.
+ * @param line line number of the caller.
+ * @return non-zero when the value are equal and @p invert is zero, zero when the values are equal and @p invert is not
+ * @return @p 1 when @p invert is @p 0 and the difference between @p l and @p r <b>is</b> @p 0
+ * @return @p 0 when @p invert is @p 1 and the difference between @p l and @p r <b>is</b> @p 0
+ * @return @p 0 when @p invert is @p 0 and the difference between @p l and @p r is <b>not</b> @p 0
+ * @return @p 1 when @p invert is @p 1 and the difference between @p l and @p r is <b>not</b> @p 0
+ */
+int ui_test_cmp_long (struct ui_test_t *test, int invert, long l, long r, const char *file, int line);
+
+/**
  * @brief Checks the equality of two strings.
  * @param test that is running.
  * @param invert non-zero when the values should not be equal.

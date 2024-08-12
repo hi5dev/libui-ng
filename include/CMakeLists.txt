@@ -16,6 +16,7 @@ project (
 set (PROJECT_VERSION_TWEAK "${CMAKE_PROJECT_VERSION_TWEAK}")
 
 add_subdirectory (ui)
+add_subdirectory (ui_event)
 add_subdirectory (ui_headless)
 add_subdirectory (ui_test)
 

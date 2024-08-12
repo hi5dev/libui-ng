@@ -33,7 +33,6 @@ target_sources (
 
   FILES
   ui_control.h
-  ui_event.h
   ui_main.h
   ui_window.h
 )

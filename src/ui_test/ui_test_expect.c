@@ -66,8 +66,8 @@ ui_test_cmp_float_bias (struct ui_test_t *test, const int invert, const struct u
 {
   const int same_sign = l.value.i < 0 == r.value.i < 0;
 
-   // when the signs are different, test for +0 == -0
-  if ((!same_sign && l.value.i == r.value.i) == (invert== 0))
+  // when the signs are different, test for +0 == -0
+  if ((!same_sign && l.value.i == r.value.i) == (invert == 0))
     return ui_test_pass (test, file, line);
 
   // compare difference
@@ -142,6 +142,24 @@ ui_test_cmp_int (struct ui_test_t *test, const int invert, const int l, const in
   char message[BUFSIZ];
 
   const int size = sprintf (message, "expected %d %s equal %d", l, invert ? "not to" : "to", r);
+
+  message[(size + 1) / sizeof (char)] = '\0';
+
+  return ui_test_fail (test, message, file, line);
+}
+
+int
+ui_test_cmp_long (struct ui_test_t *test, const int invert, const long l, const long r, const char *file,
+                  const int line)
+{
+  const int diff = l > r ? l - r : r - l;
+
+  if (diff == 0 == (invert == 0))
+    return ui_test_pass (test, file, line);
+
+  char message[BUFSIZ];
+
+  const int size = sprintf (message, "expected %lu %s equal %lu", l, invert ? "not to" : "to", r);
 
   message[(size + 1) / sizeof (char)] = '\0';
 

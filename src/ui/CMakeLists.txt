@@ -32,7 +32,6 @@ target_sources (
 
   PRIVATE
   ui_control.c
-  ui_event.c
   ui_main.c
   ui_window.c
 )
@@ -42,7 +41,6 @@ ui_test (
 
   TEST_CASES
   ui_control_test_create
-  ui_event_test
   ui_window_borderless_test
   ui_window_cdtor_test
   ui_window_client_size_test

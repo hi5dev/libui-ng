@@ -5,6 +5,7 @@ API/header only interfaces.
 ## [Index](../README.md)
 - **[APIs](./README.md)**
   - [Platform-Independent API](./ui/README.md)
+  - [Event API](./ui_event/README.md)
   - [Headless API](./ui_headless/README.md)
   - [Linux API](./ui_linux/README.md)
   - [OSX API](./ui_osx/README.md)
