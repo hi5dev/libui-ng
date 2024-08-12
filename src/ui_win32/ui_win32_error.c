@@ -152,3 +152,20 @@ ui_win32_log_last_error_test (void)
   ui_expect_cmp (str, actual, is, "file:99 [test]: The handle is invalid.");
   free (actual);
 }
+
+void
+ui_win32_abort_on_error (const char *context)
+{
+  const DWORD last_error = ui_win32_log_last_error (context);
+
+  if (last_error != ERROR_SUCCESS)
+    abort ();
+}
+
+void
+ui_win32_assert_on_error (const char *context)
+{
+  const DWORD last_error = ui_win32_log_last_error (context);
+
+  assert (last_error == ERROR_SUCCESS);
+}

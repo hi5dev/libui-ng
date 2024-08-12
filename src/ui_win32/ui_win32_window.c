@@ -45,7 +45,7 @@ ui_win32_window_get_attributes (struct ui_window_t *window, const int index)
 
   const LONG attributes = GetWindowLong (window->handle, index);
   if (attributes == 0)
-    (void)ui_win32_assert_on_error (GetWindowLong);
+    ui_win32_assert_on_error ("GetWindowLong");
 
   return attributes;
 }
@@ -99,18 +99,18 @@ ui_win32_window_register_class (const HINSTANCE instance)
   // handle unexpected errors raised by GetClassInfoEx
   const DWORD get_class_info_error = GetLastError ();
   if (get_class_info_error != ERROR_SUCCESS && get_class_info_error != ERROR_CLASS_DOES_NOT_EXIST)
-    (void)ui_win32_assert_on_error (GetClassInfoEx);
+    ui_win32_assert_on_error ("GetClassInfoEx");
 
   // a handle to the class cursor - must be a handle to a cursor resource - NULL requires the application to set the
   // the cursor shape whenever the mouse moves into the window
   wc.hCursor = LoadCursor (NULL, IDC_ARROW);
   if (wc.hCursor == NULL)
-    (void)ui_win32_assert_on_error (LoadCursor);
+    ui_win32_assert_on_error ("LoadCursor");
 
   // handle to the class icon -  must be a handle to an icon resource, or NULL for a system-provided default icon
   wc.hIcon = LoadIcon (NULL, IDI_APPLICATION);
   if (wc.hIcon == NULL)
-    (void)ui_win32_assert_on_error (LoadIcon);
+    ui_win32_assert_on_error ("LoadIcon");
 
   // pointer to a null-terminated string that specifies the window class name
   wc.lpszClassName = UI_WIN32_WINDOW_CLASS;
@@ -126,7 +126,7 @@ ui_win32_window_register_class (const HINSTANCE instance)
 
   // crash while debugging if the window fails to register
   if (RegisterClassEx (&wc) == 0)
-    (void)ui_win32_assert_on_error (RegisterClassEx);
+    ui_win32_assert_on_error ("RegisterClassEx");
 }
 
 static ui_test_case
@@ -159,7 +159,7 @@ ui_win32_window_set_attribute (struct ui_window_t *window, const int index, cons
   attributes |= attribute;
 
   if (SetWindowLong (window->handle, index, attributes) == 0)
-    (void)ui_win32_assert_on_error (SetWindowLong);
+    ui_win32_assert_on_error ("SetWindowLong");
 
   return attributes;
 }
@@ -170,7 +170,7 @@ ui_win32_window_set_attributes (struct ui_window_t *window, const int index, con
   assert (window != NULL);
 
   if (SetWindowLong (window->handle, index, attributes) == 0)
-    (void)ui_win32_assert_on_error (SetWindowLong);
+    ui_win32_assert_on_error ("SetWindowLong");
 }
 
 LONG
@@ -185,7 +185,7 @@ ui_win32_window_unset_attribute (struct ui_window_t *window, const int index, co
   attributes &= ~attribute;
 
   if (SetWindowLong (window->handle, index, attributes) == 0)
-    (void)ui_win32_assert_on_error (SetWindowLong);
+    ui_win32_assert_on_error ("SetWindowLong");
 
   return attributes;
 }
@@ -214,14 +214,14 @@ ui_window_create (const char *title, const int width, const int height, const in
   const HANDLE heap = GetProcessHeap ();
   if (heap == NULL)
     {
-      (void)ui_win32_assert_on_error (GetProcessHeap);
+      ui_win32_assert_on_error ("GetProcessHeap");
       return NULL;
     }
 
   struct ui_window_t *window = HeapAlloc (heap, HEAP_ZERO_MEMORY, sizeof (*window));
   if (window == NULL)
     {
-      (void)ui_win32_assert_on_error (HeapAlloc);
+      ui_win32_assert_on_error ("HeapAlloc");
       return NULL;
     }
 
@@ -230,7 +230,7 @@ ui_window_create (const char *title, const int width, const int height, const in
 
   if (window->handle == NULL)
     {
-      (void)ui_win32_assert_on_error (CreateWindowEx);
+      ui_win32_assert_on_error ("CreateWindowEx");
       return NULL;
     }
 
@@ -240,7 +240,7 @@ ui_window_create (const char *title, const int width, const int height, const in
       assert (window->menu != NULL);
 
       if (!SetMenu (window->handle, window->menu))
-        (void)ui_win32_assert_on_error (SetMenu);
+        ui_win32_assert_on_error ("SetMenu");
       else
         assert (window->menu != NULL);
     }
@@ -257,15 +257,15 @@ ui_window_destroy (struct ui_window_t *window)
   assert (window != NULL);
 
   if (!DestroyWindow (window->handle))
-    (void)ui_win32_assert_on_error (DestroyWindow);
+    ui_win32_assert_on_error ("DestroyWindow");
 
   const HANDLE heap = GetProcessHeap ();
 
   if (heap == NULL)
-    (void)ui_win32_assert_on_error (GetProcessHeap);
+    ui_win32_assert_on_error ("GetProcessHeap");
 
   else if (!HeapFree (heap, 0, window))
-    (void)ui_win32_assert_on_error (HeapFree);
+    ui_win32_assert_on_error ("HeapFree");
 }
 
 int
@@ -324,19 +324,19 @@ ui_window_get_title (struct ui_window_t *window)
   SetLastError (ERROR_SUCCESS);
   const int length = GetWindowTextLengthA (window->handle);
   if (length == 0)
-    (void)ui_win32_assert_on_error (GetWindowTextLengthA);
+    ui_win32_assert_on_error ("GetWindowTextLengthA");
 
   char *buf = VirtualAlloc (NULL, length + 1, MEM_COMMIT, PAGE_READWRITE);
   if (buf == NULL)
-    (void)ui_win32_assert_on_error (VirtualAlloc);
+    ui_win32_assert_on_error ("VirtualAlloc");
 
   if (GetWindowTextA (window->handle, buf, length + 1) == 0)
-    (void)ui_win32_assert_on_error (GetWindowTextA);
+    ui_win32_assert_on_error ("GetWindowTextA");
 
   char *title = strdup (buf);
 
   if (VirtualFree (buf, 0, MEM_RELEASE) == 0)
-    (void)ui_win32_assert_on_error (VirtualFree);
+    ui_win32_assert_on_error ("VirtualFree");
 
   return title;
 }
@@ -347,7 +347,7 @@ ui_window_hide (struct ui_window_t *window)
   assert (window != NULL);
 
   if (ShowWindow (window->handle, SW_HIDE) == 0)
-    (void)ui_win32_assert_on_error (ShowWindow);
+    ui_win32_assert_on_error ("ShowWindow");
 }
 
 int
@@ -381,7 +381,7 @@ ui_window_set_client_size (struct ui_window_t *window, const int width, const in
   RECT      rect     = { 0, 0, width, height };
   const int has_menu = window->menu != NULL;
   if (AdjustWindowRectEx (&rect, style, has_menu, style_ex) == 0)
-    (void)ui_win32_assert_on_error (AdjustWindowRectEx);
+    ui_win32_assert_on_error ("AdjustWindowRectEx");
 
   if (has_menu)
     {
@@ -389,7 +389,7 @@ ui_window_set_client_size (struct ui_window_t *window, const int width, const in
       rect_cpy.bottom = 0x7FFF;
       SetLastError (ERROR_SUCCESS);
       SendMessage (window->handle, WM_NCCALCSIZE, FALSE, (LPARAM)&rect_cpy);
-      (void)ui_win32_assert_on_error (SendMessage);
+      ui_win32_assert_on_error ("SendMessage");
       rect.bottom += rect_cpy.top;
     }
 
@@ -398,7 +398,7 @@ ui_window_set_client_size (struct ui_window_t *window, const int width, const in
 
   static const int flags = SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER;
   if (SetWindowPos (window->handle, NULL, rect.left, rect.top, client_width, client_height, flags) == 0)
-    (void)ui_win32_assert_on_error (SetWindowPos);
+    ui_win32_assert_on_error ("SetWindowPos");
 }
 
 void
@@ -436,7 +436,7 @@ ui_window_set_fullscreen (struct ui_window_t *window, const int fullscreen)
   ui_window_set_borderless (window, fullscreen);
 
   if (!SetWindowPos (window->handle, insert_after, size.left, size.top, size.right, size.bottom, flags))
-    (void)ui_win32_assert_on_error (SetWindowPos);
+    ui_win32_assert_on_error ("SetWindowPos");
 }
 
 void
@@ -447,7 +447,7 @@ ui_window_set_position (struct ui_window_t *window, const int x, const int y)
   static const UINT flags = SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOZORDER;
 
   if (!SetWindowPos (window->handle, NULL, x, y, 0, 0, flags))
-    (void)ui_win32_assert_on_error (SetWindowPos);
+    ui_win32_assert_on_error ("SetWindowPos");
 }
 
 void
@@ -468,7 +468,7 @@ ui_window_set_title (struct ui_window_t *window, const char *title)
   assert (window != NULL);
 
   if (!SetWindowTextA (window->handle, title))
-    (void)ui_win32_assert_on_error (SetWindowTextA);
+    ui_win32_assert_on_error ("SetWindowTextA");
 }
 
 void
@@ -477,7 +477,7 @@ ui_window_show (struct ui_window_t *window)
   assert (window != NULL);
 
   if (ShowWindow (window->handle, SW_SHOW) == 0)
-    ui_win32_assert_on_error (ShowWindow);
+    ui_win32_assert_on_error ("ShowWindow");
 }
 
 #pragma endregion

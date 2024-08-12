@@ -22,30 +22,6 @@
   _ui_win32_log_last_error (UI_WIN32_ERROR_LOG_FILE, message, __FILE__, __LINE__)
 
 /**
- * @brief Logs the last Win32 API non-error and aborts.
- * @param message with details about the error.
- * @remark Does nothing if @p GetLastError returns a non-error code (i.e. ERROR_SUCCESS).
- */
-#define ui_win32_abort_on_error(message)                                                                              \
-  do                                                                                                                  \
-    {                                                                                                                 \
-      if (ui_win32_log_last_error (message) != ERROR_SUCCESS)                                                         \
-        abort ();                                                                                                     \
-    }                                                                                                                 \
-  while (0)
-
-/**
- * @brief Logs the last Win32 API non-success error code; asserting ERROR_SUCCESS to fail while debugging.
- * @param context Typicall the Win32 API method called that raised the error.
- */
-#define ui_win32_assert_on_error(context)                                                                             \
-  ({                                                                                                                  \
-    const DWORD context##_error = ui_win32_log_last_error (#context);                                                 \
-    assert (context##_error == ERROR_SUCCESS);                                                                        \
-    context##_error;                                                                                                  \
-  })
-
-/**
  * @brief Extended information about a Win32 API error.
  * @see @ref ui_win32_get_last_error
  */
@@ -83,3 +59,16 @@ struct ui_win32_error_t ui_win32_get_last_error (const char *context, const char
  * @return Last Win32 API error code.
  */
 DWORD _ui_win32_log_last_error (FILE *stream, const char *context, const char *file, int line);
+
+/**
+ * @brief Logs the last Win32 API non-error and aborts.
+ * @param context with details about the error.
+ * @remark Does nothing if @p GetLastError returns a non-error code (i.e. ERROR_SUCCESS).
+ */
+void ui_win32_abort_on_error (const char *context);
+
+/**
+ * @brief Logs the last Win32 API non-success error code; asserting ERROR_SUCCESS to fail while debugging.
+ * @param context Typicall the Win32 API method called that raised the error.
+ */
+void ui_win32_assert_on_error (const char *context);
