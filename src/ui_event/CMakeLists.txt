@@ -35,11 +35,11 @@ target_sources (
   ui_event
 
   PRIVATE
-  ui_event.c
+  ui_event_consumer.c
   ui_event_dispatcher.c
   ui_event_error.c
+  ui_event_list.c
   ui_event_producer.c
-  ui_event_subscriber.c
   ui_event_thread.c
 )
 
@@ -47,5 +47,4 @@ ui_test (
   ui_event
 
   TEST_CASES
-  ui_event_init_test
 )

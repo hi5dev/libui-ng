@@ -2,38 +2,23 @@
 
 #include "ui_event.h"
 
-#include <pthread.h>
-
-/**
- * @brief A consumer receives notifications about events dispatched by a producer.
- */
+//! @see @file ui_event.h
 struct ui_event_consumer_t
 {
-  /// @brief Mutually-exclussive lock used while adding or removing subscribers.
-  pthread_mutex_t lock;
-
-  /// @brief ID of the type of event the subscriber is interested in.
-  unsigned long id;
-
-  /// @brief Event callback function.
-  ui_event_cb *callback;
-
-  /// @brief Previous subscriber.
-  struct ui_event_consumer_t *previous;
-
-  /// @brief Next subscriber.
-  struct ui_event_consumer_t *next;
+  ui_event_cb *callback; //!< The consumer's event callback.
+  const void  *data;     //!< User-defined data to send to the callback.
+  const void  *object;   //!< Object the consumer is interested in.
 };
 
-/**
- * @brief @p ui_event_subscriber_t constructor.
- * @param dispatcher @p ui_event_dispatcher_t
- * @return @p ui_event_subscriber_t
- */
-struct ui_event_consumer_t *ui_event_consumer_create (struct ui_event_dispatcher_t *dispatcher);
+//!< @brief @p ui_event_consumer_t constructor.
+//!< @returns @p ui_event_consumer_t
+struct ui_event_consumer_t *ui_event_consumer_create ( //!< @params
+    ui_event_cb *callback,                             //!< Callback function.
+    void        *data,                                 //!< User-defined data.
+    void        *object                                //!< Object the consumer is interested in.
+);
 
-/**
- * @brief @p ui_event_subscriber_t destructor.
- * @param consumer @p ui_event_subscriber_t
- */
-void ui_event_consumer_destroy (struct ui_event_consumer_t *consumer);
+//!< @brief @p ui_event_consumer_t destructor.
+void ui_event_consumer_destroy (         //!< @params
+    struct ui_event_consumer_t *consumer //!< The consumer to destroy.
+);

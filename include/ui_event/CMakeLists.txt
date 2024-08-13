@@ -26,7 +26,9 @@ target_sources (
 
   FILES
   ui_event.h
+  ui_event_consumer.h
   ui_event_dispatcher.h
+  ui_event_list.h
   ui_event_producer.h
-  ui_event_subscriber.h
+  ui_event_type.h
 )

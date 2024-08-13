@@ -3,13 +3,13 @@
 #include "ui_event.h"
 
 //! @see @file ui_event.h
-struct ui_event_producer_t
+struct ui_event_type_t
 {
   const char *id; //!< Unique identifier.
 };
 
 /**
- * @brief Creates an event producer.
+ * @brief Creates an event type.
  * @param N A unique and valid C variable name.
  */
-#define ui_event_producer(N) struct ui_event_producer_t N = { .id = #N }
+#define ui_event_type(N) struct ui_event_type_t N = { .id = #N }

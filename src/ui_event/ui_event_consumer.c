@@ -1,32 +1,29 @@
 #include <ui_event_consumer.h>
 
 #include "ui_event_error.h"
-#include "ui_event_thread.h"
 
-#include <malloc.h>
+#include <stdlib.h>
 
 struct ui_event_consumer_t *
-ui_event_consumer_create (void)
+ui_event_consumer_create (ui_event_cb *callback, void *data, void *object)
 {
-  struct ui_event_consumer_t *subscriber = calloc (1, sizeof (struct ui_event_consumer_t));
-  if (subscriber == NULL)
+  struct ui_event_consumer_t *consumer = calloc (1, sizeof (*consumer));
+
+  if (consumer == NULL)
     {
-      ui_event_perror (errno);
+      ui_event_perrno ();
       return NULL;
     }
 
-  ui_event_thread_mutex_init (subscriber->lock, NULL);
+  consumer->callback = callback;
+  consumer->data     = data;
+  consumer->object   = object;
 
-  return subscriber;
+  return consumer;
 }
 
 void
-ui_event_subscriber_destroy (struct ui_event_consumer_t *subscriber)
+ui_event_consumer_destroy (struct ui_event_consumer_t *consumer)
 {
-  if (subscriber == NULL)
-    return;
-
-  ui_event_thread_mutex_destroy (subscriber->lock);
-
-  free (subscriber);
+  free (consumer);
 }

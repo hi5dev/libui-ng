@@ -17,11 +17,15 @@
 #define ui_event_perror(code) _ui_event_perror (code, UI_EVENT_PERROR_STREAM, __FILE__, __func__, __LINE__)
 
 /**
- * @brief Prints reason for the given @p errno to @p UI_EVENT_PERROR_STREAM.
- * @param code @p errno
- * @param stream to write the error - uses @p UI_EVENT_PERROR_STREAM, which defaults to stderr.
- * @param file with the source of the error.
- * @param func that raised the error.
- * @param line number of the error.
+ * @brief Prints the reason for the current @p errno to @p UI_EVENT_PERROR_STREAM.
  */
-void _ui_event_perror (int code, FILE *stream, const char *file, const char *func, int line);
+#define ui_event_perrno() _ui_event_perror (errno, UI_EVENT_PERROR_STREAM, __FILE__, __func__, __LINE__)
+
+//! @brief Prints reason for the given @p errno to @p UI_EVENT_PERROR_STREAM.
+void _ui_event_perror ( //!< @params
+    int         code,   //!< Error number.
+    FILE       *stream, //!< File stream to write the message.
+    const char *file,   //!< Full path to the source file.
+    const char *func,   //!< Name of the source function.
+    int         line    //!< Line number with the code that caused the error.
+);
