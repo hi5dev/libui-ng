@@ -4,4 +4,5 @@ This project uses a minimal amount of third-party libraries, and only those that
 
 ## [Index](../README.md)
 - **[Third-Party Libraries](./README.md)**
+  - [dbg-macro](./dbg-macro/README.md)
   - [tinyexpr](./tinyexpr/README.md)

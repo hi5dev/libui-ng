@@ -15,4 +15,5 @@ project (
 
 set (PROJECT_VERSION_TWEAK "${CMAKE_PROJECT_VERSION_TWEAK}")
 
+add_subdirectory (dbg-macro)
 add_subdirectory (tinyexpr)
