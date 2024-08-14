@@ -49,6 +49,7 @@ ui_test (
   ui_event
 
   TEST_CASES
-  ui_event_test
   ui_event_cdtor_test
+  ui_event_test
+  ui_event_update_timestamp_test
 )

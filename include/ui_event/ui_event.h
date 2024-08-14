@@ -39,3 +39,8 @@ struct ui_event_t *ui_event_create (void);
 void ui_event_destroy (      //!< @params
     struct ui_event_t *event //!< The event to destroy.
 );
+
+//! @brief Sets an @ref ui_event_t event's timestamp to the current time.
+void ui_event_update_timestamp ( //!< @params
+    struct ui_event_t *event     //!< The event to update.
+);
