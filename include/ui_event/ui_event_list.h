@@ -2,12 +2,27 @@
 
 #include "ui_event.h"
 
+//! @brief Use this macro to guard against inserting unsupported types.
+//! @param list to insert the item into.
+//! @param item being inserted.
+#define ui_event_list_insert(list, item)                                                                              \
+  _Generic ((item),                                                                                                   \
+      struct ui_event_consumer_t *: ui_event_list_insert_after,                                                       \
+      struct ui_event_event_t *: ui_event_list_insert_after,                                                          \
+      struct ui_event_producer_t *: ui_event_list_insert_after) (list, item)
+
 //! @see @file ui_event.h
 struct ui_event_list_t
 {
-  ui_event_data_t         item;     //!< Item in the list.
-  struct ui_event_list_t *previous; //!< Previous item in the list.
-  struct ui_event_list_t *next;     //!< Next item in the list.
+  union
+  {
+    struct ui_event_producer_t *producer; //!< Producer data.
+    struct ui_event_event_t    *event;    //!< Event data.
+    struct ui_event_consumer_t *consumer; //!< Consumer data.
+    void                       *data;     //!< Raw data.
+  };                                      //!< Item in the list.
+  struct ui_event_list_t *previous;       //!< Previous item in the list.
+  struct ui_event_list_t *next;           //!< Next item in the list.
 };
 
 //! @brief Clears all items from a list.
@@ -26,7 +41,7 @@ struct ui_event_list_t *ui_event_list_first ( //! @params
 //! @returns List data created for the given item.
 struct ui_event_list_t *ui_event_list_insert_after ( //!< @params
     struct ui_event_list_t *list,                    //!< List to append the item.
-    ui_event_data_t         item                     //!< Item being added to the list.
+    void                   *data                     //!< Item being added to the list.
 );
 
 //! @brief Gets the last item of the given list.
@@ -43,6 +58,6 @@ struct ui_event_list_t *ui_event_list_remove ( //!< @params
 );
 
 //! @returns Total number of items in the given list.
-int ui_event_list_size (               //!< @params
+int ui_event_list_size (         //!< @params
     struct ui_event_list_t *list //!< The list.
 );

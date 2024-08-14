@@ -30,7 +30,7 @@ ui_event_list_first (struct ui_event_list_t *list)
 }
 
 struct ui_event_list_t *
-ui_event_list_insert_after (struct ui_event_list_t *list, const ui_event_data_t item)
+ui_event_list_insert_after (struct ui_event_list_t *list, void *data)
 {
   struct ui_event_list_t *i = calloc (1, sizeof (*list));
   if (i == NULL)
@@ -39,12 +39,12 @@ ui_event_list_insert_after (struct ui_event_list_t *list, const ui_event_data_t 
       return NULL;
     }
 
-  i->item = item;
+  i->data = data;
   if (list == NULL)
     return i;
 
   i->previous = list;
-  i->next = list->next;
+  i->next     = list->next;
 
   if (list->next != NULL)
     list->next->previous = i;
@@ -117,33 +117,33 @@ ui_event_list_test (void)
   ui_expect_cmp (int, ui_event_list_size (cur), is, 0);
 
   // list = [Item1]
-  cur = ui_event_list_insert_after (cur, (ui_event_data_t)item1);
+  cur = ui_event_list_insert_after (cur, (void*)item1);
   ui_expect_not_null (cur);
-  ui_expect_cmp (str, (const char *)cur->item, is, item1);
+  ui_expect_cmp (str, cur->data, is, item1);
   ui_expect_cmp (int, ui_event_list_size (cur), is, 1);
   ui_expect_null (cur->previous);
   ui_expect_null (cur->next);
 
   // list = [Item1, Item3] // with cursor at Item2
-  cur = ui_event_list_insert_after (cur, (ui_event_data_t)item3);
+  cur = ui_event_list_insert_after (cur, (void*)item3);
   ui_expect_not_null (cur);
-  ui_expect_cmp (str, (const char *)cur->item, is, item3);
+  ui_expect_cmp (str, cur->data, is, item3);
   ui_expect_cmp (int, ui_event_list_size (cur), is, 2);
 
   ui_expect_not_null (cur->previous);
-  ui_expect_cmp (str, (const char *)cur->previous->item, is, item1);
+  ui_expect_cmp (str, cur->previous->data, is, item1);
   ui_expect_cmp (int, ui_event_list_size (cur->previous), is, 2);
 
   ui_expect_null (cur->previous->previous);
 
   ui_expect_not_null (cur->previous->next);
-  ui_expect_cmp (str, (const char *)cur->previous->next->item, is, item3);
+  ui_expect_cmp (str, cur->previous->next->data, is, item3);
   ui_expect_null (cur->next);
 
-  cur = ui_event_list_insert_after (cur->previous, (ui_event_data_t)item2);
-  ui_expect_cmp (str, (const char *)cur->item, is, item2);
-  ui_expect_cmp (str, (const char *)cur->previous->item, is, item1);
-  ui_expect_cmp (str, (const char *)cur->next->item, is, item3);
+  cur = ui_event_list_insert_after (cur->previous, (void*)item2);
+  ui_expect_cmp (str, cur->data, is, item2);
+  ui_expect_cmp (str, cur->previous->data, is, item1);
+  ui_expect_cmp (str, cur->next->data, is, item3);
 
   ui_expect_cmp (int, ui_event_list_size (cur), is, 3);
   ui_expect_cmp (int, ui_event_list_size (cur->previous), is, 3);

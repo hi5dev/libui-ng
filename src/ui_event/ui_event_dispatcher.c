@@ -25,7 +25,7 @@ ui_event_dispatcher_destroy (struct ui_event_dispatcher_t *dispatcher)
     return;
 
   for (const struct ui_event_list_t *i = ui_event_list_first (dispatcher->consumers); i != NULL; i = i->next)
-    ui_event_consumer_destroy ((struct ui_event_consumer_t *)i->item);
+    ui_event_consumer_destroy (i->consumer);
 
   ui_event_list_clear (dispatcher->consumers);
   ui_event_list_clear (dispatcher->events);
