@@ -34,6 +34,7 @@ target_sources (
   FILES
   ui_test.h
   ui_test_backtrace.h
+  ui_test_debug.h
   ui_test_expect.h
   ui_test_main.h
   ui_test_options.h
@@ -42,4 +43,5 @@ target_sources (
   ui_test_report_message.h
   ui_test_report_stdout.h
   ui_test_status.h
+  ui_test_time.h
 )

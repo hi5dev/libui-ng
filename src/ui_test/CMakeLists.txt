@@ -22,6 +22,9 @@ add_library (ui::test ALIAS ui_test)
 target_link_libraries (
   ui_test
 
+  PRIVATE
+  dbg_macro
+
   PUBLIC
   ui::test::interface
 )
@@ -31,9 +34,11 @@ target_sources (
 
   PRIVATE
   ui_test.c
+  ui_test_debug.c
   ui_test_expect.c
   ui_test_main.c
   ui_test_report_stdout.c
+  ui_test_time.c
   ui_test_ulp.c
 )
 
@@ -81,6 +86,8 @@ ui_test (
 
   ui_test_expect_bool_test
   ui_test_expect_null_test
+
+  ui_test_msleep_test
 
   ui_test_set_status_test
 

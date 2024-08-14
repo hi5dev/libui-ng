@@ -24,6 +24,7 @@ LibUI test framework and runner API.
       - [ui_test_report](./ui_test_report.md)
       - [ui_test_report_event](./ui_test_report_event.md)
       - [ui_test_status](./ui_test_status.md)
+      - [ui_test_time](./ui_test_time.md)
 
 ### Synopsis
 
