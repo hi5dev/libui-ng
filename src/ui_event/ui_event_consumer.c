@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 struct ui_event_consumer_t *
-ui_event_consumer_create (ui_event_cb *callback, void *data, void *object)
+ui_event_consumer_create (ui_event_cb *callback, const ui_event_data_t data, const ui_event_data_t object)
 {
   struct ui_event_consumer_t *consumer = calloc (1, sizeof (*consumer));
 

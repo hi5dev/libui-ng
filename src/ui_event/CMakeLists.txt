@@ -45,6 +45,15 @@ target_sources (
   ui_event_thread.c
 )
 
+if (TARGET ui::test::runner)
+  target_sources (
+    ui_event
+
+    PRIVATE
+    ui_event_dispatcher_test.c
+  )
+endif ()
+
 ui_test (
   ui_event
 
@@ -56,7 +65,10 @@ ui_test (
   ui_event_update_timestamp_test
 
   # ui_event_dispatcher_t
-  ui_event_dispatcher_cdtor_test
+  ui_event_dispatcher_add_producer_once_test
+  ui_event_dispatcher_ctor_test
+  ui_event_dispatcher_dispatch_test
+  ui_event_dispatcher_subscribe_test
 
   # ui_event_list_t
   ui_event_list_test

@@ -5,17 +5,17 @@
 //! @see @file ui_event.h
 struct ui_event_consumer_t
 {
-  ui_event_cb *callback; //!< The consumer's event callback.
-  const void  *data;     //!< User-defined data to send to the callback.
-  const void  *object;   //!< Object the consumer is interested in.
+  ui_event_cb    *callback; //!< The consumer's event callback.
+  ui_event_data_t data;     //!< User-defined data to send to the callback.
+  ui_event_data_t object;   //!< Object the consumer is interested in.
 };
 
 //!< @brief @p ui_event_consumer_t constructor.
 //!< @returns @p ui_event_consumer_t
 struct ui_event_consumer_t *ui_event_consumer_create ( //!< @params
-    ui_event_cb *callback,                             //!< Callback function.
-    void        *data,                                 //!< User-defined data.
-    void        *object                                //!< Object the consumer is interested in.
+    ui_event_cb    *callback,                          //!< Callback function.
+    ui_event_data_t data,                              //!< User-defined data.
+    ui_event_data_t object                             //!< Object the consumer is interested in.
 );
 
 //!< @brief @p ui_event_consumer_t destructor.
