@@ -1,9 +1,8 @@
-#include "ui_event_consumer.h"
-
+#include <ui_event_consumer.h>
 #include <ui_event_dispatcher.h>
+#include <ui_event_list.h>
 
 #include "ui_event_error.h"
-#include "ui_event_list.h"
 
 #include <stdlib.h>
 
@@ -21,8 +20,11 @@ ui_event_dispatcher_create (void)
 void
 ui_event_dispatcher_destroy (struct ui_event_dispatcher_t *dispatcher)
 {
-  if (__builtin_expect (dispatcher == NULL, 0))
+  if (dispatcher == NULL)
     return;
+
+  for (const struct ui_event_list_t *i = ui_event_list_first (dispatcher->consumers); i != NULL; i = i->next)
+    ui_event_consumer_destroy ((struct ui_event_consumer_t *)i->item);
 
   ui_event_list_clear (dispatcher->consumers);
   ui_event_list_clear (dispatcher->events);
