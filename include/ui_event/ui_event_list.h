@@ -44,5 +44,5 @@ struct ui_event_list_t *ui_event_list_remove ( //!< @params
 
 //! @returns Total number of items in the given list.
 int ui_event_list_size (               //!< @params
-    const struct ui_event_list_t *list //!< The list.
+    struct ui_event_list_t *list //!< The list.
 );

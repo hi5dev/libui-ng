@@ -49,7 +49,15 @@ ui_test (
   ui_event
 
   TEST_CASES
+
+  # ui_event_t
   ui_event_cdtor_test
   ui_event_test
   ui_event_update_timestamp_test
+
+  # ui_event_dispatcher_t
+  ui_event_dispatcher_cdtor_test
+
+  # ui_event_list_t
+  ui_event_list_test
 )

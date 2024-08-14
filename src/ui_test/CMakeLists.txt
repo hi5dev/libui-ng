@@ -71,7 +71,14 @@ function (ui_test UI_TARGET)
     string (REPLACE "${UI_TARGET}_" "" UI_TEST_NAME "${FUNCTION}")
     set (UI_TEST_NAME "${UI_TARGET}/${UI_TEST_NAME}")
     add_test (NAME "${UI_TEST_NAME}" COMMAND ui::test::runner -n "${FUNCTION}")
-    set_tests_properties ("${UI_TEST_NAME}" PROPERTIES SKIP_REGULAR_EXPRESSION "\\[SKIP\\]")
+
+    set_tests_properties (
+      "${UI_TEST_NAME}"
+
+      PROPERTIES
+      SKIP_REGULAR_EXPRESSION "\\[SKIP\\]"
+      TIMEOUT 10
+    )
   endforeach ()
 endfunction ()
 
